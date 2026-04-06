@@ -173,7 +173,7 @@ function renderCanvas() {
   if (parseInt(panel.style.height) !== H) panel.style.height = H+'px';
   var now = Date.now();
   var activeDate = floorDate || today();
-  var displayTables = (floorDate === today()) ? S.tables : getVirtualTablesForDate(floorDate);
+  var displayTables = (!floorDate || floorDate === today()) ? S.tables : getVirtualTablesForDate(floorDate);
 
   var visible = {};
   displayTables.forEach(function(tb){ visible[tb.id] = true; });
@@ -450,7 +450,7 @@ function renderListView(){
   var now=Date.now();
   var shapeLabel={'sq':'정방형','wide':'가로형','bar':'바형'};
   var html='';
-  var displayTables=(floorDate===today())?S.tables:getVirtualTablesForDate(floorDate);
+  var displayTables=(!floorDate||floorDate===today())?S.tables:getVirtualTablesForDate(floorDate);
   displayTables=displayTables.filter(function(tb){ return !isSlaveTbl(tb.id); });
   displayTables.forEach(function(tb){
     var activeDate = floorDate || today();
@@ -993,11 +993,12 @@ function syncToday(){
   var currentFloorDate = floorDate || td;   // 현재 보고 있는 날짜 (floor-nav 사용 시)
   var changed = false;
 
-  // ==================== 날짜가 바뀌었을 때 모든 테이블 묶음 자동 해제 ====================
+  // ==================== 날짜가 바뀌었을 때 모든 테이블 초기화 ====================
   if (currentFloorDate !== lastDate) {
     console.log('날짜 변경 감지: ' + lastDate + ' → ' + currentFloorDate);
 
     S.tables.forEach(function(t) {
+      // 묶음 해제
       if (t.mergeIds && t.mergeIds.length > 0) {
         delete t.mergeIds;
         changed = true;
@@ -1006,39 +1007,42 @@ function syncToday(){
         delete t.isMergedChild;
         changed = true;
       }
-    });
-
-    // 빈 테이블들은 empty로 초기화
-    S.tables.forEach(function(t) {
-      if (t.st !== 'reserved' && t.st !== 'occupied') {
+      // 오늘 날짜를 보고 있을 때만 착석 중인 테이블 유지, 나머지는 모두 초기화
+      // (reserved 포함 - 다른 날짜의 예약 상태가 S.tables에 남지 않도록)
+      if (t.st !== 'occupied' || currentFloorDate !== td) {
         t.st = 'empty';
         t.res = null;
+        t.g = 0;
+        changed = true;
       }
     });
 
     if (changed) {
-      console.log('✅ 날짜 변경으로 모든 테이블 묶음이 자동 해제되었습니다.');
+      console.log('✅ 날짜 변경으로 테이블 상태가 초기화되었습니다.');
     }
 
-    lastDate = currentFloorDate;   // 현재 보고 있는 날짜로 업데이트
+    lastDate = currentFloorDate;
   }
 
-  // ==================== 기존 로직 (예약 → 착석 자동 적용) ====================
-  S.ress.forEach(function(r){
-    if(r.date === currentFloorDate && r.st === 'confirmed' && r.tableId){
-      var tbl = S.tables.filter(function(t){ return t.id === r.tableId; })[0];
-      if(tbl && tbl.st === 'empty'){
-        var ro = {
-          name: r.nm, g: r.g, time: r.time, date: r.date,
-          phone: r.phone, memo: r.memo, tags: r.tags, resId: r.id
-        };
-        S.tables = S.tables.map(function(t){
-          return t.id === r.tableId ? Object.assign({}, t, {st: 'reserved', res: ro}) : t;
-        });
-        changed = true;
+  // ==================== 오늘 날짜를 볼 때만 확정 예약을 S.tables에 적용 ====================
+  // 다른 날짜는 getVirtualTablesForDate()가 렌더링을 담당하므로 S.tables를 변경하지 않음
+  if (currentFloorDate === td) {
+    S.ress.forEach(function(r){
+      if(r.date === td && r.st === 'confirmed' && r.tableId){
+        var tbl = S.tables.filter(function(t){ return t.id === r.tableId; })[0];
+        if(tbl && tbl.st === 'empty'){
+          var ro = {
+            name: r.nm, g: r.g, time: r.time, date: r.date,
+            phone: r.phone, memo: r.memo, tags: r.tags, resId: r.id
+          };
+          S.tables = S.tables.map(function(t){
+            return t.id === r.tableId ? Object.assign({}, t, {st: 'reserved', res: ro}) : t;
+          });
+          changed = true;
+        }
       }
-    }
-  });
+    });
+  }
 
   if(changed){
     S.tables.forEach(function(t){ cardCache[t.id] = ''; });

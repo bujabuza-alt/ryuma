@@ -74,7 +74,9 @@ function renderFloorNav() {
   });
 }
 function getVirtualTablesForDate(date) {
-  return S.tables.map(function(tb){
+  // 해당 날짜의 예약이 배정된 테이블만 반환 (빈 테이블은 제외)
+  var result = [];
+  S.tables.forEach(function(tb){
     var res=null;
     for(var i=0;i<S.ress.length;i++){
       var r=S.ress[i];
@@ -82,10 +84,11 @@ function getVirtualTablesForDate(date) {
     }
     if(res){
       var ro={name:res.nm,g:res.g,time:res.time,date:res.date,phone:res.phone,memo:res.memo,tags:res.tags,resId:res.id};
-      return Object.assign({},tb,{st:'reserved',res:ro,seatTime:null});
+      result.push(Object.assign({},tb,{st:'reserved',res:ro,seatTime:null}));
     }
-    return Object.assign({},tb,{st:'empty',g:0,seatTime:null,res:null});
+    // 해당 날짜 예약이 없는 테이블은 다른 날짜 배치에 노출되지 않도록 제외
   });
+  return result;
 }
 function mkTable(t) {
   var shape = t.shape || (t.t==='바'?'bar':t.t==='6인'?'wide':'sq');
