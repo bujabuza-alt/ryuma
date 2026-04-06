@@ -1,7 +1,7 @@
 // ── Service Worker ────────────────────────────────────────
 // 모든 로컬 파일 → 네트워크 우선, 오프라인 시 캐시 폴백
 // CACHE_NAME을 올려서 기존 캐시(v1) 강제 삭제
-var CACHE_NAME = 'table-app-v2';
+var CACHE_NAME = 'table-app-v3';
 
 // ── 설치 ─────────────────────────────────────────────────
 self.addEventListener('install', function(event) {
