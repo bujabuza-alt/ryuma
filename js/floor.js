@@ -173,7 +173,7 @@ function renderCanvas() {
   if (parseInt(panel.style.height) !== H) panel.style.height = H+'px';
   var now = Date.now();
   var activeDate = floorDate || today();
-  var displayTables = (floorDate === today()) ? S.tables : getVirtualTablesForDate(floorDate);
+  var displayTables = (activeDate === today()) ? S.tables : getVirtualTablesForDate(activeDate);
 
   var visible = {};
   displayTables.forEach(function(tb){ visible[tb.id] = true; });
@@ -450,7 +450,8 @@ function renderListView(){
   var now=Date.now();
   var shapeLabel={'sq':'정방형','wide':'가로형','bar':'바형'};
   var html='';
-  var displayTables=(floorDate===today())?S.tables:getVirtualTablesForDate(floorDate);
+  var activeDate = floorDate || today();
+  var displayTables=(activeDate===today())?S.tables:getVirtualTablesForDate(activeDate);
   displayTables=displayTables.filter(function(tb){ return !isSlaveTbl(tb.id); });
   displayTables.forEach(function(tb){
     var activeDate = floorDate || today();
@@ -828,8 +829,9 @@ function openSeatWaiter(wid){
 
 // ── 테이블 모달 ──
 function openTableModal(tid){
-  var tb = S.tables.filter(function(t){ return t.id === tid; })[0];
-  if(!tb) return;
+  // 편집 모드 및 실제 테이블 데이터는 항상 S.tables에서 가져옴
+  var realTb = S.tables.filter(function(t){ return t.id === tid; })[0];
+  if(!realTb) return;
 
   // 슬레이브 테이블 → 마스터 모달로 이동
   if (isSlaveTbl(tid)) {
@@ -838,7 +840,7 @@ function openTableModal(tid){
   }
 
   if(editMode){
-    showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' 테이블</span><button class="md-x" id="mxbtn">×</button></div>'
+    showModal('<div class="md-hd"><span class="md-title">'+esc(realTb.n)+' 테이블</span><button class="md-x" id="mxbtn">×</button></div>'
       +'<div class="mb">'
       +'<button class="ab" style="background:var(--indigo);width:100%" id="tbl-edit-btn">✏️ 이름 · 형태 변경</button>'
       +'<button class="ab" style="background:var(--red);width:100%;margin-top:0" id="tbl-del-btn">🗑 테이블 삭제</button>'
@@ -848,11 +850,16 @@ function openTableModal(tid){
     return;
   }
 
+  // 현재 보고 있는 날짜에 맞는 테이블 상태 가져오기
+  var activeDate = floorDate || today();
+  var isViewingToday = (activeDate === today());
+  var tb = isViewingToday ? realTb : (getVirtualTablesForDate(activeDate).filter(function(t){ return t.id === tid; })[0] || realTb);
+
   gvFloor = tb.g || 2;
 
-  if(tb.st==='occupied') showOccupied(tb);
-  else if(tb.st==='reserved') showReserved(tb);
-  else showEmpty(tb);
+  if(tb.st==='occupied') showOccupied(tb, isViewingToday);
+  else if(tb.st==='reserved') showReserved(tb, isViewingToday);
+  else showEmpty(tb, isViewingToday);
 
 // ====================== 여기부터 추가 ======================
   // 묶여있는 테이블인 경우 "묶음 풀기" 버튼을 모달에 추가
@@ -894,54 +901,73 @@ function openTableModal(tid){
     }).join('')
     + '</div></div>';
 }
-function showEmpty(tb){
+function showEmpty(tb, isViewingToday){
   var cap = getMergedCap(tb.id);
   var mergedNames = getMergedNames(tb.id);
   var assignedList = tableAssignedListHtml(tb.id);
   var mergeInfo = mergedNames.length>0
     ? '<div class="fg" style="margin-bottom:0"><div style="font-size:11px;color:var(--text3);margin-bottom:4px">묶인 테이블</div><div class="merge-chip">🔗 '+esc(mergedNames.join(' + '))+'</div></div>'
     : '';
+  // 오늘이 아닌 날짜에서는 착석/묶기 버튼 숨김
+  var actionHtml = isViewingToday
+    ? '<div class="abs" style="margin-top:4px">'
+      +'<button class="ab" style="background:var(--blue)" id="bseat">착석</button>'
+      +'<button class="ab" style="background:var(--indigo)" id="bres2">예약 등록</button>'
+      +'</div>'
+      +assignedList
+      +'<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-top:6px;font-size:13px" id="bmerge">🔗 테이블 묶기</button>'
+    : '<div class="abs" style="margin-top:4px">'
+      +'<button class="ab" style="background:var(--indigo)" id="bres2">예약 등록</button>'
+      +'</div>'
+      +assignedList;
   showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' — 착석</span><button class="md-x" id="mxbtn">×</button></div>'
     +'<div class="mb">'
     +mergeInfo
-    +'<div class="fg"><label class="fl">인원 (최대 '+cap+'명)</label>'+guestSelectHtml('g-floor', Math.min(tb.g||2, cap), cap)+'</div>'
-    +'<div class="abs" style="margin-top:4px">'
-    +'<button class="ab" style="background:var(--blue)" id="bseat">착석</button>'
-    +'<button class="ab" style="background:var(--indigo)" id="bres2">예약 등록</button>'
-    +'</div>'
-    +assignedList
-    +'<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-top:6px;font-size:13px" id="bmerge">🔗 테이블 묶기</button>'
+    +(isViewingToday ? '<div class="fg"><label class="fl">인원 (최대 '+cap+'명)</label>'+guestSelectHtml('g-floor', Math.min(tb.g||2, cap), cap)+'</div>' : '')
+    +actionHtml
     +'</div>');
-  document.getElementById('bseat').addEventListener('click',function(){
-    var g = getGuestVal('g-floor');
-    S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'occupied',g:g,seatTime:Date.now()}):t;});
-    closeModal(); saveData(); renderAll();
-  });
+  if(isViewingToday){
+    document.getElementById('bseat').addEventListener('click',function(){
+      var g = getGuestVal('g-floor');
+      S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'occupied',g:g,seatTime:Date.now()}):t;});
+      closeModal(); saveData(); renderAll();
+    });
+    document.getElementById('bmerge').addEventListener('click',function(){closeModal();startMergeSelection(tb.id);});
+  }
   document.getElementById('bres2').addEventListener('click',function(){closeModal();openResModal(tb.id);});
-  document.getElementById('bmerge').addEventListener('click',function(){closeModal();startMergeSelection(tb.id);});
 }
-function showOccupied(tb){
+function showOccupied(tb, isViewingToday){
   var c=tblColor(tb.st,tb.seatTime), elapsed=Date.now()-tb.seatTime;
   var assignedList = tableAssignedListHtml(tb.id);
+  // 오늘이 아닌 날짜 열람 시에는 완료 처리 버튼 숨김 (가상 테이블엔 occupied 없지만 방어 처리)
+  var doneBtn = (isViewingToday !== false)
+    ? '<button class="ab" style="background:var(--indigo);width:100%" id="bclr">✓ 완료 처리</button>'
+    : '';
   showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' — 착석중</span><button class="md-x" id="mxbtn">×</button></div>'
     +'<div class="ib" style="background:var(--surf2);border-color:'+c.bd+'">'
     +'<div class="ir"><span class="il">착석 인원</span><span class="iv">'+tb.g+'명</span></div>'
     +'<div class="ir"><span class="il">착석 시간</span><span class="iv">'+fmtTime(tb.seatTime)+'</span></div>'
     +'<div class="ir"><span class="il">경과</span><span class="iv" style="color:'+(elapsed>5400000?'var(--red2)':'var(--text)')+'">'+fmtElapsed(elapsed)+'</span></div>'
-    +'</div>'+assignedList+'<button class="ab" style="background:var(--indigo);width:100%" id="bclr">✓ 완료 처리</button>');
-  document.getElementById('bclr').addEventListener('click',function(){
-    if(!S.daily)S.daily=[];
-    S.daily.push({id:uid(),date:today(),type:'walkin',tname:tb.n,g:tb.g,seatTime:tb.seatTime,endTime:Date.now()});
-    if(tb.res && tb.res.resId) {
-      S.ress = S.ress.map(function(x){ return x.id==tb.res.resId ? Object.assign({},x,{st:'completed'}) : x; });
-    }
-    S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'empty',g:0,seatTime:null,res:null}):t;});
-    closeModal(); saveData(); renderAll();
-  });
+    +'</div>'+assignedList+doneBtn);
+  if(isViewingToday !== false){
+    document.getElementById('bclr').addEventListener('click',function(){
+      if(!S.daily)S.daily=[];
+      S.daily.push({id:uid(),date:today(),type:'walkin',tname:tb.n,g:tb.g,seatTime:tb.seatTime,endTime:Date.now()});
+      if(tb.res && tb.res.resId) {
+        S.ress = S.ress.map(function(x){ return x.id==tb.res.resId ? Object.assign({},x,{st:'completed'}) : x; });
+      }
+      S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'empty',g:0,seatTime:null,res:null}):t;});
+      closeModal(); saveData(); renderAll();
+    });
+  }
 }
-function showReserved(tb){
+function showReserved(tb, isViewingToday){
   var r=tb.res||{};
   var assignedList = tableAssignedListHtml(tb.id);
+  // 오늘이 아닌 날짜에서는 착석 처리 비활성화
+  var seatBtnHtml = isViewingToday
+    ? '<button class="ab" style="background:var(--blue)" id="bseatr">착석 처리</button>'
+    : '<button class="ab" style="background:var(--surf3);color:var(--text3);cursor:not-allowed" disabled>착석 처리</button>';
   showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' — 예약</span><button class="md-x" id="mxbtn">×</button></div>'
     +'<div class="ib" style="background:rgba(42,114,200,.08);border-color:rgba(42,114,200,.3)">'
     +'<div class="ir"><span class="il">예약자</span><span class="iv">'+esc(r.name||'')+'</span></div>'
@@ -949,16 +975,21 @@ function showReserved(tb){
     +'<div class="ir"><span class="il">시간</span><span class="iv">'+esc(r.time||'')+'</span></div>'
     +(r.phone?'<div class="ir"><span class="il">연락처</span><span class="iv"><a href="tel:'+esc(r.phone)+'" style="color:#60a5fa;text-decoration:none">'+esc(r.phone)+'</a></span></div>':'')
     +(r.memo?'<div class="ir"><span class="il">메모</span><span class="iv" style="text-align:right;max-width:160px">'+esc(r.memo)+'</span></div>':'')
-    +'</div>'+assignedList+'<div class="abs"><button class="ab" style="background:var(--blue)" id="bseatr">착석 처리</button>'
+    +'</div>'+assignedList+'<div class="abs">'+seatBtnHtml
     +'<button class="ab" style="background:var(--red)" id="bcancr">예약 취소</button></div>');
-  document.getElementById('bseatr').addEventListener('click',function(){
-    S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'occupied',seatTime:Date.now(),g:r.g||tb.c,res:null}):t;});
-    if(r.resId) S.ress=S.ress.map(function(x){return x.id==r.resId?Object.assign({},x,{st:'arrived'}):x;});
-    closeModal(); saveData(); renderAll();
-  });
+  if(isViewingToday){
+    document.getElementById('bseatr').addEventListener('click',function(){
+      S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'occupied',seatTime:Date.now(),g:r.g||tb.c,res:null}):t;});
+      if(r.resId) S.ress=S.ress.map(function(x){return x.id==r.resId?Object.assign({},x,{st:'arrived'}):x;});
+      closeModal(); saveData(); renderAll();
+    });
+  }
   document.getElementById('bcancr').addEventListener('click',function(){
-    S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'empty',g:0,seatTime:null,res:null}):t;});
-    if(r.resId) S.ress=S.ress.map(function(x){return x.id==r.resId?Object.assign({},x,{tableId:null}):x;});
+    // 오늘이면 실제 테이블 상태도 초기화, 미래/과거 날짜면 예약 데이터만 처리
+    if(isViewingToday){
+      S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'empty',g:0,seatTime:null,res:null}):t;});
+    }
+    if(r.resId) S.ress=S.ress.map(function(x){return x.id==r.resId?Object.assign({},x,{st:'cancelled',tableId:null}):x;});
     closeModal(); saveData(); renderAll();
   });
 }
