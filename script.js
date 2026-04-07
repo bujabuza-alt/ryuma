@@ -1518,7 +1518,10 @@ function openResModal(tid){
     if(!nm||!rt){alert('이름과 시간을 입력하세요');return;}
     var g=getGuestVal('g-res'), phone=getPh('rp'), memo=document.getElementById('rm').value, tags=getTags('rtags');
     var ro={name:nm,g:g,time:rt,date:rd,phone:phone,memo:memo,tags:tags};
-    S.tables=S.tables.map(function(t){return t.id===activeResTableId?Object.assign({},t,{st:'reserved',res:ro}):t;});
+    // S.tables는 오늘 날짜의 실제 홀 상태이므로, 예약 날짜가 오늘일 때만 반영
+    if(rd === today()){
+      S.tables=S.tables.map(function(t){return t.id===activeResTableId?Object.assign({},t,{st:'reserved',res:ro}):t;});
+    }
     S.ress.push({id:uid(),nm:nm,phone:phone,date:rd,time:rt,g:g,memo:memo,tags:tags,st:'confirmed',tableId:activeResTableId});
     closeModal(); saveData(); renderAll();
   });
@@ -1644,7 +1647,8 @@ function openAddRv(){
     var tid=avTid?+avTid:null;
     var nr={id:uid(),nm:nm,phone:getPh('avp'),date:d,time:t,g:getGuestVal('g-addrv'),memo:document.getElementById('avm').value,tags:getTags('avtags'),st:document.getElementById('avs').value,tableId:tid||null};
     S.ress.push(nr);
-    if(tid){
+    // S.tables는 오늘 날짜의 실제 홀 상태이므로, 예약 날짜가 오늘일 때만 반영
+    if(tid && d === today()){
       var ro={name:nm,g:getGuestVal('g-addrv'),time:t,date:d,phone:nr.phone,memo:nr.memo,tags:nr.tags,resId:nr.id};
       S.tables=S.tables.map(function(tb){return tb.id===tid?Object.assign({},tb,{st:'reserved',res:ro}):tb;});
       S.tables.forEach(function(tb){cardCache[tb.id]='';});
@@ -1680,7 +1684,8 @@ function openRvDetail(rid){
     btn.addEventListener('click',function(){
       var st=this.getAttribute('data-st');
       S.ress=S.ress.map(function(x){return x.id==rid?Object.assign({},x,{st:st}):x;});
-      if(st==='arrived'&&r.tableId){S.tables=S.tables.map(function(t){return t.id===r.tableId?Object.assign({},t,{st:'occupied',seatTime:Date.now(),g:r.g,res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
+      // S.tables는 오늘 날짜의 실제 홀 상태이므로, 예약 날짜가 오늘일 때만 반영
+      if(st==='arrived'&&r.tableId&&r.date===today()){S.tables=S.tables.map(function(t){return t.id===r.tableId?Object.assign({},t,{st:'occupied',seatTime:Date.now(),g:r.g,res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
       saveData(); closeModal(); renderReservations(); renderHeader(); renderStats(); renderSidebar();
     });
   });
@@ -1688,7 +1693,8 @@ function openRvDetail(rid){
   if(ba) ba.addEventListener('click',function(){closeModal();openAssignTable(rid);});
   var bu=document.getElementById('bunassign');
   if(bu) bu.addEventListener('click',function(){
-    if(tbl){S.tables=S.tables.map(function(t){return t.id===tbl.id?Object.assign({},t,{st:'empty',res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
+    // S.tables는 오늘 날짜의 실제 홀 상태이므로, 예약 날짜가 오늘일 때만 반영
+    if(tbl&&r.date===today()){S.tables=S.tables.map(function(t){return t.id===tbl.id?Object.assign({},t,{st:'empty',res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
     S.ress=S.ress.map(function(x){return x.id==rid?Object.assign({},x,{tableId:null}):x;});
     saveData(); closeModal(); renderReservations();
   });
@@ -1702,7 +1708,8 @@ function openRvDetail(rid){
   document.getElementById('bedit2').addEventListener('click',function(){closeModal();openEditRv(rid);});
   document.getElementById('bcanc').addEventListener('click',function(){
     if(!confirm('예약을 삭제할까요?'))return;
-    if(r.tableId){S.tables=S.tables.map(function(t){return t.id===r.tableId&&t.st==='reserved'?Object.assign({},t,{st:'empty',res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
+    // S.tables는 오늘 날짜의 실제 홀 상태이므로, 예약 날짜가 오늘일 때만 반영
+    if(r.tableId&&r.date===today()){S.tables=S.tables.map(function(t){return t.id===r.tableId&&t.st==='reserved'?Object.assign({},t,{st:'empty',res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
     S.ress=S.ress.filter(function(x){return x.id!=rid;}); saveData(); closeModal(); renderReservations();
   });
 }
@@ -2314,37 +2321,51 @@ function syncToday(){
       }
     });
 
-    // 빈 테이블들은 empty로 초기화
+    // 날짜 전환 시: 오늘 날짜의 confirmed 예약이 없는 reserved 테이블은 empty로 초기화
+    // (미래 날짜 뷰에서 S.tables에 잘못 반영된 상태를 정리)
+    var todayResTableIds = {};
+    S.ress.forEach(function(r) {
+      if (r.date === td && r.st === 'confirmed' && r.tableId) {
+        todayResTableIds[r.tableId] = true;
+      }
+    });
     S.tables.forEach(function(t) {
-      if (t.st !== 'reserved' && t.st !== 'occupied') {
+      if (t.st === 'reserved' && !todayResTableIds[t.id]) {
+        t.st = 'empty';
+        t.res = null;
+        changed = true;
+      } else if (t.st !== 'reserved' && t.st !== 'occupied') {
         t.st = 'empty';
         t.res = null;
       }
     });
 
     if (changed) {
-      console.log('✅ 날짜 변경으로 모든 테이블 묶음이 자동 해제되었습니다.');
+      console.log('✅ 날짜 변경으로 테이블 상태가 초기화되었습니다.');
     }
 
     lastDate = currentFloorDate;   // 현재 보고 있는 날짜로 업데이트
   }
 
   // ==================== 기존 로직 (예약 → 착석 자동 적용) ====================
-  S.ress.forEach(function(r){
-    if(r.date === currentFloorDate && r.st === 'confirmed' && r.tableId){
-      var tbl = S.tables.filter(function(t){ return t.id === r.tableId; })[0];
-      if(tbl && tbl.st === 'empty'){
-        var ro = {
-          name: r.nm, g: r.g, time: r.time, date: r.date,
-          phone: r.phone, memo: r.memo, tags: r.tags, resId: r.id
-        };
-        S.tables = S.tables.map(function(t){
-          return t.id === r.tableId ? Object.assign({}, t, {st: 'reserved', res: ro}) : t;
-        });
-        changed = true;
+  // S.tables는 오늘 날짜의 실제 홀 상태이므로, 오늘 날짜를 볼 때만 적용
+  if (currentFloorDate === td) {
+    S.ress.forEach(function(r){
+      if(r.date === td && r.st === 'confirmed' && r.tableId){
+        var tbl = S.tables.filter(function(t){ return t.id === r.tableId; })[0];
+        if(tbl && tbl.st === 'empty'){
+          var ro = {
+            name: r.nm, g: r.g, time: r.time, date: r.date,
+            phone: r.phone, memo: r.memo, tags: r.tags, resId: r.id
+          };
+          S.tables = S.tables.map(function(t){
+            return t.id === r.tableId ? Object.assign({}, t, {st: 'reserved', res: ro}) : t;
+          });
+          changed = true;
+        }
       }
-    }
-  });
+    });
+  }
 
   if(changed){
     S.tables.forEach(function(t){ cardCache[t.id] = ''; });
