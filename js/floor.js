@@ -993,9 +993,10 @@ function syncToday(){
   var currentFloorDate = floorDate || td;   // 현재 보고 있는 날짜 (floor-nav 사용 시)
   var changed = false;
 
-  // ==================== 날짜가 바뀌었을 때 모든 테이블 묶음 자동 해제 ====================
-  if (currentFloorDate !== lastDate) {
-    console.log('날짜 변경 감지: ' + lastDate + ' → ' + currentFloorDate);
+  // ==================== 실제 캘린더 날짜가 바뀌었을 때 모든 테이블 묶음 자동 해제 ====================
+  // floor-nav 선택 날짜(floorDate)가 아닌 실제 오늘(td) 기준으로 비교
+  if (td !== lastDate) {
+    console.log('날짜 변경 감지: ' + lastDate + ' → ' + td);
 
     S.tables.forEach(function(t) {
       if (t.mergeIds && t.mergeIds.length > 0) {
@@ -1020,12 +1021,13 @@ function syncToday(){
       console.log('✅ 날짜 변경으로 모든 테이블 묶음이 자동 해제되었습니다.');
     }
 
-    lastDate = currentFloorDate;   // 현재 보고 있는 날짜로 업데이트
+    lastDate = td;   // 실제 오늘 날짜로 업데이트 (floor-nav 선택 날짜 X)
   }
 
   // ==================== 기존 로직 (예약 → 착석 자동 적용) ====================
+  // 오늘(td) 날짜의 예약만 S.tables에 반영; 미래/과거 날짜는 getVirtualTablesForDate()로 처리
   S.ress.forEach(function(r){
-    if(r.date === currentFloorDate && r.st === 'confirmed' && r.tableId){
+    if(r.date === td && r.st === 'confirmed' && r.tableId){
       var tbl = S.tables.filter(function(t){ return t.id === r.tableId; })[0];
       if(tbl && tbl.st === 'empty'){
         var ro = {
