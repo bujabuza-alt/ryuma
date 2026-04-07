@@ -296,8 +296,9 @@ function loadData() {
     if (Array.isArray(d.stockCats)) S.stockCats = d.stockCats;
     if (Array.isArray(d.stockUnits)) S.stockUnits = d.stockUnits;
     S.tags = (d.tags && d.tags.length) ? d.tags : DEFAULT_TAGS.slice();
-    if (!S.stockCats.length) S.stockCats = ['식재료','소모품','포장재','주류','음료','기타'].slice();
-    if (!S.stockUnits.length) S.stockUnits = ['개','kg','L','병','박스','팩'].slice();
+    if (!S.stockCats.length) S.stockCats = DEFAULT_STOCK_CATS.slice();
+    if (!S.stockUnits.length) S.stockUnits = DEFAULT_STOCK_UNITS.slice();
+    if (!S.inventory.length) S.inventory = DEFAULT_INVENTORY.slice();
   } catch(e) { S.tags = DEFAULT_TAGS.slice(); }
 }
 function saveData() {
@@ -2594,8 +2595,48 @@ function unmergeAllTables() {
 // ── 재고 관리 (Inventory Management) ──
 // ══════════════════════════════════════════════════════════
 
-var DEFAULT_STOCK_CATS  = ['식재료','소모품','포장재','주류','음료','기타'];
+var DEFAULT_STOCK_CATS  = ['식재료','소모품','포장재','주류','음료','기타','사케-세계','사케-쿠마','와인'];
 var DEFAULT_STOCK_UNITS = ['개','kg','L','병','박스','팩'];
+
+var DEFAULT_INVENTORY = (function() {
+  var now = Date.now();
+  var items = [
+    {n:'닷사이 준마이 다이긴조 23', cat:'사케-세계'},
+    {n:'닷사이 준마이 다이긴조 39', cat:'사케-세계'},
+    {n:'미오', cat:'사케-세계'},
+    {n:'반슈잇콘 준마이 초카라구치', cat:'사케-세계'},
+    {n:'슈호 긴죠 초카라구치', cat:'사케-세계'},
+    {n:'시라타키', cat:'사케-세계'},
+    {n:'쿠보타 만쥬', cat:'사케-세계'},
+    {n:'쿠보타 센쥬', cat:'사케-세계'},
+    {n:'타카시미즈', cat:'사케-세계'},
+    {n:'미무로스기 준마이다이긴조 사케미라이', cat:'사케-쿠마'},
+    {n:'본 고쿠히조 다이긴조', cat:'사케-쿠마'},
+    {n:'스이게이', cat:'사케-쿠마'},
+    {n:'우고노츠키 준마이다이긴조 핫탄니시키', cat:'사케-쿠마'},
+    {n:'유키노보우샤300', cat:'사케-쿠마'},
+    {n:'유키노보우샤 720', cat:'사케-쿠마'},
+    {n:'이치넨후도 토쿠베츠준마이', cat:'사케-쿠마'},
+    {n:'키타야', cat:'사케-쿠마'},
+    {n:'텐부', cat:'사케-쿠마'},
+    {n:'토요비진 준마이긴조 초카라구치', cat:'사케-쿠마'},
+    {n:'토요비진', cat:'사케-쿠마'},
+    {n:'토카이자카리 토쿠베츠준마이 야마다니시키', cat:'사케-쿠마'},
+    {n:'하야시혼텐', cat:'사케-쿠마'},
+    {n:'핫카이산 블루라벨 생원주', cat:'사케-쿠마'},
+    {n:'핫카이산 콩고신', cat:'사케-쿠마'},
+    {n:'핫카이산 토쿠베츠 준마이', cat:'사케-쿠마'},
+    {n:'호라이센 카스미스키', cat:'사케-쿠마'},
+    {n:'엡실론 골드', cat:'와인'},
+    {n:'에라주리즈 까베르네소비뇽', cat:'와인'},
+    {n:'빌라 안티노리 키안티 글르시코 리제르바', cat:'와인'},
+    {n:'노통 배럴 셀렉트 말백', cat:'와인'},
+    {n:'싼테로 안젤리 로쏘', cat:'와인'}
+  ];
+  return items.map(function(item, i) {
+    return {id: 'def_' + (i+1), n: item.n, cat: item.cat, unit: '병', qty: 0, min: 0, memo: '', upd: now, hist: []};
+  });
+})();
 
 var stockTab        = '전체';
 var stockChip       = 'all';   // 'all' | 'low' | 'out'

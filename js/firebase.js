@@ -11,8 +11,9 @@ function loadData() {
     if (Array.isArray(d.stockCats)) S.stockCats = d.stockCats;
     if (Array.isArray(d.stockUnits)) S.stockUnits = d.stockUnits;
     S.tags = (d.tags && d.tags.length) ? d.tags : DEFAULT_TAGS.slice();
-    if (!S.stockCats.length) S.stockCats = ['식재료','소모품','포장재','주류','음료','기타'].slice();
-    if (!S.stockUnits.length) S.stockUnits = ['개','kg','L','병','박스','팩'].slice();
+    if (!S.stockCats.length) S.stockCats = DEFAULT_STOCK_CATS.slice();
+    if (!S.stockUnits.length) S.stockUnits = DEFAULT_STOCK_UNITS.slice();
+    if (!S.inventory.length) S.inventory = DEFAULT_INVENTORY.slice();
   } catch(e) { S.tags = DEFAULT_TAGS.slice(); }
 }
 function saveData() {
