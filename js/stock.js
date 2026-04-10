@@ -280,7 +280,9 @@ function adjStockQty(id, delta, memo) {
 function openAddStock() {
   if (!S.stockCats || !S.stockCats.length) S.stockCats = DEFAULT_STOCK_CATS.slice();
   if (!S.stockUnits || !S.stockUnits.length) S.stockUnits = DEFAULT_STOCK_UNITS.slice();
-  var catOpts = S.stockCats.map(function(c){ return '<option value="'+esc(c)+'">'+esc(c)+'</option>'; }).join('');
+  // Pre-select the active category filter (if one is selected)
+  var activeCat = (stockTab && stockTab !== '전체') ? stockTab : null;
+  var catOpts = S.stockCats.map(function(c){ return '<option value="'+esc(c)+'"'+(c===activeCat?' selected':'')+'>'+esc(c)+'</option>'; }).join('');
   var unitOpts = S.stockUnits.map(function(u){ return '<option value="'+esc(u)+'">'+esc(u)+'</option>'; }).join('');
   showModal(
     '<div class="md-hd"><div class="md-title">재고 품목 추가</div><button class="md-x" onclick="closeModal()">✕</button></div>'

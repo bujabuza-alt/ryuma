@@ -132,7 +132,8 @@ function openRvDetail(rid){
   var r=S.ress.filter(function(x){return x.id==rid;})[0]; if(!r)return;
   var sml={confirmed:'확정',pending:'대기',arrived:'방문',noshow:'노쇼',cancelled:'취소',completed:'완료'};
   var sc={confirmed:['#2a9a5a','rgba(42,154,90,.12)'],pending:['var(--amber)','rgba(200,146,42,.1)'],
-          arrived:['var(--blue)','rgba(42,114,200,.1)'],noshow:['var(--red2)','rgba(196,18,48,.1)'],completed:['var(--indigo)','rgba(90,82,200,.1)']};
+          arrived:['var(--blue)','rgba(42,114,200,.1)'],noshow:['var(--red2)','rgba(196,18,48,.1)'],completed:['var(--indigo)','rgba(90,82,200,.1)'],
+          cancelled:['var(--text3)','var(--surf3)']};
   var tbl=r.tableId?S.tables.filter(function(t){return t.id===r.tableId;})[0]:null;
   showModal('<div class="md-hd"><span class="md-title">'+esc(r.nm)+' 예약</span><button class="md-x" id="mxbtn">×</button></div>'
     +'<div class="ib" style="background:var(--surf2);border-color:var(--border2)">'
@@ -146,7 +147,7 @@ function openRvDetail(rid){
     +'<div class="ir"><span class="il">상태</span><span class="iv">'+sml[r.st]+'</span></div>'
     +'</div>'
     +'<div style="display:flex;gap:5px;margin-bottom:9px">'
-    +['arrived','completed','noshow'].map(function(s){return '<button style="flex:1;padding:8px 0;border:none;border-radius:8px;background:'+(sc[s]?sc[s][1]:'var(--surf2)')+';color:'+(sc[s]?sc[s][0]:'var(--text2)')+';font-weight:700;font-size:12px;cursor:pointer;font-family:inherit" data-st="'+s+'">'+sml[s]+'</button>';}).join('')+'</div>'
+    +['arrived','completed','noshow','cancelled'].map(function(s){return '<button style="flex:1;padding:8px 0;border:none;border-radius:8px;background:'+(sc[s]?sc[s][1]:'var(--surf2)')+';color:'+(sc[s]?sc[s][0]:'var(--text2)')+';font-weight:700;font-size:12px;cursor:pointer;font-family:inherit" data-st="'+s+'">'+sml[s]+'</button>';}).join('')+'</div>'
     +(!tbl?'<button class="ab" style="background:var(--blue);width:100%;margin-bottom:7px" id="bassign">🪑 테이블 배정</button>':'<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-bottom:7px" id="bunassign">배정 해제</button>')
     +(r.phone?'<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-bottom:7px" id="bcustinfo">👤 고객 정보</button>':'')
     +((r.st==='completed'||r.st==='noshow')?'<button class="ab" style="background:var(--green);width:100%;margin-bottom:7px" id="brestore">🔄 예약 복구 (확정으로 변경)</button>':'')
@@ -157,7 +158,8 @@ function openRvDetail(rid){
       var st=this.getAttribute('data-st');
       S.ress=S.ress.map(function(x){return x.id==rid?Object.assign({},x,{st:st}):x;});
       if(st==='arrived'&&r.tableId){S.tables=S.tables.map(function(t){return t.id===r.tableId?Object.assign({},t,{st:'occupied',seatTime:Date.now(),g:r.g,res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
-      saveData(); closeModal(); renderReservations(); renderHeader(); renderStats(); renderSidebar();
+      if(st==='cancelled'&&r.tableId){S.tables=S.tables.map(function(t){return t.id===r.tableId&&t.st==='reserved'?Object.assign({},t,{st:'empty',res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
+      saveData(); closeModal(); renderReservations(); renderHeader(); renderStats(); renderSidebar(); if(currentTab==='floor') renderCanvas();
     });
   });
   var ba=document.getElementById('bassign');
@@ -327,6 +329,36 @@ function openEditRv(rid){
   });
 }
 
+
+function renderCancelTab(){
+  var q=(document.getElementById('cancelsrch').value||'').trim().toLowerCase();
+  var list=S.ress.filter(function(r){return r.st==='cancelled';});
+  if(q) list=list.filter(function(r){return (r.nm||'').toLowerCase().indexOf(q)>=0||(r.phone||'').indexOf(q)>=0;});
+  list.sort(function(a,b){
+    var ka=(a.date||'0000')+(a.time||'00:00'), kb=(b.date||'0000')+(b.time||'00:00');
+    return ka>kb?-1:1;
+  });
+  var el=document.getElementById('cancel-list');
+  if(!el)return;
+  if(!list.length){
+    el.innerHTML='<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">취소된 예약 없음</div>';
+    return;
+  }
+  el.innerHTML=list.map(function(r){
+    var tbl=r.tableId?S.tables.filter(function(t){return t.id===r.tableId;})[0]:null;
+    return '<div class="rvi" data-rid="'+esc(String(r.id))+'">'
+      +'<div class="rvi-t">'+esc(r.time||'–')+'</div>'
+      +'<div class="rvi-b"><div class="rvi-n">'+esc(r.nm)+'</div>'
+      +'<div class="rvi-s">'+(r.date?dlabel(r.date)+' ':'')+r.g+'명'+(r.phone?' · '+esc(r.phone):'')
+      +(tbl?' · <span style="color:var(--blue)">🪑'+esc(tbl.n)+'</span>':'')+'</div>'
+      +(r.tags&&r.tags.length?'<div class="rvi-tags">'+r.tags.map(function(t){return'<span class="rvi-tag">'+esc(t)+'</span>';}).join('')+'</div>':'')
+      +(r.memo?'<div class="rvi-m">📝'+esc(r.memo)+'</div>':'')
+      +'</div><div class="rvi-st" style="color:var(--text3);background:var(--surf3)">취소</div></div>';
+  }).join('');
+  el.querySelectorAll('.rvi').forEach(function(el2){
+    el2.addEventListener('click',function(){openRvDetail(this.getAttribute('data-rid'));});
+  });
+}
 
 function openTagMgr(){
   function mkH(){ return '<div class="md-hd"><span class="md-title">태그 관리</span><button class="md-x" id="mxbtn">×</button></div><div class="mb"><div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px" id="tmlist">'+S.tags.map(function(t,i){return'<div style="display:flex;align-items:center;gap:3px;background:var(--surf3);border-radius:99px;padding:3px 6px 3px 11px"><span style="font-size:13px;font-weight:700;color:var(--text)">'+esc(t)+'</span><button type="button" style="border:none;background:none;color:var(--text3);font-size:14px;cursor:pointer;padding:0 3px;line-height:1" data-tidx="'+i+'">×</button></div>';}).join('')+'</div><div style="display:flex;gap:6px"><input class="fi" id="tmnew" placeholder="새 태그" style="flex:1"><button class="bp" id="tmadd">추가</button></div><button class="ab" style="background:var(--indigo);width:100%;margin-top:8px" id="tmdone">완료</button></div>'; }
