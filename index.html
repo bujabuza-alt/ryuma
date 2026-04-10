@@ -66,6 +66,7 @@
     <button class="tab" id="t2">📋 예약 관리</button>
     <button class="tab" id="t3">👤 손님</button>
     <button class="tab" id="t4">📦 재고</button>
+    <button class="tab" id="t5">🚫 취소</button>
   </div>
   <div id="body">
     <div id="sb">
@@ -140,7 +141,6 @@
           <button class="bg" id="stock-btn-order" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">📋 발주</button>
           <button class="bg" id="stock-btn-sort" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">↕ 정렬</button>
           <button class="bg" id="stock-btn-csv" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">↓ CSV</button>
-          <button class="bp" id="stock-btn-add">+ 추가</button>
         </div>
         <div id="stock-cats"></div>
         <div id="stock-chips"></div>
@@ -152,6 +152,14 @@
         <button class="bg" id="stock-order-copy">📋 복사</button>
         <button class="bg" id="stock-order-cancel">취소</button>
       </div>
+      <button id="stock-btn-add" class="stock-fab">+ 추가</button>
+    </div>
+    <!-- 취소된 예약 탭 -->
+    <div id="cancel">
+      <div class="rv-top">
+        <input class="rv-srch" id="cancelsrch" type="search" placeholder="이름, 연락처 검색…">
+      </div>
+      <div id="cancel-list"></div>
     </div>
   </div>
 </div>

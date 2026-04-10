@@ -10,7 +10,9 @@ document.getElementById('t1').addEventListener('click', function(){ switchTab('f
 document.getElementById('t2').addEventListener('click', function(){ switchTab('reserve'); });
 document.getElementById('t3').addEventListener('click', function(){ switchTab('cust'); });
 document.getElementById('t4').addEventListener('click', function(){ switchTab('stock'); });
+document.getElementById('t5').addEventListener('click', function(){ switchTab('cancel'); });
 document.getElementById('custsrch').addEventListener('input', renderCustTab);
+document.getElementById('cancelsrch').addEventListener('input', renderCancelTab);
 document.getElementById('custsort').addEventListener('change', renderCustTab);
 document.getElementById('btn-cust-notion').addEventListener('click', function(){ runNotionCustBackup(); });
 document.getElementById('btn-view').addEventListener('click', toggleView);

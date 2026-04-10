@@ -562,8 +562,8 @@ function renderSidebar() {
   var sideDate = floorDate || td;
   var isToday = (sideDate === td);
   var html = '';
-  var stC = {confirmed:'#2a9a5a', pending:'var(--amber)', arrived:'var(--blue)'};
-  var stL = {confirmed:'확정', pending:'대기', arrived:'방문'};
+  var stC = {confirmed:'#2a9a5a', pending:'var(--amber)', arrived:'var(--blue)', seated:'var(--amber)'};
+  var stL = {confirmed:'확정', pending:'대기', arrived:'방문', seated:'착석'};
   var rvList = S.ress.filter(function(r){
     return r.date===sideDate && r.st!=='cancelled' && r.st!=='noshow' && r.st!=='completed';
   }).sort(function(a,b){ return (a.time||'')<(b.time||'')?-1:1; });
@@ -572,12 +572,14 @@ function renderSidebar() {
   if (rvList.length) {
     rvList.forEach(function(r) {
       var tbl = r.tableId ? S.tables.filter(function(t){ return t.id===r.tableId; })[0] : null;
-      var sc  = stC[r.st] || '#5a5248';
+      // Show '착석' when reservation is arrived AND the assigned table is currently occupied
+      var dispSt = (r.st === 'arrived' && tbl && tbl.st === 'occupied') ? 'seated' : r.st;
+      var sc  = stC[dispSt] || '#5a5248';
       html += '<div class="ri" data-rid="'+esc(String(r.id))+'">'
         + '<div class="ri-top"><span class="ri-time">'+esc(r.time||'–')+'</span>'
         + '<span class="ri-name">'+esc(r.nm)+'</span><span class="ri-g">'+esc(String(r.g))+'명</span></div>'
         + '<div class="ri-sub"><span class="ri-dot" style="background:'+sc+'"></span>'
-        + '<span>'+esc(stL[r.st]||r.st)+'</span>'
+        + '<span>'+esc(stL[dispSt]||r.st)+'</span>'
         + (tbl ? '<span class="ri-tbl">· 🪑'+esc(tbl.n)+'</span>' : '<span style="color:var(--amber)">· 미배정</span>')
         + '</div></div>';
     });
@@ -628,6 +630,7 @@ function switchTab(t) {
   document.getElementById('t2').className = 'tab' + (t==='reserve'?' on':'');
   document.getElementById('t3').className = 'tab' + (t==='cust'?' on':'');
   document.getElementById('t4').className = 'tab' + (t==='stock'?' on':'');
+  document.getElementById('t5').className = 'tab' + (t==='cancel'?' on':'');
   document.getElementById('sb').style.display   = t==='floor'?'flex':'none';
   document.getElementById('main').style.display = t==='floor'?'flex':'none';
   if (t==='reserve') document.getElementById('rv').classList.add('on');
@@ -636,12 +639,15 @@ function switchTab(t) {
   else document.getElementById('cust').classList.remove('on');
   if (t==='stock') document.getElementById('stock').classList.add('on');
   else document.getElementById('stock').classList.remove('on');
+  if (t==='cancel') document.getElementById('cancel').classList.add('on');
+  else document.getElementById('cancel').classList.remove('on');
   document.getElementById('bedit').style.display = t==='floor'?'':'none';
   document.getElementById('btn-view').style.display = t==='floor'?'':'none';
   if (t==='floor') renderAll();
   else if (t==='reserve') renderReservations();
   else if (t==='cust') renderCustTab();
   else if (t==='stock') renderStock();
+  else if (t==='cancel') renderCancelTab();
 }
 function getAllCustomers() {
   var map = {};
