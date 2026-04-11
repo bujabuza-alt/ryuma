@@ -1,4 +1,5 @@
 // ── 홀 현황 (Floor View) ──
+var custFilterMode = 'active'; // 'active' | 'cancel'
 // ── 헤더/통계 ──
 function renderHeader() {
   document.getElementById('hdate').textContent = new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
@@ -98,6 +99,9 @@ function switchTab(t) {
   else document.getElementById('cust').classList.remove('on');
   if (t==='stock') document.getElementById('stock').classList.add('on');
   else document.getElementById('stock').classList.remove('on');
+  // FAB visibility managed here since it lives outside #stock
+  var fab = document.getElementById('stock-btn-add');
+  if (fab) fab.style.display = (t==='stock') ? 'flex' : 'none';
   document.getElementById('bedit').style.display = t==='floor'?'':'none';
   document.getElementById('btn-view').style.display = t==='floor'?'':'none';
   if (t==='floor') renderAll();
@@ -131,36 +135,71 @@ function getAllCustomers() {
 }
 function renderCustTab() {
   var q = (document.getElementById('custsrch').value||'').trim().toLowerCase();
-  var sortBy = document.getElementById('custsort').value||'visits';
-  var custs = getAllCustomers();
-  if (q) custs = custs.filter(function(c){return (c.name||'').toLowerCase().indexOf(q)>=0||(c.phone||'').indexOf(q)>=0;});
-  custs.sort(function(a,b){
-    if (sortBy==='visits') return b.total - a.total;
-    if (sortBy==='recent') return (b.last||'')>(a.last||'')?1:(b.last||'')<(a.last||'')?-1:0;
-    return (a.name||'').localeCompare(b.name||'','ko');
-  });
-  var html='';
-  custs.forEach(function(c){
-    var av=(c.name||c.phone||'?').charAt(0);
-    html+='<div class="cust-card" data-phone="'+esc(c.phone)+'" data-name="'+esc(c.name||'')+'">'
-      +'<div class="cust-av">'+esc(av)+'</div>'
-      +'<div class="cust-main">'
-      +'<div class="cust-name">'+esc(c.name||c.phone)+'</div>'
-      +'<div class="cust-phone">'+esc(c.phone)+'</div>'
-      +'<div class="cust-meta">'
-      +(c.first?'<div class="cust-meta-item">첫 방문 <b>'+fmtDateShort(c.first)+'</b></div>':'')
-      +(c.last&&c.last!==c.first?'<div class="cust-meta-item">최근 <b>'+fmtDateShort(c.last)+'</b></div>':'')
-      +(c.memo?'<div class="cust-meta-item">📝 '+esc(c.memo.slice(0,24))+'</div>':'')
-      +'</div>'
-      +'</div>'
-      +(c.total>0?'<div class="cust-badge">'+c.total+'회</div>':'<div class="cust-no-visit">방문 없음</div>')
-      +'</div>';
-  });
-  if(!html) html='<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">손님 정보 없음</div>';
-  document.getElementById('custlist').innerHTML=html;
-  document.getElementById('custlist').querySelectorAll('.cust-card').forEach(function(el){
-    el.addEventListener('click',function(){openCustInfo(this.getAttribute('data-phone'),this.getAttribute('data-name'));});
-  });
+  var sortEl = document.getElementById('custsort');
+  // Show sort control only in active-customer mode
+  if (sortEl) sortEl.style.display = custFilterMode === 'active' ? '' : 'none';
+
+  if (custFilterMode === 'cancel') {
+    // ── 취소된 예약 표시 ──
+    var list = S.ress.filter(function(r){ return r.st === 'cancelled'; });
+    if (q) list = list.filter(function(r){ return (r.nm||'').toLowerCase().indexOf(q)>=0||(r.phone||'').indexOf(q)>=0; });
+    list.sort(function(a,b){
+      var ka=(a.date||'0000')+(a.time||'00:00'), kb=(b.date||'0000')+(b.time||'00:00');
+      return ka>kb?-1:1;
+    });
+    var html='';
+    if(!list.length){
+      html='<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">취소된 예약 없음</div>';
+    } else {
+      html=list.map(function(r){
+        var tbl=r.tableId?S.tables.filter(function(t){return t.id===r.tableId;})[0]:null;
+        return '<div class="rvi" data-rid="'+esc(String(r.id))+'">'
+          +'<div class="rvi-t">'+esc(r.time||'–')+'</div>'
+          +'<div class="rvi-b"><div class="rvi-n">'+esc(r.nm)+'</div>'
+          +'<div class="rvi-s">'+(r.date?dlabel(r.date)+' ':'')+r.g+'명'+(r.phone?' · '+esc(r.phone):'')
+          +(tbl?' · <span style="color:var(--blue)">🪑'+esc(tbl.n)+'</span>':'')+'</div>'
+          +(r.tags&&r.tags.length?'<div class="rvi-tags">'+r.tags.map(function(t){return'<span class="rvi-tag">'+esc(t)+'</span>';}).join('')+'</div>':'')
+          +(r.memo?'<div class="rvi-m">📝'+esc(r.memo)+'</div>':'')
+          +'</div><div class="rvi-st" style="color:var(--text3);background:var(--surf3)">취소</div></div>';
+      }).join('');
+    }
+    document.getElementById('custlist').innerHTML=html;
+    document.getElementById('custlist').querySelectorAll('.rvi').forEach(function(el){
+      el.addEventListener('click',function(){openRvDetail(this.getAttribute('data-rid'));});
+    });
+  } else {
+    // ── 활성 손님 목록 표시 ──
+    var sortBy = sortEl ? (sortEl.value||'visits') : 'visits';
+    var custs = getAllCustomers();
+    if (q) custs = custs.filter(function(c){return (c.name||'').toLowerCase().indexOf(q)>=0||(c.phone||'').indexOf(q)>=0;});
+    custs.sort(function(a,b){
+      if (sortBy==='visits') return b.total - a.total;
+      if (sortBy==='recent') return (b.last||'')>(a.last||'')?1:(b.last||'')<(a.last||'')?-1:0;
+      return (a.name||'').localeCompare(b.name||'','ko');
+    });
+    var html='';
+    custs.forEach(function(c){
+      var av=(c.name||c.phone||'?').charAt(0);
+      html+='<div class="cust-card" data-phone="'+esc(c.phone)+'" data-name="'+esc(c.name||'')+'">'
+        +'<div class="cust-av">'+esc(av)+'</div>'
+        +'<div class="cust-main">'
+        +'<div class="cust-name">'+esc(c.name||c.phone)+'</div>'
+        +'<div class="cust-phone">'+esc(c.phone)+'</div>'
+        +'<div class="cust-meta">'
+        +(c.first?'<div class="cust-meta-item">첫 방문 <b>'+fmtDateShort(c.first)+'</b></div>':'')
+        +(c.last&&c.last!==c.first?'<div class="cust-meta-item">최근 <b>'+fmtDateShort(c.last)+'</b></div>':'')
+        +(c.memo?'<div class="cust-meta-item">📝 '+esc(c.memo.slice(0,24))+'</div>':'')
+        +'</div>'
+        +'</div>'
+        +(c.total>0?'<div class="cust-badge">'+c.total+'회</div>':'<div class="cust-no-visit">방문 없음</div>')
+        +'</div>';
+    });
+    if(!html) html='<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">손님 정보 없음</div>';
+    document.getElementById('custlist').innerHTML=html;
+    document.getElementById('custlist').querySelectorAll('.cust-card').forEach(function(el){
+      el.addEventListener('click',function(){openCustInfo(this.getAttribute('data-phone'),this.getAttribute('data-name'));});
+    });
+  }
 }
 
 // ── 캔버스 렌더 ──
