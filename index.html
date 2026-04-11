@@ -138,6 +138,7 @@
     </div>
     <!-- 재고 관리 탭 -->
     <div id="stock">
+      <!-- ★ 고정 헤더: 항상 화면 상단에 표시 -->
       <div id="stock-top">
         <div id="stock-search-row">
           <input class="rv-srch" id="stock-srch" type="search" placeholder="상품명 검색…">
@@ -148,14 +149,19 @@
         <div id="stock-cats"></div>
         <div id="stock-chips"></div>
       </div>
-      <div id="stock-stats"></div>
-      <div id="stock-list"></div>
+      <!-- ★ 독립 스크롤 영역: 헤더와 분리되어 독자적으로 스크롤 -->
+      <div id="stock-scroll">
+        <div id="stock-stats"></div>
+        <div id="stock-list"></div>
+      </div>
+      <!-- ★ 발주 바: 발주 모드일 때 하단에 표시 -->
       <div id="stock-order-bar" style="display:none">
         <span id="stock-order-count"></span>
         <button class="bg" id="stock-order-copy">📋 복사</button>
         <button class="bg" id="stock-order-cancel">취소</button>
       </div>
     </div>
+    <!-- ★ FAB: position:fixed, pill 형태 — 텍스트 잘림 없음, z-index:50 -->
     <button id="stock-btn-add" class="stock-fab">+ 추가</button>
   </div>
 </div>
