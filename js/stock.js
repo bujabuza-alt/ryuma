@@ -53,6 +53,7 @@ var stockSort       = 'name';  // 'name' | 'qty_asc' | 'qty_desc' | 'recent'
 var stockOrderMode  = false;
 var stockSelectedIds = [];
 var stockHistTab    = 'all';   // in detail modal: 'all' | 'in' | 'out'
+var stockSectionObserver = null; // IntersectionObserver — grouped 모드 활성 카테고리 추적
 
 // ── 헬퍼 ──
 function stockStatus(item) {
@@ -87,6 +88,13 @@ function stockTimeAgo(ts) {
   var hr   = Math.floor(min / 60);
   if (hr < 24) return hr + '시간 전';
   return Math.floor(hr / 24) + '일 전';
+}
+
+// ── Grouped 모드 판정 ──
+// 검색어·칩 필터가 없을 때만 카테고리 섹션 그룹 뷰를 사용.
+// 필터 중에는 기존 filter 모드로 자동 전환됨.
+function isGroupedMode() {
+  return stockChip === 'all' && !stockSearch.trim();
 }
 
 // ── 필터/정렬된 목록 ──
@@ -138,10 +146,24 @@ function renderStockCats() {
   el.innerHTML = html;
   el.querySelectorAll('.scat').forEach(function(btn){
     btn.addEventListener('click', function(){
-      stockTab = this.getAttribute('data-c');
-      renderStockCats();
-      renderStockList();
-      renderStockStats();
+      var cat = this.getAttribute('data-c');
+      if (isGroupedMode()) {
+        // Grouped 뷰: 클릭 → 해당 섹션으로 스크롤 (필터링 없음)
+        if (cat === '전체') {
+          var scrollEl = document.getElementById('stock-scroll');
+          if (scrollEl) scrollEl.scrollTo({top:0, behavior:'smooth'});
+          updateStockCatActive('전체');
+        } else {
+          updateStockCatActive(cat);
+          scrollToStockSection(cat);
+        }
+      } else {
+        // Filter 모드: 카테고리 선택 → 목록 재필터링
+        stockTab = cat;
+        renderStockCats();
+        renderStockList();
+        renderStockStats();
+      }
     });
   });
 }
@@ -183,44 +205,35 @@ function renderStockStats() {
     '<div class="sc"><div class="si" style="background:rgba(196,18,48,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><div class="sl">품절</div><div class="sv" style="color:var(--red2)">'+out+'개</div></div></div>';
 }
 
-function renderStockList() {
-  var list = getStockList();
-  var el = document.getElementById('stock-list');
-  if (!el) return;
-  if (!list.length) {
-    el.innerHTML = '<div class="sk-empty">'+
-      (stockSearch||stockTab!=='전체'||stockChip!=='all' ? '검색 결과가 없습니다' : '등록된 재고 품목이 없습니다. + 추가 버튼을 눌러 시작하세요.')+
-      '</div>';
-    return;
-  }
-  var html = list.map(function(item){
-    var st = stockStatus(item);
-    var isSel = stockOrderMode && stockSelectedIds.indexOf(item.id) >= 0;
-    return '<div class="sk-card" data-id="'+item.id+'">'
-      +'<div class="sk-bar '+st+'"></div>'
-      +'<div class="sk-body">'
-        +'<div class="sk-name">'+esc(item.n)+'</div>'
-        +'<div class="sk-sub"><span class="sk-cat">'+esc(item.cat||'기타')+'</span>'
-          +(item.memo ? '<span>'+esc(item.memo)+'</span>' : '')
-          +(item.upd ? '<span>'+stockTimeAgo(item.upd)+'</span>' : '')
-        +'</div>'
+// ── 공통 카드 HTML 빌더 ──
+function _buildStockCardHtml(item) {
+  var st = stockStatus(item);
+  var isSel = stockOrderMode && stockSelectedIds.indexOf(item.id) >= 0;
+  return '<div class="sk-card" data-id="'+item.id+'">'
+    +'<div class="sk-bar '+st+'"></div>'
+    +'<div class="sk-body">'
+      +'<div class="sk-name">'+esc(item.n)+'</div>'
+      +'<div class="sk-sub"><span class="sk-cat">'+esc(item.cat||'기타')+'</span>'
+        +(item.memo ? '<span>'+esc(item.memo)+'</span>' : '')
+        +(item.upd  ? '<span>'+stockTimeAgo(item.upd)+'</span>' : '')
       +'</div>'
-      +'<div class="sk-right">'
-        +'<div class="sk-qty '+st+'">'+item.qty+'<span class="sk-unit"> '+esc(item.unit||'')+'</span></div>'
-        +(item.min > 0 ? '<div style="font-size:10px;color:var(--text3)">최소 '+item.min+'</div>' : '<div></div>')
-        +'<div class="sk-adj">'
-          +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="-1">−</button>'
-          +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="1">+</button>'
-        +'</div>'
+    +'</div>'
+    +'<div class="sk-right">'
+      +'<div class="sk-qty '+st+'">'+item.qty+'<span class="sk-unit"> '+esc(item.unit||'')+'</span></div>'
+      +(item.min > 0 ? '<div style="font-size:10px;color:var(--text3)">최소 '+item.min+'</div>' : '<div></div>')
+      +'<div class="sk-adj">'
+        +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="-1">−</button>'
+        +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="1">+</button>'
       +'</div>'
-      +(stockOrderMode ? '<div class="sk-sel'+(isSel?' show':'')+'"><div class="sk-sel-chk">'+(isSel?'✓':'')+'</div></div>' : '')
-    +'</div>';
-  }).join('');
-  el.innerHTML = html;
+    +'</div>'
+    +(stockOrderMode ? '<div class="sk-sel'+(isSel?' show':'')+'"><div class="sk-sel-chk">'+(isSel?'✓':'')+'</div></div>' : '')
+  +'</div>';
+}
 
-  // 카드 클릭 → 상세 or 발주 선택
+// ── 공통 카드 이벤트 바인딩 ──
+function _attachStockCardListeners(el) {
   el.querySelectorAll('.sk-card').forEach(function(card){
-    card.addEventListener('click', function(e){
+    card.addEventListener('click', function(){
       var id = this.getAttribute('data-id');
       if (stockOrderMode) {
         var idx = stockSelectedIds.indexOf(id);
@@ -233,16 +246,149 @@ function renderStockList() {
       }
     });
   });
-
-  // +/- 버튼
   el.querySelectorAll('.sk-adj-btn').forEach(function(btn){
     btn.addEventListener('click', function(e){
       e.stopPropagation();
-      var id = this.getAttribute('data-id');
-      var d  = parseInt(this.getAttribute('data-d'));
-      adjStockQty(id, d, '');
+      adjStockQty(this.getAttribute('data-id'), parseInt(this.getAttribute('data-d')), '');
     });
   });
+}
+
+// ── 메인 렌더 함수 ──
+function renderStockList() {
+  var el = document.getElementById('stock-list');
+  if (!el) return;
+
+  // 이전 Observer & 스크롤 리스너 정리
+  if (stockSectionObserver) { stockSectionObserver.disconnect(); stockSectionObserver = null; }
+  var scrollEl = document.getElementById('stock-scroll');
+  if (scrollEl && scrollEl._stockScrollHandler) {
+    scrollEl.removeEventListener('scroll', scrollEl._stockScrollHandler);
+    scrollEl._stockScrollHandler = null;
+  }
+
+  if (isGroupedMode()) {
+    _renderStockListGrouped(el);
+  } else {
+    _renderStockListFiltered(el);
+  }
+}
+
+// ── Grouped 모드: 카테고리 섹션별 그룹 렌더 ──
+function _renderStockListGrouped(el) {
+  if (!S.inventory) S.inventory = [];
+  var catOrder = (S.stockCats && S.stockCats.length) ? S.stockCats : DEFAULT_STOCK_CATS.slice();
+  var allItems = S.inventory.slice().sort(function(a,b){
+    return (a.n||'').localeCompare(b.n||'','ko');
+  });
+
+  var html = '';
+  var hasAny = false;
+  var knownCats = {};
+
+  catOrder.forEach(function(cat) {
+    knownCats[cat] = true;
+    var items = allItems.filter(function(i){ return i.cat === cat; });
+    if (!items.length) return;
+    hasAny = true;
+    html += '<div class="sk-section-hd" data-cat="'+esc(cat)+'">'+esc(cat)+'</div>';
+    items.forEach(function(item){ html += _buildStockCardHtml(item); });
+  });
+
+  // catOrder에 없는 카테고리 아이템 → 하단에 모아서 표시
+  var orphans = allItems.filter(function(i){ return !knownCats[i.cat]; });
+  if (orphans.length) {
+    hasAny = true;
+    html += '<div class="sk-section-hd" data-cat="기타">기타</div>';
+    orphans.forEach(function(item){ html += _buildStockCardHtml(item); });
+  }
+
+  if (!hasAny) {
+    el.innerHTML = '<div class="sk-empty">등록된 재고 품목이 없습니다. + 추가 버튼을 눌러 시작하세요.</div>';
+    return;
+  }
+
+  el.innerHTML = html;
+  _attachStockCardListeners(el);
+  setupStockSectionObserver();
+}
+
+// ── Filter 모드: 기존 방식 (카테고리·칩·검색 필터 적용) ──
+function _renderStockListFiltered(el) {
+  var list = getStockList();
+  if (!list.length) {
+    el.innerHTML = '<div class="sk-empty">'+
+      (stockSearch||stockTab!=='전체'||stockChip!=='all' ? '검색 결과가 없습니다' : '등록된 재고 품목이 없습니다. + 추가 버튼을 눌러 시작하세요.')+
+      '</div>';
+    return;
+  }
+  el.innerHTML = list.map(function(item){ return _buildStockCardHtml(item); }).join('');
+  _attachStockCardListeners(el);
+}
+
+// ────────────────────────────────────────────────────────────
+// Scroll UX 헬퍼
+// ────────────────────────────────────────────────────────────
+
+// 카테고리 바의 활성 버튼을 업데이트 (목록 재렌더 없이 시각만 갱신)
+function updateStockCatActive(cat) {
+  stockTab = cat;
+  var bar = document.getElementById('stock-cats');
+  if (!bar) return;
+  bar.querySelectorAll('.scat').forEach(function(btn){
+    btn.classList.toggle('on', btn.getAttribute('data-c') === cat);
+  });
+  // 활성 버튼을 가로 스크롤 뷰 안으로 부드럽게 노출
+  var activeBtn = bar.querySelector('.scat.on');
+  if (activeBtn) activeBtn.scrollIntoView({behavior:'smooth', block:'nearest', inline:'nearest'});
+}
+
+// 특정 카테고리 섹션으로 부드럽게 스크롤
+// scrollOffset 계산: getBoundingClientRect 차이 + 현재 scrollTop
+// → #stock-top 높이를 자동으로 보정하므로 별도 오프셋 불필요
+function scrollToStockSection(cat) {
+  var scrollEl = document.getElementById('stock-scroll');
+  if (!scrollEl) return;
+  var section = scrollEl.querySelector('.sk-section-hd[data-cat="'+cat+'"]');
+  if (!section) return;
+  var targetTop = section.getBoundingClientRect().top
+                - scrollEl.getBoundingClientRect().top
+                + scrollEl.scrollTop
+                - 8;            // 8px 여백
+  scrollEl.scrollTo({top: targetTop, behavior:'smooth'});
+}
+
+// IntersectionObserver 설정 (grouped 모드 전용)
+// rootMargin '0px 0px -80% 0px' → 뷰포트 상위 20% 구역에 섹션 헤더가
+// 진입하는 순간 해당 카테고리를 활성으로 표시
+// 상단 복귀 시에는 scroll 리스너가 '전체' 상태를 복원
+function setupStockSectionObserver() {
+  var scrollEl = document.getElementById('stock-scroll');
+  if (!scrollEl) return;
+  var headers = scrollEl.querySelectorAll('.sk-section-hd');
+  if (!headers.length) return;
+
+  // 최상단 복귀 시 '전체' 활성화
+  function onTopScroll() {
+    if (scrollEl.scrollTop < 24) updateStockCatActive('전체');
+  }
+  scrollEl.addEventListener('scroll', onTopScroll, {passive:true});
+  scrollEl._stockScrollHandler = onTopScroll;
+
+  // 섹션 헤더가 스크롤 컨테이너 상위 20% 구역에 진입하면 해당 카테고리 활성화
+  stockSectionObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        updateStockCatActive(entry.target.getAttribute('data-cat'));
+      }
+    });
+  }, {
+    root: scrollEl,
+    rootMargin: '0px 0px -80% 0px',
+    threshold: 0
+  });
+
+  headers.forEach(function(h){ stockSectionObserver.observe(h); });
 }
 
 function updateStockOrderBar() {

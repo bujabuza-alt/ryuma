@@ -1,22 +1,75 @@
 /* ====== 재고 관리 탭 ====== */
-#stock{flex:1;min-width:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;display:none;flex-direction:column;gap:8px;}
+
+/* ────────────────────────────────────────────────────────────
+   레이아웃 구조
+   #stock              → flex column, overflow:hidden (스크롤 안 함)
+   #stock-top          → 고정 헤더 (검색 · 카테고리 · 필터칩)
+   #stock-scroll       → 독립 스크롤 영역 (통계 + 리스트)
+   #stock-order-bar    → 발주 바 (하단 고정, 발주 모드시만 표시)
+   .stock-fab          → position:fixed FAB (pill 형태)
+──────────────────────────────────────────────────────────── */
+#stock{flex:1;min-width:0;overflow:hidden;display:none;flex-direction:column;}
 #stock.on{display:flex;}
-#stock-top{display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
+
+/* ── 고정 헤더 (검색 · 카테고리 · 필터칩) ── */
+#stock-top{
+  flex-shrink:0;
+  background:var(--bg);
+  padding:10px 10px 8px;
+  border-bottom:1px solid var(--border);
+  display:flex;flex-direction:column;gap:6px;
+  /* z-index:10 → 리스트 카드 위에 표시, 모달(999) 아래 */
+  z-index:10;
+}
 #stock-search-row{display:flex;align-items:center;gap:6px;}
+
 /* 카테고리 탭 */
 #stock-cats{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px;}
 #stock-cats::-webkit-scrollbar{display:none;}
-.scat{border:1px solid var(--border2);background:var(--surf2);color:var(--text2);border-radius:99px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;}
+.scat{
+  border:1px solid var(--border2);background:var(--surf2);color:var(--text2);
+  border-radius:99px;padding:4px 12px;font-size:11px;font-weight:700;
+  cursor:pointer;white-space:nowrap;font-family:inherit;
+  transition:background .1s,color .1s,border-color .1s;
+}
 .scat.on{border-color:var(--red);background:rgba(196,18,48,.12);color:var(--red2);}
+
 /* 빠른 필터 칩 */
 #stock-chips{display:flex;gap:5px;}
 .schip{border:1px solid var(--border2);background:var(--surf2);color:var(--text2);border-radius:99px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
 .schip.on{border-color:var(--red);background:rgba(196,18,48,.1);color:var(--red2);}
 .schip.warn-on{border-color:var(--amber);background:rgba(200,146,42,.1);color:var(--amber);}
 .schip.out-on{border-color:var(--red2);background:rgba(232,22,44,.1);color:var(--red2);}
-/* 통계 */
-#stock-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex-shrink:0;}
-/* 상품 리스트 */
+
+/* ── 독립 스크롤 영역 ──
+   #stock-top 이 고정되므로, 이 영역만 별도 스크롤.
+   overflow-x:hidden → FAB 가로 스크롤바 방지           */
+#stock-scroll{
+  flex:1;
+  overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:10px;
+  display:flex;flex-direction:column;gap:8px;
+}
+#stock-scroll::-webkit-scrollbar{width:4px;}
+#stock-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
+
+/* ── 통계 카드 ── */
+#stock-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+
+/* ── 카테고리 섹션 헤더 (grouped 모드) ──
+   scroll-margin-top: 스크롤 타깃으로 사용할 때 오프셋 보정  */
+.sk-section-hd{
+  padding:6px 2px 4px;
+  font-size:10px;font-weight:800;color:var(--text3);
+  letter-spacing:.1em;text-transform:uppercase;
+  border-top:1px solid var(--border);
+  margin-top:2px;
+  scroll-margin-top:4px;
+}
+.sk-section-hd:first-child{border-top:none;margin-top:0;padding-top:2px;}
+
+/* ── 상품 리스트 ── */
 #stock-list{display:flex;flex-direction:column;gap:6px;}
 .sk-card{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:11px 13px;display:flex;align-items:stretch;gap:10px;cursor:pointer;position:relative;overflow:hidden;transition:opacity .12s;}
 .sk-card:active{opacity:.85;}
@@ -40,13 +93,19 @@
 .sk-sel{position:absolute;inset:0;border-radius:12px;border:2px solid var(--red);background:rgba(196,18,48,.06);display:none;align-items:center;justify-content:flex-end;padding-right:13px;}
 .sk-sel.show{display:flex;}
 .sk-sel-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--red);background:rgba(196,18,48,.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--red2);}
-/* 발주 바 */
-#stock-order-bar{position:sticky;bottom:0;background:var(--surf);border-top:1px solid var(--border2);padding:10px 13px;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+
+/* ── 발주 바 ──
+   flex-shrink:0 → #stock 컬럼의 자연스러운 하단 배치
+   (position:sticky 불필요 — #stock-scroll 바깥에 있음) */
+#stock-order-bar{flex-shrink:0;background:var(--surf);border-top:1px solid var(--border2);padding:10px 13px;display:flex;align-items:center;gap:8px;}
 #stock-order-count{flex:1;font-size:12px;font-weight:700;color:var(--text2);}
+
 /* 빈 상태 */
 .sk-empty{padding:32px 16px;text-align:center;color:var(--text3);font-size:12px;}
+
 /* 수량 조절 드롭다운 */
 .sk-qty-sel{background:var(--surf2);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-size:12px;font-weight:700;padding:4px 6px;cursor:pointer;font-family:inherit;outline:none;}
+
 /* 재고 상세/추가/편집 모달 */
 .sk-hist-wrap{background:var(--surf2);border:1px solid var(--border);border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto;}
 .sk-hist-hd{padding:7px 11px;font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.06em;border-bottom:1px solid var(--border);background:var(--bg);display:flex;align-items:center;gap:6px;}
@@ -63,13 +122,31 @@
 .sk-detail-stat{background:var(--surf2);border:1px solid var(--border);border-radius:9px;padding:8px 6px;text-align:center;}
 .sk-detail-stat-n{font-size:16px;font-weight:800;color:var(--text);}
 .sk-detail-stat-l{font-size:9px;color:var(--text3);margin-top:2px;font-weight:700;}
+
 /* 목록 관리 모달 */
 .list-mgr-row{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);}
 .list-mgr-row:last-child{border-bottom:none;}
 .list-mgr-name{flex:1;font-size:13px;color:var(--text);}
 .list-mgr-del{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:2px 6px;}
-/* + 추가 FAB — fixed to viewport, shown/hidden via JS in switchTab */
-.stock-fab{position:fixed;bottom:24px;right:18px;z-index:90;width:56px;height:56px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;font-family:inherit;transition:transform .12s,box-shadow .12s;line-height:1.3;white-space:nowrap;text-align:center;}
-.stock-fab:active{transform:scale(.93);box-shadow:0 2px 8px rgba(0,0,0,.3);}
-/* Prevent horizontal overflow inside #stock from interfering with FAB position */
-#stock{overflow-x:hidden;}
+
+/* ── FAB "+ 추가" ────────────────────────────────────────────
+   ① position:fixed   → viewport 기준 고정, #stock overflow 무관
+   ② pill 형태        → 텍스트 줄바꿈·잘림 원천 차단
+                          (width:auto + padding으로 텍스트 수용)
+   ③ z-index:50       → sticky 헤더(z:10) 위, 모달(z:999) 아래
+   ④ overflow:hidden 없음 → 가로 스크롤바 생성 불가
+      (#stock-scroll 에 overflow-x:hidden 이 이미 있음)
+──────────────────────────────────────────────────────────── */
+.stock-fab{
+  position:fixed;bottom:24px;right:18px;z-index:50;
+  height:52px;min-width:52px;border-radius:99px;padding:0 22px;
+  background:var(--red);color:#fff;border:none;
+  font-size:15px;font-weight:800;letter-spacing:.01em;
+  cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.35);
+  display:none;align-items:center;justify-content:center;
+  font-family:inherit;
+  white-space:nowrap;   /* 절대로 줄바꿈하지 않음 */
+  transition:transform .12s,box-shadow .12s;
+}
+.stock-fab:active{transform:scale(.94);box-shadow:0 2px 8px rgba(0,0,0,.3);}
