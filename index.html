@@ -66,7 +66,6 @@
     <button class="tab" id="t2">📋 예약 관리</button>
     <button class="tab" id="t3">👤 손님</button>
     <button class="tab" id="t4">📦 재고</button>
-    <button class="tab" id="t5">🚫 취소</button>
   </div>
   <div id="body">
     <div id="sb">
@@ -131,6 +130,10 @@
         </select>
         <button class="bg" id="btn-cust-notion" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">☁ 노션</button>
       </div>
+      <div id="cust-filter-row">
+        <button class="cust-fpill on" data-f="active">손님</button>
+        <button class="cust-fpill" data-f="cancel">취소</button>
+      </div>
       <div id="custlist"></div>
     </div>
     <!-- 재고 관리 탭 -->
@@ -152,15 +155,8 @@
         <button class="bg" id="stock-order-copy">📋 복사</button>
         <button class="bg" id="stock-order-cancel">취소</button>
       </div>
-      <button id="stock-btn-add" class="stock-fab">+ 추가</button>
     </div>
-    <!-- 취소된 예약 탭 -->
-    <div id="cancel">
-      <div class="rv-top">
-        <input class="rv-srch" id="cancelsrch" type="search" placeholder="이름, 연락처 검색…">
-      </div>
-      <div id="cancel-list"></div>
-    </div>
+    <button id="stock-btn-add" class="stock-fab">+ 추가</button>
   </div>
 </div>
 <div id="mo"><div class="md" id="mdc"></div></div>

@@ -10,10 +10,17 @@ document.getElementById('t1').addEventListener('click', function(){ switchTab('f
 document.getElementById('t2').addEventListener('click', function(){ switchTab('reserve'); });
 document.getElementById('t3').addEventListener('click', function(){ switchTab('cust'); });
 document.getElementById('t4').addEventListener('click', function(){ switchTab('stock'); });
-document.getElementById('t5').addEventListener('click', function(){ switchTab('cancel'); });
 document.getElementById('custsrch').addEventListener('input', renderCustTab);
-document.getElementById('cancelsrch').addEventListener('input', renderCancelTab);
 document.getElementById('custsort').addEventListener('change', renderCustTab);
+// Customer tab filter pills (손님 / 취소)
+document.getElementById('cust-filter-row').addEventListener('click', function(e) {
+  var pill = e.target;
+  if (!pill || !pill.getAttribute('data-f')) return;
+  custFilterMode = pill.getAttribute('data-f');
+  document.querySelectorAll('.cust-fpill').forEach(function(p){ p.classList.remove('on'); });
+  pill.classList.add('on');
+  renderCustTab();
+});
 document.getElementById('btn-cust-notion').addEventListener('click', function(){ runNotionCustBackup(); });
 document.getElementById('btn-view').addEventListener('click', toggleView);
 document.getElementById('bedit').addEventListener('click', toggleEdit);

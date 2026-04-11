@@ -237,6 +237,10 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 /* 손님 정보 탭 */
 #cust{flex:1;min-width:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;display:none;flex-direction:column;gap:8px;}
 #cust.on{display:flex;}
+/* 손님 / 취소 필터 Pills */
+#cust-filter-row{display:flex;gap:5px;flex-shrink:0;}
+.cust-fpill{border:1px solid var(--border2);background:var(--surf2);color:var(--text2);border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.cust-fpill.on{border-color:var(--red);background:rgba(196,18,48,.12);color:var(--red2);}
 #custlist{display:flex;flex-direction:column;gap:6px;}
 .cust-card{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:11px 13px;cursor:pointer;display:flex;align-items:center;gap:10px;}
 .cust-card:active{opacity:.85;}
