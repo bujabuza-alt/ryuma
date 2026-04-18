@@ -132,14 +132,14 @@ if (!seatTime && st !== 'reserved') {
     : {bg:'rgba(42,114,200,.12)', bd:'var(--blue)',         tx:'#60a5fa'};
   var e = Date.now() - seatTime;
   if (e < 3600000) return isLight
-    ? {bg:'rgba(200,146,42,.1)',  bd:'#b07818', tx:'#7a5210'}
-    : {bg:'rgba(200,146,42,.1)',  bd:'var(--amber)', tx:'var(--amber)'};
+    ? {bg:'rgba(200,146,42,.22)',  bd:'#b07818', tx:'#7a5210'}
+    : {bg:'rgba(200,146,42,.28)',  bd:'var(--amber)', tx:'var(--amber)'};
   if (e < 5400000) return isLight
-    ? {bg:'rgba(200,112,48,.12)', bd:'#c87030', tx:'#7c3810'}
-    : {bg:'rgba(200,112,48,.1)',  bd:'#c87030', tx:'#c87030'};
+    ? {bg:'rgba(200,112,48,.26)', bd:'#c87030', tx:'#7c3810'}
+    : {bg:'rgba(200,112,48,.28)',  bd:'#c87030', tx:'#c87030'};
   return isLight
-    ? {bg:'rgba(196,18,48,.08)',  bd:'var(--red)', tx:'var(--red2)'}
-    : {bg:'rgba(196,18,48,.12)',  bd:'var(--red)', tx:'var(--red2)'};
+    ? {bg:'rgba(196,18,48,.20)',  bd:'var(--red)', tx:'var(--red2)'}
+    : {bg:'rgba(196,18,48,.30)',  bd:'var(--red)', tx:'var(--red2)'};
 }
 function cardSz(shape, sz, W, H) {
   var bw = {s:0.17, m:0.26, l:0.36}[sz] || 0.26;

@@ -247,6 +247,7 @@ function renderCanvas() {
     card.style.left=x+'px'; card.style.top=y+'px';
     card.style.width=sz.w+'px'; card.style.height=sz.h+'px';
     card.style.background=c.bg; card.style.borderColor=c.bd;
+    card.style.borderWidth=tb.st==='occupied'?'2px':'1.5px';
     card.style.padding=(tb.shape==='bar')?'5px 9px':'8px 9px 7px';
     card.style.cursor=editMode?'grab':'pointer';
     card.style.boxShadow=editMode?'0 0 0 2px rgba(196,18,48,.3)':'';
@@ -991,9 +992,10 @@ function showOccupied(tb, isViewingToday){
   if(isViewingToday !== false){
     document.getElementById('bclr').addEventListener('click',function(){
       if(!S.daily)S.daily=[];
-      S.daily.push({id:uid(),date:today(),type:'walkin',tname:tb.n,g:tb.g,seatTime:tb.seatTime,endTime:Date.now()});
       if(tb.res && tb.res.resId) {
         S.ress = S.ress.map(function(x){ return x.id==tb.res.resId ? Object.assign({},x,{st:'completed'}) : x; });
+      } else {
+        S.daily.push({id:uid(),date:today(),type:'walkin',tname:tb.n,g:tb.g,seatTime:tb.seatTime,endTime:Date.now()});
       }
       S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'empty',g:0,seatTime:null,res:null}):t;});
       closeModal(); saveData(); renderAll();
