@@ -5,6 +5,7 @@ function esc(s) {
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 function uid()  { return Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+function getRvTableIds(r){ if(r.tableIds&&r.tableIds.length)return r.tableIds; if(r.tableId!=null)return[r.tableId]; return[]; }
 function pad(n) { return String(n).padStart(2,'0'); }
 function fmtElapsed(ms) {
   var t=Math.floor(ms/1000), h=Math.floor(t/3600), m=Math.floor((t%3600)/60), s=t%60;
@@ -78,7 +79,7 @@ function getVirtualTablesForDate(date) {
     var res=null;
     for(var i=0;i<S.ress.length;i++){
       var r=S.ress[i];
-      if(r.tableId===tb.id&&r.date===date&&r.st!=='cancelled'&&r.st!=='noshow'){res=r;break;}
+      if(getRvTableIds(r).indexOf(tb.id)>=0&&r.date===date&&r.st!=='cancelled'&&r.st!=='noshow'){res=r;break;}
     }
     if(res){
       var ro={name:res.nm,g:res.g,time:res.time,date:res.date,phone:res.phone,memo:res.memo,tags:res.tags,resId:res.id};
@@ -192,7 +193,7 @@ function phHtml(id,val){ var dv=val?val.replace(/^010-?/,''):''; return '<div cl
 function bindPh(id){ var el=document.getElementById(id); if(!el)return; el.addEventListener('input',function(){var v=this.value.replace(/\D/g,'');if(v.length>8)v=v.slice(0,8);if(v.length>4)v=v.slice(0,4)+'-'+v.slice(4);this.value=v;}); }
 function getPh(id){ var el=document.getElementById(id); if(!el||!el.value.replace(/\D/g,''))return''; return'010-'+el.value; }
 function tagHtml(pid,sel){ return '<div class="tag-picker" id="'+pid+'">'+S.tags.map(function(t){var on=(sel||[]).indexOf(t)>=0;return'<button type="button" class="tag-pill'+(on?' on':'')+'" data-tag="'+esc(t)+'">'+esc(t)+'</button>';}).join('')+'<button type="button" class="tag-add-btn" id="'+pid+'_mgr">⚙ 태그</button></div>'; }
-function bindTag(pid){ var c=document.getElementById(pid); if(!c)return; c.querySelectorAll('.tag-pill').forEach(function(btn){btn.addEventListener('click',function(){this.classList.toggle('on');});}); var m=document.getElementById(pid+'_mgr'); if(m)m.addEventListener('click',openTagMgr); }
+function bindTag(pid){ var c=document.getElementById(pid); if(!c)return; c.querySelectorAll('.tag-pill').forEach(function(btn){btn.addEventListener('click',function(){this.classList.toggle('on');});}); var m=document.getElementById(pid+'_mgr'); if(m)m.addEventListener('click',function(){openTagMgr(pid);}); }
 function getTags(pid){ var c=document.getElementById(pid); if(!c)return[]; var r=[]; c.querySelectorAll('.tag-pill.on').forEach(function(b){r.push(b.getAttribute('data-tag'));}); return r; }
 
 // ── 토스트 알림 ──

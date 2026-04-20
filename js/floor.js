@@ -34,14 +34,14 @@ function renderSidebar() {
   html += '<div class="sb-sec"><span class="sb-sec-t">'+secLabel+'</span><span class="sb-sec-c">'+rvList.length+'건</span></div>';
   if (rvList.length) {
     rvList.forEach(function(r) {
-      var tbl = r.tableId ? S.tables.filter(function(t){ return t.id===r.tableId; })[0] : null;
+      var floorTbls=getRvTableIds(r).map(function(tid){return S.tables.filter(function(t){return t.id===tid;})[0];}).filter(Boolean);
       var sc  = stC[r.st] || '#5a5248';
       html += '<div class="ri" data-rid="'+esc(String(r.id))+'">'
         + '<div class="ri-top"><span class="ri-time">'+esc(r.time||'–')+'</span>'
         + '<span class="ri-name">'+esc(r.nm)+'</span><span class="ri-g">'+esc(String(r.g))+'명</span></div>'
         + '<div class="ri-sub"><span class="ri-dot" style="background:'+sc+'"></span>'
         + '<span>'+esc(stL[r.st]||r.st)+'</span>'
-        + (tbl ? '<span class="ri-tbl">· 🪑'+esc(tbl.n)+'</span>' : '<span style="color:var(--amber)">· 미배정</span>')
+        + (floorTbls.length ? '<span class="ri-tbl">· 🪑'+floorTbls.map(function(t){return esc(t.n);}).join('+')+' </span>' : '<span style="color:var(--amber)">· 미배정</span>')
         + '</div></div>';
     });
   } else { html += '<div class="sb-empty">'+(isToday?'오늘':fmtDateShort(sideDate))+' 예약 없음</div>'; }
@@ -554,7 +554,7 @@ function getMergedNames(tid) {
 }
 function getAssignedReservationsForTable(tid, date) {
   return S.ress.filter(function(r){
-    return r.tableId===tid && r.date===date && r.st!=='cancelled' && r.st!=='noshow';
+    return getRvTableIds(r).indexOf(tid)>=0 && r.date===date && r.st!=='cancelled' && r.st!=='noshow';
   }).sort(function(a,b){
     return (a.time||'')<(b.time||'')?-1:1;
   });
@@ -1030,7 +1030,7 @@ function showReserved(tb, isViewingToday){
     if(isViewingToday){
       S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'empty',g:0,seatTime:null,res:null}):t;});
     }
-    if(r.resId) S.ress=S.ress.map(function(x){return x.id==r.resId?Object.assign({},x,{st:'cancelled',tableId:null}):x;});
+    if(r.resId) S.ress=S.ress.map(function(x){return x.id==r.resId?Object.assign({},x,{st:'cancelled',tableId:null,tableIds:[]}):x;});
     closeModal(); saveData(); renderAll();
   });
 }
