@@ -23,14 +23,8 @@ function saveData() {
   saveTimer = setTimeout(function() {
     var ts = Date.now(); lastSavedTs = ts;
 
-    // [추가] 날짜별 테이블 저장 공간을 만듭니다.
-    if (!S.dailyTables) S.dailyTables = {};
-    // 현재 보고 있는 날짜(floorDate)의 테이블 상태를 복사해서 저장합니다.
-    S.dailyTables[floorDate || today()] = JSON.parse(JSON.stringify(S.tables));
-
     var p = {
       tables: S.tables,
-      dailyTables: S.dailyTables, // 날짜별 데이터 저장소
       waits: S.waits,
       ress: S.ress,
       tags: S.tags,
@@ -55,14 +49,19 @@ function saveData() {
       fbRef.set(p)
         .then(function() { clearTimeout(fbSaveTimeout); showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000); })
         .catch(function(err) {
-          if (retries < 2) {
-            retries++;
-            setTimeout(tryWrite, retries * 3000);
-          } else {
+          var code = (err && err.code) || '';
+          // PERMISSION_DENIED는 재시도해도 해결되지 않음
+          if (code === 'PERMISSION_DENIED' || retries >= 2) {
             clearTimeout(fbSaveTimeout);
             showBadge('err');
             setTimeout(function(){ showBadge(''); }, 8000);
-            console.error('Firebase save failed:', err && err.code, err && err.message);
+            console.error('Firebase save failed [' + code + ']:', err && err.message);
+            if (code === 'PERMISSION_DENIED') {
+              console.warn('Firebase 보안 규칙을 확인하세요 — Firebase 콘솔 > Realtime Database > 규칙');
+            }
+          } else {
+            retries++;
+            setTimeout(tryWrite, retries * 3000);
           }
         });
     }
@@ -99,10 +98,15 @@ function startFb() {
     if (currentTab === 'reserve') renderReservations();
     if (currentTab === 'stock') renderStock();
   }, function(err) {
+    var code = (err && err.code) || '';
     showBadge('err');
     setTimeout(function(){ showBadge(''); }, 8000);
-    console.error('Firebase listener error:', err && err.code, err && err.message);
-    // 10초 후 재연결 시도
+    console.error('Firebase listener error:', code, err && err.message);
+    // PERMISSION_DENIED는 재시도해도 해결되지 않으므로 루프를 멈춤
+    if (code === 'PERMISSION_DENIED') {
+      console.warn('Firebase: 쓰기 권한 없음 — Firebase 콘솔에서 보안 규칙을 확인하세요.');
+      return;
+    }
     clearTimeout(fbReconnectTimer);
     fbReconnectTimer = setTimeout(function() {
       if (currentStore === listenStore) startFb();
