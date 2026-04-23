@@ -49,24 +49,15 @@ function saveData() {
       setTimeout(function(){ showBadge(''); }, 2000);
       return;
     }
-    var retries = 0;
     var fbSaveTimeout = setTimeout(function() { showBadge('err'); setTimeout(function(){ showBadge(''); }, 8000); }, 30000);
-    function tryWrite() {
-      fbRef.set(p)
-        .then(function() { clearTimeout(fbSaveTimeout); showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000); })
-        .catch(function(err) {
-          if (retries < 2) {
-            retries++;
-            setTimeout(tryWrite, retries * 3000);
-          } else {
-            clearTimeout(fbSaveTimeout);
-            showBadge('err');
-            setTimeout(function(){ showBadge(''); }, 8000);
-            console.error('Firebase save failed:', err && err.code, err && err.message);
-          }
-        });
-    }
-    tryWrite();
+    fbRef.set(p)
+      .then(function() { clearTimeout(fbSaveTimeout); showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000); })
+      .catch(function(err) {
+        clearTimeout(fbSaveTimeout);
+        showBadge('err');
+        setTimeout(function(){ showBadge(''); }, 8000);
+        console.error('Firebase save failed:', err && err.code, err && err.message);
+      });
   }, 400);
 }
 var fbReconnectTimer = null;
