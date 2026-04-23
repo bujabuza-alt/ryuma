@@ -1116,7 +1116,7 @@ function syncToday(){
 
   if(changed){
     S.tables.forEach(function(t){ cardCache[t.id] = ''; });
-    saveData();
+    if (!isSyncingFromRemote) saveData();
     renderAll();
   }
 }
