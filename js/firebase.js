@@ -1,4 +1,5 @@
 // ── Firebase ──
+var isSyncingFromRemote = false; // prevent listener→syncToday→saveData feedback loop
 function loadData() {
   try {
     var d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -48,9 +49,10 @@ function saveData() {
       setTimeout(function(){ showBadge(''); }, 2000);
       return;
     }
+    var fbSaveTimeout = setTimeout(function() { showBadge('err'); }, 10000);
     fbRef.set(p)
-      .then(function() { showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000); })
-      .catch(function() { showBadge('err'); });
+      .then(function() { clearTimeout(fbSaveTimeout); showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000); })
+      .catch(function() { clearTimeout(fbSaveTimeout); showBadge('err'); });
   }, 400);
 }
 function startFb() {
@@ -59,13 +61,9 @@ function startFb() {
   var listenStore = currentStore; // 이 리스너가 등록된 매장 기억
   fbRef.on('value', function(snap) {
     var d = snap.val();
-if (!d) return;
-
-// 🔥 추가
-if (!S) return;
-    if (listenStore !== currentStore) return; // 매장 바뀌었으면 무시
-    var d = snap.val();
     if (!d) return;
+    if (!S) return;
+    if (listenStore !== currentStore) return; // 매장 바뀌었으면 무시
     if (d._ts && d._ts === lastSavedTs) return;
     if (d._ts && lastSavedTs && d._ts < lastSavedTs - 1000) return;
     if (d.tables && d.tables.length) S.tables = d.tables;
@@ -79,7 +77,9 @@ if (!S) return;
     if (Array.isArray(d.stockUnits) && d.stockUnits.length) S.stockUnits = d.stockUnits;
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {}
     S.tables.forEach(function(t){ cardCache[t.id]=''; });
+    isSyncingFromRemote = true;
     syncToday(); renderAll();
+    isSyncingFromRemote = false;
     if (currentTab === 'reserve') renderReservations();
     if (currentTab === 'stock') renderStock();
   }, function() { showBadge('err'); });
