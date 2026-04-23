@@ -70,6 +70,7 @@ function doEnter(store) {
   if (fbRef) fbRef.off();
   fbRef = null;
   lastSavedTs = 0;  // 매장 전환 시 반드시 초기화
+  clearTimeout(fbReconnectTimer); fbReconnectTimer = null;
   fbRef = fbDb.ref('tableApp/' + store);
   S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[]};
   cardCache = {};

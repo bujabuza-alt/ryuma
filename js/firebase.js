@@ -49,17 +49,33 @@ function saveData() {
       setTimeout(function(){ showBadge(''); }, 2000);
       return;
     }
-    var fbSaveTimeout = setTimeout(function() { showBadge('err'); }, 10000);
-    fbRef.set(p)
-      .then(function() { clearTimeout(fbSaveTimeout); showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000); })
-      .catch(function() { clearTimeout(fbSaveTimeout); showBadge('err'); });
+    var retries = 0;
+    var fbSaveTimeout = setTimeout(function() { showBadge('err'); setTimeout(function(){ showBadge(''); }, 8000); }, 30000);
+    function tryWrite() {
+      fbRef.set(p)
+        .then(function() { clearTimeout(fbSaveTimeout); showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000); })
+        .catch(function(err) {
+          if (retries < 2) {
+            retries++;
+            setTimeout(tryWrite, retries * 3000);
+          } else {
+            clearTimeout(fbSaveTimeout);
+            showBadge('err');
+            setTimeout(function(){ showBadge(''); }, 8000);
+            console.error('Firebase save failed:', err && err.code, err && err.message);
+          }
+        });
+    }
+    tryWrite();
   }, 400);
 }
+var fbReconnectTimer = null;
 function startFb() {
   if (!fbRef) return;
   fbRef.off();
   var listenStore = currentStore; // 이 리스너가 등록된 매장 기억
   fbRef.on('value', function(snap) {
+    clearTimeout(fbReconnectTimer);
     var d = snap.val();
     if (!d) return;
     if (!S) return;
@@ -82,7 +98,16 @@ function startFb() {
     isSyncingFromRemote = false;
     if (currentTab === 'reserve') renderReservations();
     if (currentTab === 'stock') renderStock();
-  }, function() { showBadge('err'); });
+  }, function(err) {
+    showBadge('err');
+    setTimeout(function(){ showBadge(''); }, 8000);
+    console.error('Firebase listener error:', err && err.code, err && err.message);
+    // 10초 후 재연결 시도
+    clearTimeout(fbReconnectTimer);
+    fbReconnectTimer = setTimeout(function() {
+      if (currentStore === listenStore) startFb();
+    }, 10000);
+  });
 }
 function showBadge(s) {
   var el = document.getElementById('badge');
