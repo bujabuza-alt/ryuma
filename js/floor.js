@@ -983,12 +983,18 @@ function showOccupied(tb, isViewingToday){
   var doneBtn = (isViewingToday !== false)
     ? '<button class="ab" style="background:var(--indigo);width:100%" id="bclr">✓ 완료 처리</button>'
     : '';
+  var txfrSwapHtml = (isViewingToday !== false)
+    ? '<div class="abs" style="margin-top:2px">'
+      + '<button class="ab" style="background:var(--red)" id="btransfer">↗ 이동</button>'
+      + '<button class="ab" style="background:var(--amber);color:#1a1410" id="bswap">⇄ 맞교환</button>'
+      + '</div>'
+    : '';
   showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' — 착석중</span><button class="md-x" id="mxbtn">×</button></div>'
     +'<div class="ib" style="background:var(--surf2);border-color:'+c.bd+'">'
     +'<div class="ir"><span class="il">착석 인원</span><span class="iv">'+tb.g+'명</span></div>'
     +'<div class="ir"><span class="il">착석 시간</span><span class="iv">'+fmtTime(tb.seatTime)+'</span></div>'
     +'<div class="ir"><span class="il">경과</span><span class="iv" style="color:'+(elapsed>5400000?'var(--red2)':'var(--text)')+'">'+fmtElapsed(elapsed)+'</span></div>'
-    +'</div>'+assignedList+doneBtn);
+    +'</div>'+assignedList+doneBtn+txfrSwapHtml);
   if(isViewingToday !== false){
     document.getElementById('bclr').addEventListener('click',function(){
       if(!S.daily)S.daily=[];
@@ -999,6 +1005,12 @@ function showOccupied(tb, isViewingToday){
       }
       S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'empty',g:0,seatTime:null,res:null}):t;});
       closeModal(); saveData(); renderAll();
+    });
+    document.getElementById('btransfer').addEventListener('click', function(){
+      closeModal(); openTransferModal(tb.id);
+    });
+    document.getElementById('bswap').addEventListener('click', function(){
+      closeModal(); openSwapModal(tb.id);
     });
   }
 }
@@ -1198,5 +1210,164 @@ function unmergeAllTables() {
     saveData();
     console.log('✅ 날짜 변경으로 모든 테이블 묶음이 자동 해제되었습니다.');
   }
+}
+
+// ── 테이블 이동 (Transfer) ──
+function openTransferModal(srcId) {
+  var src = S.tables.filter(function(t){ return t.id === srcId; })[0];
+  if (!src) return;
+  var targets = S.tables.filter(function(t){
+    return t.id !== srcId && t.st === 'empty' && !isSlaveTbl(t.id);
+  });
+  var shapeMap = {sq:'정방형', wide:'가로형', bar:'바형'};
+  var tbHtml = targets.length
+    ? targets.map(function(t){
+        return '<button class="tpb" data-tid="'+t.id+'" style="border-left:3px solid var(--red)">'
+          +'<span>'+esc(t.n)+'</span>'
+          +'<span class="tps">빈 테이블 · '+(shapeMap[t.shape]||t.shape)+' · '+t.c+'인</span></button>';
+      }).join('')
+    : '<p style="color:var(--text3);font-size:13px;text-align:center;padding:16px 0">이동 가능한 빈 테이블이 없습니다</p>';
+  showModal(
+    '<div class="md-hd"><span class="md-title">'+esc(src.n)+' → 테이블 이동</span><button class="md-x" id="mxbtn">×</button></div>'
+    +'<div class="mb">'
+    +'<div style="font-size:12px;color:var(--text2);background:rgba(196,18,48,.07);border:1px solid rgba(196,18,48,.2);border-radius:9px;padding:9px 11px">'
+    +'착석 인원 <b style="color:var(--text)">'+src.g+'명</b>과 착석 정보가 선택한 빈 테이블로 이동됩니다.<br>'
+    +'<span style="color:var(--text3)">'+esc(src.n)+'은 빈 테이블이 됩니다.</span></div>'
+    +'<div style="display:flex;flex-direction:column;gap:6px">'+tbHtml+'</div>'
+    +'</div>'
+  );
+  document.getElementById('mdc').querySelectorAll('.tpb').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var dstId = +this.getAttribute('data-tid');
+      var dst = S.tables.filter(function(t){ return t.id === dstId; })[0];
+      if (!dst) return;
+      showModal(
+        '<div class="md-hd"><span class="md-title">이동 확인</span><button class="md-x" id="mxbtn">×</button></div>'
+        +'<div class="mb">'
+        +'<div class="ib" style="background:rgba(196,18,48,.07);border-color:rgba(196,18,48,.35)">'
+        +'<div class="ir"><span class="il">출발 테이블</span><span class="iv">'+esc(src.n)+'</span></div>'
+        +'<div class="ir"><span class="il">목적지 테이블</span><span class="iv" style="color:var(--red)">'+esc(dst.n)+'</span></div>'
+        +'<div class="ir"><span class="il">착석 인원</span><span class="iv">'+src.g+'명</span></div>'
+        +'<div class="ir"><span class="il">착석 시간</span><span class="iv">'+fmtTime(src.seatTime)+'</span></div>'
+        +'<div class="ir" style="margin-bottom:0"><span class="il">경과 시간</span><span class="iv">'+fmtElapsed(Date.now()-src.seatTime)+'</span></div>'
+        +'</div>'
+        +'<div class="abs">'
+        +'<button class="ab" style="background:var(--surf3);color:var(--text2)" id="txfr-cancel">취소</button>'
+        +'<button class="ab" style="background:var(--red)" id="txfr-confirm">이동 확인</button>'
+        +'</div></div>'
+      );
+      document.getElementById('txfr-cancel').addEventListener('click', closeModal);
+      document.getElementById('txfr-confirm').addEventListener('click', function(){
+        executeTransfer(srcId, dstId);
+      });
+    });
+  });
+}
+
+function executeTransfer(srcId, dstId) {
+  var src = S.tables.filter(function(t){ return t.id === srcId; })[0];
+  var dst = S.tables.filter(function(t){ return t.id === dstId; })[0];
+  if (!src || !dst) return;
+  var srcName = src.n, dstName = dst.n;
+  S.tables = S.tables.map(function(t) {
+    if (t.id === srcId) return Object.assign({}, t, {st:'empty', g:0, seatTime:null, res:null});
+    if (t.id === dstId) return Object.assign({}, t, {st:src.st, g:src.g, seatTime:src.seatTime, res:src.res});
+    return t;
+  });
+  S.ress = S.ress.map(function(r) {
+    if (r.tableId === srcId) return Object.assign({}, r, {tableId: dstId});
+    return r;
+  });
+  cardCache[srcId] = '';
+  cardCache[dstId] = '';
+  closeModal();
+  saveData();
+  renderAll();
+  showToast(srcName + ' → ' + dstName + ' 이동 완료');
+}
+
+// ── 테이블 맞교환 (Swap) ──
+function openSwapModal(srcId) {
+  var src = S.tables.filter(function(t){ return t.id === srcId; })[0];
+  if (!src) return;
+  var targets = S.tables.filter(function(t){
+    return t.id !== srcId && t.st !== 'empty' && !isSlaveTbl(t.id);
+  });
+  var tbHtml = targets.length
+    ? targets.map(function(t){
+        var isOcc = t.st === 'occupied';
+        var stLabel = isOcc ? t.g+'명 착석중 · '+fmtElapsed(Date.now()-t.seatTime) : '예약 · '+esc(t.res&&t.res.name||'');
+        var stColor = isOcc ? 'var(--amber)' : 'var(--blue)';
+        return '<button class="tpb" data-tid="'+t.id+'" style="border-left:3px solid '+stColor+'">'
+          +'<span>'+esc(t.n)+'</span>'
+          +'<span class="tps" style="color:'+stColor+'">'+stLabel+'</span></button>';
+      }).join('')
+    : '<p style="color:var(--text3);font-size:13px;text-align:center;padding:16px 0">교환 가능한 테이블이 없습니다</p>';
+  var srcLabel = src.st==='occupied' ? src.g+'명 착석중' : '예약';
+  showModal(
+    '<div class="md-hd"><span class="md-title">'+esc(src.n)+' — 테이블 맞교환</span><button class="md-x" id="mxbtn">×</button></div>'
+    +'<div class="mb">'
+    +'<div style="font-size:12px;color:var(--text2);background:rgba(200,146,42,.08);border:1px solid rgba(200,146,42,.3);border-radius:9px;padding:9px 11px">'
+    +'<b style="color:var(--amber)">'+esc(src.n)+'</b> ('+srcLabel+')의 손님 정보를<br>'
+    +'교환할 테이블의 손님 정보와 <b>완전히 맞바꿉니다.</b></div>'
+    +'<div style="display:flex;flex-direction:column;gap:6px">'+tbHtml+'</div>'
+    +'</div>'
+  );
+  document.getElementById('mdc').querySelectorAll('.tpb').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var dstId = +this.getAttribute('data-tid');
+      var dst = S.tables.filter(function(t){ return t.id === dstId; })[0];
+      if (!dst) return;
+      var srcInfo = src.st==='occupied'
+        ? src.g+'명 · '+fmtTime(src.seatTime)+' 착석'
+        : '예약 · '+(src.res&&src.res.name||'');
+      var dstInfo = dst.st==='occupied'
+        ? dst.g+'명 · '+fmtTime(dst.seatTime)+' 착석'
+        : '예약 · '+(dst.res&&dst.res.name||'');
+      showModal(
+        '<div class="md-hd"><span class="md-title">테이블 맞교환 확인</span><button class="md-x" id="mxbtn">×</button></div>'
+        +'<div class="mb">'
+        +'<div class="ib" style="background:rgba(200,146,42,.07);border-color:rgba(200,146,42,.4)">'
+        +'<div class="ir"><span class="il" style="color:var(--amber);font-weight:800">⇄ 교환 대상</span></div>'
+        +'<div class="ir"><span class="il">'+esc(src.n)+'</span><span class="iv">'+srcInfo+'</span></div>'
+        +'<div class="ir" style="margin-bottom:0"><span class="il">'+esc(dst.n)+'</span><span class="iv">'+dstInfo+'</span></div>'
+        +'</div>'
+        +'<div style="font-size:12px;color:var(--text3);text-align:center">착석 인원 · 시간 · 예약 정보가 서로 교환됩니다</div>'
+        +'<div class="abs">'
+        +'<button class="ab" style="background:var(--surf3);color:var(--text2)" id="swap-cancel">취소</button>'
+        +'<button class="ab" style="background:var(--amber);color:#1a1410" id="swap-confirm">맞교환 확인</button>'
+        +'</div></div>'
+      );
+      document.getElementById('swap-cancel').addEventListener('click', closeModal);
+      document.getElementById('swap-confirm').addEventListener('click', function(){
+        executeSwap(srcId, dstId);
+      });
+    });
+  });
+}
+
+function executeSwap(tid1, tid2) {
+  var t1 = S.tables.filter(function(t){ return t.id === tid1; })[0];
+  var t2 = S.tables.filter(function(t){ return t.id === tid2; })[0];
+  if (!t1 || !t2) return;
+  var n1 = t1.n, n2 = t2.n;
+  var snap1 = {st:t1.st, g:t1.g, seatTime:t1.seatTime, res:t1.res};
+  var snap2 = {st:t2.st, g:t2.g, seatTime:t2.seatTime, res:t2.res};
+  S.tables = S.tables.map(function(t) {
+    if (t.id === tid1) return Object.assign({}, t, snap2);
+    if (t.id === tid2) return Object.assign({}, t, snap1);
+    return t;
+  });
+  S.ress = S.ress.map(function(r) {
+    if (r.tableId === tid1) return Object.assign({}, r, {tableId: tid2});
+    else if (r.tableId === tid2) return Object.assign({}, r, {tableId: tid1});
+    return r;
+  });
+  cardCache[tid1] = '';
+  cardCache[tid2] = '';
+  closeModal();
+  saveData();
+  renderAll();
+  showToast(n1 + ' ⇄ ' + n2 + ' 맞교환 완료');
 }
 
