@@ -95,10 +95,17 @@ function mkTable(t) {
   return {id:t.id, n:t.n, shape:shape, sz:sz, c:cap, px:t.px, py:t.py, st:'empty', g:0, seatTime:null, res:null};
 }
 function isSlaveTbl(tid) {
-  return S.tables.some(function(t){ return t.mergeIds && t.mergeIds.indexOf(tid) >= 0; });
+  // String() 변환으로 숫자/문자열 혼재 시 오탐 방지
+  var s = String(tid);
+  return S.tables.some(function(t){
+    return t.mergeIds && t.mergeIds.some(function(mid){ return String(mid) === s; });
+  });
 }
 function getMasterOfSlave(tid) {
-  return S.tables.filter(function(t){ return t.mergeIds && t.mergeIds.indexOf(tid) >= 0; })[0] || null;
+  var s = String(tid);
+  return S.tables.filter(function(t){
+    return t.mergeIds && t.mergeIds.some(function(mid){ return String(mid) === s; });
+  })[0] || null;
 }
 function getNextGroupName() {
   var num = 1;

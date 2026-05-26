@@ -3,6 +3,9 @@ var isSyncingFromRemote = false; // prevent listener→syncToday→saveData feed
 function loadData() {
   try {
     var d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    // 재로드 후 Firebase 리스너가 구버전 데이터로 로컬을 덮어쓰는 것을 방지하기 위해
+    // localStorage에 저장된 마지막 타임스탬프를 복원한다.
+    if (d._ts) lastSavedTs = d._ts;
     if (Array.isArray(d.tables)) S.tables = d.tables;
     if (Array.isArray(d.waits))  S.waits = d.waits;
     if (Array.isArray(d.ress))   S.ress  = d.ress;

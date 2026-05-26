@@ -268,7 +268,20 @@ function openAssignTable(rid) {
     return String(a.n).localeCompare(String(b.n), 'ko');
   });
 
-  var selTids = getRvTableIds(r).slice();
+  // 마스터 테이블의 수용인원 = 마스터 자신 + 병합된 슬레이브 테이블의 합산
+  function getEffectiveCap(t) {
+    var cap = t.c || 0;
+    if (t.mergeIds && t.mergeIds.length) {
+      t.mergeIds.forEach(function(mid) {
+        var slave = S.tables.filter(function(x){ return String(x.id) === String(mid); })[0];
+        if (slave) cap += (slave.c || 0);
+      });
+    }
+    return cap;
+  }
+
+  // selTids는 String 타입으로 통일하여 숫자/문자열 ID 혼재 시 indexOf 오류 방지
+  var selTids = getRvTableIds(r).map(String);
 
   var html = '<div class="md-hd"><span class="md-title">' + esc(r.nm) + ' — 테이블 배정</span><button class="md-x" id="mxbtn">×</button></div>';
   if (!et.length) html += '<p style="font-size:13px;color:var(--text3);text-align:center;padding:16px 0">배정 가능한 테이블 없음</p>';
@@ -277,11 +290,13 @@ function openAssignTable(rid) {
     + '<div style="display:flex;flex-direction:column;gap:6px">'
     + et.map(function(t){
       var assignedCount = S.ress.filter(function(x){
-        return getRvTableIds(x).indexOf(t.id)>=0 && x.date===r.date && x.st!=='cancelled' && x.st!=='noshow' && x.id!=rid;
+        return getRvTableIds(x).map(String).indexOf(String(t.id))>=0 && x.date===r.date && x.st!=='cancelled' && x.st!=='noshow' && x.id!=rid;
       }).length;
-      var rightInfo = ({'sq':'정방형','wide':'가로형','bar':'바형'}[t.shape]||t.shape) + ' ' + t.sz.toUpperCase() + ' · ' + t.c + '인'
+      var effCap = getEffectiveCap(t);
+      var mergeLabel = (t.mergeIds && t.mergeIds.length) ? (' +' + t.mergeIds.length + '테이블') : '';
+      var rightInfo = ({'sq':'정방형','wide':'가로형','bar':'바형'}[t.shape]||t.shape) + ' ' + t.sz.toUpperCase() + mergeLabel + ' · ' + effCap + '인'
         + (assignedCount > 0 ? (' · ' + assignedCount + '팀') : '');
-      var isSel = selTids.indexOf(t.id) >= 0;
+      var isSel = selTids.indexOf(String(t.id)) >= 0;
       return '<button class="tpb' + (isSel ? ' on' : '') + '" data-tid="' + t.id + '"><span>' + esc(t.n) + '</span><span class="tps">' + rightInfo + '</span></button>';
     }).join('')
     + '</div>'
@@ -293,14 +308,21 @@ function openAssignTable(rid) {
     var el=document.getElementById('assign-info'); if(!el)return;
     if(!selTids.length){el.textContent='미배정';return;}
     var totalCap=0;
-    var names=selTids.map(function(tid){var t=et.filter(function(x){return x.id===tid;})[0];if(t)totalCap+=t.c;return t?t.n:'?';});
-    el.textContent=names.join(' + ')+' · 총 '+totalCap+'인 수용';
+    var names=selTids.map(function(tid){
+      var t=et.filter(function(x){ return String(x.id)===tid; })[0];
+      if(t) totalCap += getEffectiveCap(t);
+      return t ? t.n : '?';
+    });
+    var capColor = (r.g > totalCap) ? 'var(--red2)' : 'var(--text3)';
+    el.innerHTML = '<span>' + names.join(' + ') + ' · 총 ' + totalCap + '인 수용'
+      + (r.g > totalCap ? ' <span style="color:var(--red2);font-weight:700">(예약 ' + r.g + '명 초과 ⚠)</span>' : '') + '</span>';
   }
   updateAssignInfo();
 
   document.getElementById('mdc').querySelectorAll('.tpb').forEach(function(btn){
     btn.addEventListener('click', function(){
-      var tid = +this.getAttribute('data-tid');
+      // getAttribute 결과는 항상 문자열이므로 그대로 사용 (+ 변환 제거)
+      var tid = this.getAttribute('data-tid');
       var idx = selTids.indexOf(tid);
       if(idx>=0){selTids.splice(idx,1);this.classList.remove('on');}
       else{selTids.push(tid);this.classList.add('on');}
@@ -310,18 +332,37 @@ function openAssignTable(rid) {
 
   var bOk = document.getElementById('bassign-ok');
   if(bOk) bOk.addEventListener('click', function(){
+    // 수용인원 초과 시 확인 다이얼로그
+    if(selTids.length) {
+      var totalCap = selTids.reduce(function(sum, tid){
+        var t = et.filter(function(x){ return String(x.id) === tid; })[0];
+        return sum + (t ? getEffectiveCap(t) : 0);
+      }, 0);
+      if(totalCap < r.g) {
+        if(!confirm(r.g + '명 예약이지만 선택 테이블 총 수용인원은 ' + totalCap + '명입니다.\n계속 배정하시겠습니까?')) return;
+      }
+    }
+
+    // 기존 배정 해제 — String 비교로 ID 타입 혼재 방지
     var oldTblIds = getRvTableIds(r);
     if(oldTblIds.length){
       S.tables = S.tables.map(function(t){
-        return oldTblIds.indexOf(t.id)>=0 && t.st==='reserved' ? Object.assign({},t,{st:'empty',res:null}) : t;
+        return oldTblIds.map(String).indexOf(String(t.id))>=0 && t.st==='reserved'
+          ? Object.assign({},t,{st:'empty',res:null}) : t;
       });
     }
-    var tableId = selTids[0]||null;
-    S.ress = S.ress.map(function(x){ return x.id==rid ? Object.assign({},x,{tableId:tableId,tableIds:selTids.slice()}) : x; });
+
+    // 저장 시 원래 숫자 ID 형식 유지 (숫자 파싱 가능한 경우 숫자로 변환)
+    var savedIds = selTids.map(function(s){ var n = +s; return isNaN(n) ? s : n; });
+    var tableId = savedIds[0] != null ? savedIds[0] : null;
+    S.ress = S.ress.map(function(x){
+      return x.id==rid ? Object.assign({},x,{tableId:tableId, tableIds:savedIds.slice()}) : x;
+    });
+
     if(selTids.length && r.date===currentDate){
       var ro = {name:r.nm, g:r.g, time:r.time, date:r.date, phone:r.phone, memo:r.memo, tags:r.tags, resId:r.id};
       S.tables = S.tables.map(function(t){
-        if(selTids.indexOf(t.id)<0) return t;
+        if(selTids.indexOf(String(t.id))<0) return t;
         return t.st==='empty' ? Object.assign({},t,{st:'reserved',res:ro}) : t;
       });
     }
