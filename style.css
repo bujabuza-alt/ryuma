@@ -352,3 +352,298 @@ textarea.fi{resize:none;min-height:60px;}
   transform-origin: center center;
 }
 
+/* ── View Mode 컨트롤 (사이드바) ── */
+#sb-vm {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.sb-vm-lbl {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text3);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.sb-vm-seg {
+  display: flex;
+  gap: 3px;
+  background: var(--surf3);
+  border-radius: 7px;
+  padding: 2px;
+}
+.sb-vm-btn {
+  flex: 1;
+  padding: 5px 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text2);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .15s, color .15s;
+}
+.sb-vm-btn.on {
+  background: var(--surf);
+  color: var(--red2);
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+}
+
+/* ── 스케줄 뷰 ── */
+#sched-view {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+#sched-view.on {
+  display: flex;
+}
+.schv-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.schv-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: .02em;
+}
+
+/* ── 스케줄 캘린더 ── */
+#schcal {
+  background: var(--surf);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 12px;
+}
+.schcal-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.schcal-month {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+}
+.schcal-nav {
+  background: var(--surf2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text2);
+}
+.schcal-dows {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 2px;
+}
+.schcal-dow {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text3);
+  padding: 3px 0;
+}
+.schcal-dow.sun { color: var(--red); }
+.schcal-dow.sat { color: var(--blue); }
+.schcal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.schcal-day {
+  text-align: center;
+  border-radius: 50%;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 30px;
+  height: 30px;
+  margin: 1px auto;
+  color: var(--text2);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.schcal-day.empty { pointer-events: none; }
+.schcal-day.today {
+  background: var(--red);
+  color: #fff;
+  font-weight: 800;
+}
+.schcal-day.sel {
+  background: rgba(196,18,48,.18);
+  color: var(--red2);
+  font-weight: 800;
+}
+.schcal-day.sun { color: var(--red); }
+.schcal-day.sat { color: var(--blue); }
+.schcal-day.today.sun,
+.schcal-day.today.sat { color: #fff; }
+.schcal-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+}
+.schcal-day.today .schcal-dot { background: rgba(255,255,255,.8); }
+/* 주간 뷰 */
+.schcal-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.schcal-wday {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 2px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.schcal-wday-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text3);
+}
+.schcal-wday-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  gap: 2px;
+}
+.schcal-wday.today .schcal-wday-name { color: var(--red); }
+.schcal-wday.today .schcal-wday-num {
+  background: var(--red);
+  color: #fff;
+}
+.schcal-wday.today .schcal-wday-num .schcal-dot { background: rgba(255,255,255,.8); }
+.schcal-wday.sun .schcal-wday-name,
+.schcal-wday.sun .schcal-wday-num { color: var(--red); }
+.schcal-wday.sat .schcal-wday-name,
+.schcal-wday.sat .schcal-wday-num { color: var(--blue); }
+.schcal-wday.today .schcal-wday-num { color: #fff; }
+
+/* ── 예정 예약 리스트 ── */
+#schrv {
+  background: var(--surf);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.schrv-hd-row {
+  padding: 10px 13px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.schrv-title {
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--text);
+}
+.schrv-cnt {
+  font-size: 11px;
+  color: var(--text3);
+}
+.schrv-item {
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  cursor: pointer;
+  transition: background .14s;
+}
+.schrv-item:last-child { border-bottom: none; }
+.schrv-item:active { background: var(--surf2); }
+@media (hover:hover) and (pointer:fine) {
+  .schrv-item:hover { background: var(--surf2); }
+}
+.schrv-time {
+  background: rgba(196,18,48,.12);
+  color: var(--red2);
+  border-radius: 6px;
+  padding: 4px 7px;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+  min-width: 46px;
+  text-align: center;
+}
+.schrv-body { flex: 1; min-width: 0; }
+.schrv-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 1px;
+}
+.schrv-info {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 1px;
+}
+.schrv-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.schrv-tag-confirm {
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 5px;
+  padding: 2px 7px;
+  background: rgba(42,154,90,.15);
+  color: var(--green);
+}
+.schrv-tag-call {
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 5px;
+  padding: 2px 7px;
+  background: rgba(220,60,100,.1);
+  color: #d04070;
+}
+body.light .schrv-tag-call { color: #c03060; }
+.schrv-tag-pending {
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 5px;
+  padding: 2px 7px;
+  background: rgba(200,146,42,.15);
+  color: var(--amber);
+}
+.schrv-empty {
+  padding: 28px;
+  text-align: center;
+  color: var(--text3);
+  font-size: 12px;
+}
+
