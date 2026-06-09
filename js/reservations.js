@@ -15,8 +15,21 @@ function renderCal(){
     html+='<div class="'+cls+'" data-d="'+s+'">'+d+(dots[s]?'<div class="dot"></div>':'')+'</div>';
   }
   document.getElementById('calg').innerHTML=html;
+  var td2=today();
   document.getElementById('calg').querySelectorAll('.cd').forEach(function(el){
-    el.addEventListener('click',function(){var d=this.getAttribute('data-d');if(!d)return;calSel=(calSel===d)?null:d;renderCal();renderRvList();});
+    el.addEventListener('click',function(e){
+      var d=this.getAttribute('data-d');
+      if(!d)return;
+      e.stopPropagation();
+      calSel=(calSel===d)?null:d;
+      document.getElementById('calg').querySelectorAll('.cd[data-d]').forEach(function(c){
+        c.classList.remove('sel','today');
+        var cd=c.getAttribute('data-d');
+        if(calSel&&cd===calSel) c.classList.add('sel');
+        else if(cd===td2) c.classList.add('today');
+      });
+      renderRvList();
+    });
   });
 }
 function rvItemHtml(r,sm,isPast){
@@ -25,12 +38,16 @@ function rvItemHtml(r,sm,isPast){
   var tbls=tblIds.map(function(tid){return S.tables.filter(function(t){return t.id===tid;})[0];}).filter(Boolean);
   return '<div class="rvi'+(isPast?' past':'')+'" data-rid="'+esc(String(r.id))+'">'
     +'<div class="rvi-t">'+esc(r.time||'–')+'</div>'
-    +'<div class="rvi-b"><div class="rvi-n">'+esc(r.nm)+'</div>'
-    +'<div class="rvi-s">'+(r.date?dlabel(r.date)+' ':'')+r.g+'명'+(r.phone?' · '+esc(r.phone):'')
-    +(tbls.length?' · <span style="color:var(--blue)">🪑'+tbls.map(function(t){return esc(t.n);}).join('+')+' </span>':'')+'</div>'
+    +'<div class="rvi-b">'
+    +'<div class="rvi-n">'+esc(r.nm)+'</div>'
+    +'<div class="rvi-s">'+(r.date?dlabel(r.date)+' ':'')+r.g+'명</div>'
+    +(r.phone?'<div class="rvi-ph">'+esc(r.phone)+'</div>':'')
+    +(tbls.length?'<div class="rvi-tbl">🪑 '+tbls.map(function(t){return esc(t.n);}).join(' + ')+'</div>':'')
     +(r.tags&&r.tags.length?'<div class="rvi-tags">'+r.tags.map(function(t){return'<span class="rvi-tag">'+esc(t)+'</span>';}).join('')+'</div>':'')
     +(r.memo?'<div class="rvi-m">📝'+esc(r.memo)+'</div>':'')
-    +'</div><div class="rvi-st" style="color:'+s[0]+';background:'+s[1]+'">'+s[2]+'</div></div>';
+    +'</div>'
+    +'<div class="rvi-st" style="color:'+s[0]+';background:'+s[1]+'">'+s[2]+'</div>'
+    +'</div>';
 }
 function renderRvList(){
   var q=(document.getElementById('rvsrch').value||'').trim().toLowerCase();
@@ -47,8 +64,6 @@ function renderRvList(){
   var nd=today();
   var upcomingEl=document.getElementById('rv-upcoming');
   var pastWrap=document.getElementById('rv-past-wrap');
-  var pastEl=document.getElementById('rv-past');
-  var pastLbl=document.getElementById('rv-past-lbl');
   function bindRvi(container){
     container.querySelectorAll('.rvi').forEach(function(el){
       el.addEventListener('click',function(){openRvDetail(this.getAttribute('data-rid'));});
@@ -57,30 +72,31 @@ function renderRvList(){
   var showSections=!calSel&&!q;
   if(showSections){
     var activeSt={confirmed:1,pending:1,arrived:1};
-    var upcoming=list.filter(function(r){return r.date>=nd && activeSt[r.st];});
+    var todayRvs=list.filter(function(r){return r.date===nd && activeSt[r.st];});
+    var futureRvs=list.filter(function(r){return r.date>nd && activeSt[r.st];});
     var past=list.filter(function(r){return r.st==='completed'||r.st==='noshow'||r.st==='cancelled'||r.date<nd;});
-    // 예정 예약: rvSortAsc 적용
-    upcoming.sort(function(a,b){
+
+    todayRvs.sort(function(a,b){return (a.time||'99:99')<(b.time||'99:99')?-1:1;});
+    futureRvs.sort(function(a,b){
       var ka=(a.date||'9999')+(a.time||'99:99'), kb=(b.date||'9999')+(b.time||'99:99');
       return rvSortAsc?(ka<kb?-1:1):(ka>kb?-1:1);
     });
-    // 완료된 예약: 최신순 고정
     past.sort(function(a,b){
       var ka=(a.date||'0000')+(a.time||'00:00'), kb=(b.date||'0000')+(b.time||'00:00');
       return ka>kb?-1:1;
     });
-    upcomingEl.innerHTML=upcoming.length
-      ? '<div class="rv-sec-lbl">예정 예약 '+upcoming.length+'건</div>'+upcoming.map(function(r){return rvItemHtml(r,sm,false);}).join('')
-      : '<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">예정 예약 없음</div>';
+
+    var html='<div class="rv-sec-lbl">오늘 예약 '+todayRvs.length+'건</div>';
+    if(todayRvs.length) html+=todayRvs.map(function(r){return rvItemHtml(r,sm,false);}).join('');
+    else html+='<div class="rv-empty-row">오늘 예약 없음</div>';
+
+    if(futureRvs.length) html+='<div class="rv-sec-lbl">이후 예약 '+futureRvs.length+'건</div>'+futureRvs.map(function(r){return rvItemHtml(r,sm,false);}).join('');
+
+    if(past.length) html+='<div class="rv-sec-lbl">완료된 예약 '+past.length+'건</div>'+past.map(function(r){return rvItemHtml(r,sm,true);}).join('');
+
+    upcomingEl.innerHTML=html;
     bindRvi(upcomingEl);
-    if(past.length){
-      pastWrap.style.display='flex';
-      pastLbl.textContent='완료된 예약 '+past.length+'건';
-      pastEl.innerHTML=past.map(function(r){return rvItemHtml(r,sm,true);}).join('');
-      bindRvi(pastEl);
-    } else {
-      pastWrap.style.display='none';
-    }
+    pastWrap.style.display='none';
   } else {
     list.sort(function(a,b){
       var ka=(a.date||'9999')+(a.time||'99:99'), kb=(b.date||'9999')+(b.time||'99:99');
@@ -158,7 +174,7 @@ function openRvDetail(rid){
     +'<div class="ir"><span class="il">상태</span><span class="iv">'+sml[r.st]+'</span></div>'
     +'</div>'
     +'<div style="display:flex;gap:5px;margin-bottom:9px">'
-    +['arrived','completed','noshow','cancelled'].map(function(s){return '<button style="flex:1;padding:8px 0;border:none;border-radius:8px;background:'+(sc[s]?sc[s][1]:'var(--surf2)')+';color:'+(sc[s]?sc[s][0]:'var(--text2)')+';font-weight:700;font-size:12px;cursor:pointer;font-family:inherit" data-st="'+s+'">'+sml[s]+'</button>';}).join('')+'</div>'
+    +['completed','noshow','cancelled'].map(function(s){return '<button style="flex:1;padding:8px 0;border:none;border-radius:8px;background:'+(sc[s]?sc[s][1]:'var(--surf2)')+';color:'+(sc[s]?sc[s][0]:'var(--text2)')+';font-weight:700;font-size:12px;cursor:pointer;font-family:inherit" data-st="'+s+'">'+sml[s]+'</button>';}).join('')+'</div>'
     +(!tbls.length?'<button class="ab" style="background:var(--blue);width:100%;margin-bottom:7px" id="bassign">🪑 테이블 배정</button>':'<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-bottom:7px" id="bunassign">배정 해제</button>')
     +(r.phone?'<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-bottom:7px" id="bcustinfo">👤 고객 정보</button>':'')
     +((r.st==='completed'||r.st==='noshow')?'<button class="ab" style="background:var(--green);width:100%;margin-bottom:7px" id="brestore">🔄 예약 복구 (확정으로 변경)</button>':'')
@@ -384,7 +400,7 @@ function openEditRv(rid){
     +'<div class="fg"><label class="fl">태그(선택)</label>'+tagHtml('evtags',r.tags||[])+'</div>'
     +'<div class="fg"><label class="fl">메모</label><textarea class="fi" id="evm">'+esc(r.memo||'')+'</textarea></div>'
     +'<div class="fg"><label class="fl">상태</label><select class="fi" id="evs">'
-    +['confirmed','pending','arrived','noshow','completed'].map(function(s){return'<option value="'+s+'"'+(r.st===s?' selected':'')+'>'+{confirmed:'확정',pending:'대기',arrived:'방문',noshow:'노쇼',completed:'완료'}[s]+'</option>';}).join('')
+    +['confirmed','pending','noshow','completed'].map(function(s){return'<option value="'+s+'"'+(r.st===s?' selected':'')+'>'+{confirmed:'확정',pending:'대기',noshow:'노쇼',completed:'완료'}[s]+'</option>';}).join('')
     +'</select></div>'
     +'<button class="ab" style="background:var(--green);width:100%" id="evsubmit">저장</button></div>');
   bindPh('evp'); bindTag('evtags');
