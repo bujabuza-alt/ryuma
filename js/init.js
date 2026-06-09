@@ -41,8 +41,10 @@ document.getElementById('sel-theme').addEventListener('click', toggleTheme);
 document.getElementById('btn-cfg').addEventListener('click', openCfg);
 document.getElementById('bcalp').addEventListener('click', function(){ calM--; if(calM<0){calM=11;calY--;} renderCal(); renderRvList(); });
 document.getElementById('bcaln').addEventListener('click', function(){ calM++; if(calM>11){calM=0;calY++;} renderCal(); renderRvList(); });
+document.getElementById('bcaltoday').addEventListener('click', function(){ var now=new Date(); calY=now.getFullYear(); calM=now.getMonth(); calSel=today(); renderCal(); renderRvList(); });
 document.getElementById('rvsrch').addEventListener('input', renderRvList);
 document.getElementById('rvsort').addEventListener('click', function(){ rvSortAsc=!rvSortAsc; renderRvList(); });
+document.getElementById('rv-fab').addEventListener('click', openAddRv);
 document.getElementById('mo').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 document.getElementById('mo').addEventListener('touchend', function(e){ if(e.target===this) closeModal(); });
 
