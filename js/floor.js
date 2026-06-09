@@ -1,5 +1,8 @@
 // ── 홀 현황 (Floor View) ──
 var custFilterMode = 'active'; // 'active' | 'cancel'
+var hallViewMode = 'monthly';  // 'monthly' | 'weekly' | 'hall'
+var schedCalYear  = new Date().getFullYear();
+var schedCalMonth = new Date().getMonth(); // 0-indexed
 // ── 헤더/통계 ──
 function renderHeader() {
   document.getElementById('hdate').textContent = new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
@@ -102,8 +105,9 @@ function switchTab(t) {
   // FAB visibility managed here since it lives outside #stock
   var fab = document.getElementById('stock-btn-add');
   if (fab) fab.style.display = (t==='stock') ? 'flex' : 'none';
-  document.getElementById('bedit').style.display = t==='floor'?'':'none';
-  document.getElementById('btn-view').style.display = t==='floor'?'':'none';
+  // bedit/btn-view shown only in hall canvas mode; renderAll() handles this for floor tab
+  document.getElementById('bedit').style.display = (t==='floor' && hallViewMode==='hall') ? '' : 'none';
+  document.getElementById('btn-view').style.display = (t==='floor' && hallViewMode==='hall') ? '' : 'none';
   if (t==='floor') renderAll();
   else if (t==='reserve') renderReservations();
   else if (t==='cust') renderCustTab();
@@ -443,22 +447,27 @@ function toggleEdit(){
   S.tables.forEach(function(t){cardCache[t.id]='';});
   if(editMode){
     btn.textContent='✅'; btn.classList.add('on');
+    // 편집 모드는 항상 홀 캔버스 뷰로 전환
+    hallViewMode='hall';
     cv.classList.add('em'); hint.textContent='테이블 탭 → 편집/삭제 · 길게 누르고 드래그';
     if(vbtn) vbtn.style.display='none';
-    // 캔버스 뷰로 강제 전환
     if(viewMode!=='canvas'){ viewMode='canvas'; updateViewUI(); }
     var ab=document.createElement('button'); ab.id='baddtbl'; ab.className='bp';
     ab.style.cssText='position:absolute;bottom:10px;right:10px;z-index:10;font-size:11px;padding:6px 10px;';
     ab.textContent='+ 테이블 추가';
     ab.addEventListener('click',function(e){e.stopPropagation();openAddTableModal();});
     cv.appendChild(ab);
+    renderAll();
   } else {
     btn.textContent='✏️'; btn.classList.remove('on');
     cv.classList.remove('em'); hint.textContent='';
     if(vbtn) vbtn.style.display='';
     var a2=document.getElementById('baddtbl'); if(a2)a2.remove(); saveData();
+    // 편집 완료 후 스케줄 뷰로 복귀
+    var activeVm = document.querySelector('.sb-vm-btn.on');
+    hallViewMode = activeVm ? (activeVm.getAttribute('data-vm')||'monthly') : 'monthly';
+    renderAll();
   }
-  renderCanvas();
 }
 
 // ── 테이블 형태/크기 선택 ──
@@ -1132,9 +1141,148 @@ function syncToday(){
     renderAll();
   }
 }
+// ── 스케줄 뷰 렌더 ──
+function renderSchedView() {
+  var mEl = document.getElementById('schcal-m');
+  if (mEl) mEl.textContent = schedCalYear+'년 '+(schedCalMonth+1)+'월';
+
+  var gEl = document.getElementById('schcal-g');
+  if (!gEl) return;
+
+  var td = today();
+  var dows = ['일','월','화','수','목','금','토'];
+  var dowsHTML = '<div class="schcal-dows">';
+  dows.forEach(function(d, i) {
+    var cls = 'schcal-dow'+(i===0?' sun':i===6?' sat':'');
+    dowsHTML += '<div class="'+cls+'">'+d+'</div>';
+  });
+  dowsHTML += '</div>';
+
+  var gridHTML = '';
+  if (hallViewMode === 'weekly') {
+    var todayDate = new Date();
+    var weekStart = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate() - todayDate.getDay());
+    gridHTML += '<div class="schcal-week">';
+    for (var i = 0; i < 7; i++) {
+      var wd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
+      var ds = wd.getFullYear()+'-'+pad(wd.getMonth()+1)+'-'+pad(wd.getDate());
+      var isT = ds === td;
+      var rvCnt = S.ress.filter(function(r){ return r.date===ds && r.st!=='cancelled' && r.st!=='completed'; }).length;
+      var cls = 'schcal-wday'+(isT?' today':'')+(i===0?' sun':i===6?' sat':'');
+      gridHTML += '<div class="'+cls+'" data-date="'+ds+'">'
+        + '<div class="schcal-wday-name">'+dows[i]+'</div>'
+        + '<div class="schcal-wday-num">'+wd.getDate()+(rvCnt?'<div class="schcal-dot"></div>':'')+'</div>'
+        + '</div>';
+    }
+    gridHTML += '</div>';
+  } else {
+    var firstDay = new Date(schedCalYear, schedCalMonth, 1).getDay();
+    var daysInMonth = new Date(schedCalYear, schedCalMonth+1, 0).getDate();
+    gridHTML += '<div class="schcal-days">';
+    for (var i = 0; i < firstDay; i++) {
+      gridHTML += '<div class="schcal-day empty"></div>';
+    }
+    for (var d = 1; d <= daysInMonth; d++) {
+      var ds = schedCalYear+'-'+pad(schedCalMonth+1)+'-'+pad(d);
+      var isT = ds === td;
+      var dow = (firstDay + d - 1) % 7;
+      var rvCnt = S.ress.filter(function(r){ return r.date===ds && r.st!=='cancelled' && r.st!=='completed'; }).length;
+      var cls = 'schcal-day'+(isT?' today':'')+(dow===0?' sun':dow===6?' sat':'');
+      gridHTML += '<div class="'+cls+'" data-date="'+ds+'">'+d+(rvCnt?'<div class="schcal-dot"></div>':'')+'</div>';
+    }
+    gridHTML += '</div>';
+  }
+
+  gEl.innerHTML = dowsHTML + gridHTML;
+
+  gEl.querySelectorAll('[data-date]').forEach(function(el) {
+    el.addEventListener('click', function() {
+      gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
+      this.classList.add('sel');
+      renderSchedRvList(this.getAttribute('data-date'));
+    });
+  });
+
+  renderSchedRvList(null);
+}
+
+function renderSchedRvList(filterDate) {
+  var listEl = document.getElementById('schrv-list');
+  var cntEl  = document.getElementById('schrv-cnt');
+  if (!listEl) return;
+
+  var td = today();
+  var upcoming = S.ress.filter(function(r) {
+    if (r.st === 'cancelled' || r.st === 'completed') return false;
+    return filterDate ? r.date === filterDate : r.date >= td;
+  }).sort(function(a, b) {
+    var ka = (a.date||'')+(a.time||''), kb = (b.date||'')+(b.time||'');
+    return ka < kb ? -1 : 1;
+  });
+
+  if (cntEl) cntEl.textContent = upcoming.length+'건';
+
+  if (!upcoming.length) {
+    listEl.innerHTML = '<div class="schrv-empty">예정된 예약이 없습니다</div>';
+    return;
+  }
+
+  var stColor = {confirmed:'var(--green)', pending:'var(--amber)', arrived:'var(--blue)'};
+  var html = '';
+  upcoming.forEach(function(r) {
+    var dateLabel = dlabel(r.date);
+    html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
+      + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
+      + '<div class="schrv-body">'
+      + '<div class="schrv-name">'+(r.nm ? esc(r.nm) : '<span style="color:var(--text3)">·</span>')+'</div>'
+      + '<div class="schrv-info">'+esc(dateLabel)+' '+esc(String(r.g))+'명'+(r.phone?' · '+esc(r.phone):'')+'</div>'
+      + '<div class="schrv-tags">'
+      + (r.st==='confirmed'?'<span class="schrv-tag-confirm">확정</span>':'')
+      + (r.st==='pending'?'<span class="schrv-tag-pending">대기</span>':'')
+      + (r.st==='arrived'?'<span class="schrv-tag-pending" style="color:var(--blue);background:rgba(42,114,200,.12)">방문</span>':'')
+      + '<span class="schrv-tag-call">전화</span>'
+      + '</div>'
+      + '</div>'
+      + '</div>';
+  });
+
+  listEl.innerHTML = html;
+  listEl.querySelectorAll('.schrv-item').forEach(function(el) {
+    el.addEventListener('click', function() { openRvDetail(this.getAttribute('data-rid')); });
+  });
+}
+
 function renderAll(){
-  renderHeader(); renderSidebar(); renderStats(); renderFloorNav();
-  if(viewMode==='list') renderListView(); else renderCanvas();
+  renderHeader(); renderSidebar();
+  var schv    = document.getElementById('sched-view');
+  var cvEl    = document.getElementById('cv');
+  var legEl   = document.getElementById('leg');
+  var statsEl = document.getElementById('stats');
+  var lvEl    = document.getElementById('listview');
+  var fnEl    = document.getElementById('floor-nav');
+  var bedit   = document.getElementById('bedit');
+  var bview   = document.getElementById('btn-view');
+  if (hallViewMode === 'hall') {
+    if (schv)   schv.classList.remove('on');
+    if (cvEl)   cvEl.style.display   = '';
+    if (legEl)  legEl.style.display  = '';
+    if (statsEl)statsEl.style.display= '';
+    if (fnEl)   fnEl.style.display   = '';
+    if (bedit)  bedit.style.display  = '';
+    if (bview)  bview.style.display  = '';
+    renderStats(); renderFloorNav();
+    if(viewMode==='list') renderListView(); else renderCanvas();
+  } else {
+    if (schv)   schv.classList.add('on');
+    if (cvEl)   cvEl.style.display   = 'none';
+    if (legEl)  legEl.style.display  = 'none';
+    if (statsEl)statsEl.style.display= 'none';
+    if (fnEl)   fnEl.style.display   = 'none';
+    if (lvEl)   { lvEl.classList.remove('on'); lvEl.style.display = 'none'; }
+    if (bedit)  bedit.style.display  = 'none';
+    if (bview)  bview.style.display  = 'none';
+    renderSchedView();
+  }
 }
 
 // ── 테이블 묶음 풀기 (Unmerge) ──
