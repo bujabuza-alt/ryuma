@@ -69,25 +69,11 @@
   </div>
   <div id="body">
     <div id="sb">
-      <div class="sb-head">
-        <span class="sb-title">LIVE</span>
-        <button class="sb-add" id="bwait">+ 대기</button>
-      </div>
-      <div id="sb-vm">
-        <div class="sb-vm-lbl">View Mode</div>
-        <div class="sb-vm-seg">
-          <button class="sb-vm-btn on" data-vm="monthly">월간</button>
-          <button class="sb-vm-btn" data-vm="weekly">주간</button>
-        </div>
-      </div>
       <div id="sb-scroll"></div>
     </div>
     <div id="main">
       <div id="floor-nav"></div>
       <div id="sched-view">
-        <div class="schv-hd">
-          <span class="schv-title">스케줄 관리</span>
-        </div>
         <div id="schcal">
           <div class="schcal-hd">
             <button class="schcal-nav" id="schcal-p">‹</button>
@@ -96,12 +82,21 @@
           </div>
           <div id="schcal-g"></div>
         </div>
-        <div id="schrv">
-          <div class="schrv-hd-row">
-            <span class="schrv-title">예정 예약</span>
-            <span class="schrv-cnt" id="schrv-cnt"></span>
+        <div id="schv-row">
+          <div id="today-rv">
+            <div class="schrv-hd-row">
+              <span class="schrv-title">오늘 예약 현황</span>
+              <span class="schrv-cnt" id="today-rv-cnt"></span>
+            </div>
+            <div id="today-rv-list"></div>
           </div>
-          <div id="schrv-list"></div>
+          <div id="schrv">
+            <div class="schrv-hd-row">
+              <span class="schrv-title">이후 예약 현황</span>
+              <span class="schrv-cnt" id="schrv-cnt"></span>
+            </div>
+            <div id="schrv-list"></div>
+          </div>
         </div>
       </div>
       <div id="leg">

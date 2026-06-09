@@ -24,16 +24,6 @@ document.getElementById('cust-filter-row').addEventListener('click', function(e)
 document.getElementById('btn-cust-notion').addEventListener('click', function(){ runNotionCustBackup(); });
 document.getElementById('btn-view').addEventListener('click', toggleView);
 document.getElementById('bedit').addEventListener('click', toggleEdit);
-document.getElementById('sb-vm').addEventListener('click', function(e) {
-  var btn = e.target.closest('.sb-vm-btn');
-  if (!btn) return;
-  var vm = btn.getAttribute('data-vm');
-  if (!vm) return;
-  hallViewMode = vm;
-  document.querySelectorAll('.sb-vm-btn').forEach(function(b){ b.classList.remove('on'); });
-  btn.classList.add('on');
-  renderAll();
-});
 document.getElementById('schcal-p').addEventListener('click', function() {
   schedCalMonth--;
   if (schedCalMonth < 0) { schedCalMonth = 11; schedCalYear--; }
@@ -44,7 +34,6 @@ document.getElementById('schcal-n').addEventListener('click', function() {
   if (schedCalMonth > 11) { schedCalMonth = 0; schedCalYear++; }
   renderSchedView();
 });
-document.getElementById('bwait').addEventListener('click', openWaitModal);
 document.getElementById('baddRv').addEventListener('click', openAddRv);
 document.getElementById('bNaverImport').addEventListener('click', openNaverImport);
 document.getElementById('btn-theme').addEventListener('click', toggleTheme);

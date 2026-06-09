@@ -402,6 +402,22 @@ textarea.fi{resize:none;min-height:60px;}
 #sched-view.on {
   display: flex;
 }
+#schv-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+#today-rv {
+  flex: 1;
+  min-width: 0;
+  background: var(--surf);
+  border-radius: 12px;
+  overflow: hidden;
+}
+#schrv {
+  flex: 1;
+  min-width: 0;
+}
 .schv-hd {
   display: flex;
   align-items: center;
