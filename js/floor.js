@@ -67,24 +67,8 @@ function renderSidebar() {
     });
   } else { html += '<div class="sb-empty">완료 없음</div>'; }
 
-  if (isToday) {
-    html += '<div class="sb-sec"><span class="sb-sec-t">대기 목록</span><span class="sb-sec-c">'+S.waits.length+'팀</span></div>';
-    if (S.waits.length) {
-      S.waits.forEach(function(w,i) {
-        html += '<div class="wi" data-wid="'+esc(String(w.id))+'">'
-          + '<div class="wi-top"><div style="display:flex;align-items:center">'
-          + '<div class="wi-num">'+(i+1)+'</div><span class="wi-name">'+esc(w.nm)+'</span></div>'
-          + '<span class="wi-g">'+esc(String(w.g))+'명</span></div>'
-          + '<div class="wi-sub" style="display:flex;justify-content:space-between"><span>대기 '+fmtElapsed(Date.now()-w.since)+'</span>'+(w.time?'<span>'+esc(w.time)+'</span>':'')+'</div>'
-          + (w.memo?'<div class="wi-memo">📝'+esc(w.memo)+'</div>':'')
-          + '</div>';
-      });
-    } else { html += '<div class="sb-empty">대기자 없음</div>'; }
-  }
-
   c.innerHTML = html;
   c.querySelectorAll('.ri').forEach(function(el){ el.addEventListener('click', function(){ openRvDetail(this.getAttribute('data-rid')); }); });
-  c.querySelectorAll('.wi').forEach(function(el){ el.addEventListener('click', function(){ openSeatWaiter(this.getAttribute('data-wid')); }); });
 }
 
 // ── 탭 전환 ──
@@ -1141,6 +1125,44 @@ function syncToday(){
     renderAll();
   }
 }
+// ── 오늘 예약 현황 렌더 ──
+function renderTodayRvList() {
+  var listEl = document.getElementById('today-rv-list');
+  var cntEl  = document.getElementById('today-rv-cnt');
+  if (!listEl) return;
+  var td = today();
+  var todayRvs = S.ress.filter(function(r) {
+    return r.date === td && r.st !== 'cancelled' && r.st !== 'completed';
+  }).sort(function(a, b) {
+    return (a.time||'') < (b.time||'') ? -1 : 1;
+  });
+  if (cntEl) cntEl.textContent = todayRvs.length + '건';
+  if (!todayRvs.length) {
+    listEl.innerHTML = '<div class="schrv-empty">오늘 예약 없습니다</div>';
+    return;
+  }
+  var html = '';
+  todayRvs.forEach(function(r) {
+    html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
+      + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
+      + '<div class="schrv-body">'
+      + '<div class="schrv-name">'+(r.nm ? esc(r.nm) : '<span style="color:var(--text3)">·</span>')+'</div>'
+      + '<div class="schrv-info">'+esc(String(r.g))+'명'+(r.phone?' · '+esc(r.phone):'')+'</div>'
+      + '<div class="schrv-tags">'
+      + (r.st==='confirmed'?'<span class="schrv-tag-confirm">확정</span>':'')
+      + (r.st==='pending'?'<span class="schrv-tag-pending">대기</span>':'')
+      + (r.st==='arrived'?'<span class="schrv-tag-pending" style="color:var(--blue);background:rgba(42,114,200,.12)">방문</span>':'')
+      + '<span class="schrv-tag-call">전화</span>'
+      + '</div>'
+      + '</div>'
+      + '</div>';
+  });
+  listEl.innerHTML = html;
+  listEl.querySelectorAll('.schrv-item').forEach(function(el) {
+    el.addEventListener('click', function() { openRvDetail(this.getAttribute('data-rid')); });
+  });
+}
+
 // ── 스케줄 뷰 렌더 ──
 function renderSchedView() {
   var mEl = document.getElementById('schcal-m');
@@ -1199,10 +1221,12 @@ function renderSchedView() {
     el.addEventListener('click', function() {
       gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
       this.classList.add('sel');
-      renderSchedRvList(this.getAttribute('data-date'));
+      var clickedDate = this.getAttribute('data-date');
+      renderSchedRvList(clickedDate > today() ? clickedDate : null);
     });
   });
 
+  renderTodayRvList();
   renderSchedRvList(null);
 }
 
@@ -1214,7 +1238,7 @@ function renderSchedRvList(filterDate) {
   var td = today();
   var upcoming = S.ress.filter(function(r) {
     if (r.st === 'cancelled' || r.st === 'completed') return false;
-    return filterDate ? r.date === filterDate : r.date >= td;
+    return filterDate ? r.date === filterDate : r.date > td;
   }).sort(function(a, b) {
     var ka = (a.date||'')+(a.time||''), kb = (b.date||'')+(b.time||'');
     return ka < kb ? -1 : 1;
@@ -1253,8 +1277,9 @@ function renderSchedRvList(filterDate) {
 }
 
 function renderAll(){
-  renderHeader(); renderSidebar();
+  renderHeader();
   var schv    = document.getElementById('sched-view');
+  var sbEl    = document.getElementById('sb');
   var cvEl    = document.getElementById('cv');
   var legEl   = document.getElementById('leg');
   var statsEl = document.getElementById('stats');
@@ -1263,6 +1288,7 @@ function renderAll(){
   var bedit   = document.getElementById('bedit');
   var bview   = document.getElementById('btn-view');
   if (hallViewMode === 'hall') {
+    if (sbEl)   sbEl.style.display   = 'flex';
     if (schv)   schv.classList.remove('on');
     if (cvEl)   cvEl.style.display   = '';
     if (legEl)  legEl.style.display  = '';
@@ -1270,9 +1296,10 @@ function renderAll(){
     if (fnEl)   fnEl.style.display   = '';
     if (bedit)  bedit.style.display  = '';
     if (bview)  bview.style.display  = '';
-    renderStats(); renderFloorNav();
+    renderSidebar(); renderStats(); renderFloorNav();
     if(viewMode==='list') renderListView(); else renderCanvas();
   } else {
+    if (sbEl)   sbEl.style.display   = 'none';
     if (schv)   schv.classList.add('on');
     if (cvEl)   cvEl.style.display   = 'none';
     if (legEl)  legEl.style.display  = 'none';

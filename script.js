@@ -2400,7 +2400,6 @@ document.getElementById('custsort').addEventListener('change', renderCustTab);
 document.getElementById('btn-cust-notion').addEventListener('click', function(){ runNotionCustBackup(); });
 document.getElementById('btn-view').addEventListener('click', toggleView);
 document.getElementById('bedit').addEventListener('click', toggleEdit);
-document.getElementById('bwait').addEventListener('click', openWaitModal);
 document.getElementById('baddRv').addEventListener('click', openAddRv);
 document.getElementById('bNaverImport').addEventListener('click', openNaverImport);
 document.getElementById('btn-theme').addEventListener('click', toggleTheme);
