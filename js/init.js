@@ -34,6 +34,22 @@ document.getElementById('schcal-n').addEventListener('click', function() {
   if (schedCalMonth > 11) { schedCalMonth = 0; schedCalYear++; }
   renderSchedView();
 });
+document.getElementById('bschcaltoday').addEventListener('click', function() {
+  var now = new Date();
+  schedCalYear = now.getFullYear();
+  schedCalMonth = now.getMonth();
+  renderSchedView();
+});
+document.getElementById('schcal-date-close').addEventListener('click', function() {
+  schedSelDate = null;
+  var panel = document.getElementById('schcal-date-panel');
+  if (panel) panel.classList.remove('open');
+  var gEl = document.getElementById('schcal-g');
+  if (gEl) gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
+});
+document.getElementById('schv-btn-addrv').addEventListener('click', function() {
+  openAddRv();
+});
 document.getElementById('baddRv').addEventListener('click', openAddRv);
 document.getElementById('bNaverImport').addEventListener('click', openNaverImport);
 document.getElementById('btn-theme').addEventListener('click', toggleTheme);
