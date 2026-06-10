@@ -447,14 +447,21 @@ textarea.fi{resize:none;min-height:60px;}
 .schcal-hd {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
   margin-bottom: 10px;
 }
 .schcal-month {
+  flex: 1;
+  text-align: center;
   font-size: 14px;
   font-weight: 800;
   color: var(--text);
 }
+#schrv-add-panel{display:flex;padding:10px 8px;align-items:stretch;flex:1;}
+.schrv-add-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(196,18,48,.07);border:2px dashed rgba(196,18,48,.28);border-radius:12px;color:var(--red);cursor:pointer;font-family:inherit;padding:20px 10px;gap:5px;width:100%;flex:1;}
+.schrv-add-btn:active{background:rgba(196,18,48,.15);}
+.schrv-add-plus{font-size:28px;line-height:1;font-weight:800;}
+.schrv-add-label{font-size:12px;font-weight:700;}
 .schcal-nav {
   background: var(--surf2);
   border: 1px solid var(--border2);

@@ -1143,17 +1143,15 @@ function renderTodayRvList() {
   }
   var html = '';
   todayRvs.forEach(function(r) {
+    var floorTbls=getRvTableIds(r).map(function(tid){return S.tables.filter(function(t){return t.id===tid;})[0];}).filter(Boolean);
     html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
       + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
       + '<div class="schrv-body">'
       + '<div class="schrv-name">'+(r.nm ? esc(r.nm) : '<span style="color:var(--text3)">·</span>')+'</div>'
-      + '<div class="schrv-info">'+esc(String(r.g))+'명'+(r.phone?' · '+esc(r.phone):'')+'</div>'
-      + '<div class="schrv-tags">'
-      + (r.st==='confirmed'?'<span class="schrv-tag-confirm">확정</span>':'')
-      + (r.st==='pending'?'<span class="schrv-tag-pending">대기</span>':'')
-      + (r.st==='arrived'?'<span class="schrv-tag-pending" style="color:var(--blue);background:rgba(42,114,200,.12)">방문</span>':'')
-      + '<span class="schrv-tag-call">전화</span>'
-      + '</div>'
+      + '<div class="schrv-info">'+esc(String(r.g))+'명'
+        +(floorTbls.length?' · <span style="color:var(--blue)">🪑 '+floorTbls.map(function(t){return esc(t.n);}).join('+')+'</span>':'<span style="color:var(--text3)"> · 미배정</span>')
+        +'</div>'
+      + (r.tags&&r.tags.length?'<div class="schrv-tags">'+r.tags.map(function(tg){return'<span class="schrv-tag-confirm" style="background:rgba(196,18,48,.1);color:var(--red)">'+esc(tg)+'</span>';}).join('')+'</div>':'')
       + '</div>'
       + '</div>';
   });
@@ -1221,13 +1219,10 @@ function renderSchedView() {
     el.addEventListener('click', function() {
       gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
       this.classList.add('sel');
-      var clickedDate = this.getAttribute('data-date');
-      renderSchedRvList(clickedDate > today() ? clickedDate : null);
     });
   });
 
   renderTodayRvList();
-  renderSchedRvList(null);
 }
 
 function renderSchedRvList(filterDate) {

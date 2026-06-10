@@ -64,6 +64,8 @@ function renderRvList(){
   var nd=today();
   var upcomingEl=document.getElementById('rv-upcoming');
   var pastWrap=document.getElementById('rv-past-wrap');
+  var pastEl=document.getElementById('rv-past');
+  var pastLbl=document.getElementById('rv-past-lbl');
   function bindRvi(container){
     container.querySelectorAll('.rvi').forEach(function(el){
       el.addEventListener('click',function(){openRvDetail(this.getAttribute('data-rid'));});
@@ -72,12 +74,9 @@ function renderRvList(){
   var showSections=!calSel&&!q;
   if(showSections){
     var activeSt={confirmed:1,pending:1,arrived:1};
-    var todayRvs=list.filter(function(r){return r.date===nd && activeSt[r.st];});
-    var futureRvs=list.filter(function(r){return r.date>nd && activeSt[r.st];});
+    var upcoming=list.filter(function(r){return r.date>=nd && activeSt[r.st];});
     var past=list.filter(function(r){return r.st==='completed'||r.st==='noshow'||r.st==='cancelled'||r.date<nd;});
-
-    todayRvs.sort(function(a,b){return (a.time||'99:99')<(b.time||'99:99')?-1:1;});
-    futureRvs.sort(function(a,b){
+    upcoming.sort(function(a,b){
       var ka=(a.date||'9999')+(a.time||'99:99'), kb=(b.date||'9999')+(b.time||'99:99');
       return rvSortAsc?(ka<kb?-1:1):(ka>kb?-1:1);
     });
@@ -85,18 +84,18 @@ function renderRvList(){
       var ka=(a.date||'0000')+(a.time||'00:00'), kb=(b.date||'0000')+(b.time||'00:00');
       return ka>kb?-1:1;
     });
-
-    var html='<div class="rv-sec-lbl">오늘 예약 '+todayRvs.length+'건</div>';
-    if(todayRvs.length) html+=todayRvs.map(function(r){return rvItemHtml(r,sm,false);}).join('');
-    else html+='<div class="rv-empty-row">오늘 예약 없음</div>';
-
-    if(futureRvs.length) html+='<div class="rv-sec-lbl">이후 예약 '+futureRvs.length+'건</div>'+futureRvs.map(function(r){return rvItemHtml(r,sm,false);}).join('');
-
-    if(past.length) html+='<div class="rv-sec-lbl">완료된 예약 '+past.length+'건</div>'+past.map(function(r){return rvItemHtml(r,sm,true);}).join('');
-
-    upcomingEl.innerHTML=html;
+    upcomingEl.innerHTML=upcoming.length
+      ? '<div class="rv-sec-lbl">예정 예약 '+upcoming.length+'건</div>'+upcoming.map(function(r){return rvItemHtml(r,sm,false);}).join('')
+      : '<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">예정 예약 없음</div>';
     bindRvi(upcomingEl);
-    pastWrap.style.display='none';
+    if(past.length){
+      pastWrap.style.display='flex';
+      pastLbl.textContent='완료된 예약 '+past.length+'건';
+      pastEl.innerHTML=past.map(function(r){return rvItemHtml(r,sm,true);}).join('');
+      bindRvi(pastEl);
+    } else {
+      pastWrap.style.display='none';
+    }
   } else {
     list.sort(function(a,b){
       var ka=(a.date||'9999')+(a.time||'99:99'), kb=(b.date||'9999')+(b.time||'99:99');
