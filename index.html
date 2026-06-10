@@ -79,8 +79,18 @@
             <button class="schcal-nav" id="schcal-p">‹</button>
             <span id="schcal-m" class="schcal-month"></span>
             <button class="schcal-nav" id="schcal-n">›</button>
+            <button class="cal-today-btn" id="bschcaltoday" style="font-size:11px;padding:4px 8px">오늘</button>
           </div>
           <div id="schcal-g"></div>
+        </div>
+        <div id="schcal-date-panel">
+          <div id="schcal-date-panel-inner">
+            <div class="schrv-hd-row">
+              <span class="schrv-title" id="schcal-date-title">날짜 예약</span>
+              <span style="display:flex;align-items:center;gap:8px"><span class="schrv-cnt" id="schcal-date-cnt"></span><button id="schcal-date-close" style="background:var(--surf3);border:none;border-radius:50%;width:22px;height:22px;font-size:14px;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button></span>
+            </div>
+            <div id="schcal-date-list"></div>
+          </div>
         </div>
         <div id="schv-row">
           <div id="today-rv">
@@ -90,12 +100,16 @@
             </div>
             <div id="today-rv-list"></div>
           </div>
-          <div id="schrv">
+          <div id="schv-add-rv">
             <div class="schrv-hd-row">
-              <span class="schrv-title">이후 예약 현황</span>
-              <span class="schrv-cnt" id="schrv-cnt"></span>
+              <span class="schrv-title">예약 추가</span>
             </div>
-            <div id="schrv-list"></div>
+            <div class="schv-add-body">
+              <button class="schv-add-btn" id="schv-btn-addrv">
+                <span style="font-size:22px;line-height:1">＋</span>
+                <span>예약 추가</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -136,6 +150,20 @@
       </div>
       <div id="rvw">
         <div class="rvw-hd"><span class="rvw-title" id="rvtitle">전체 예약</span><div style="display:flex;align-items:center;gap:6px"><button id="rvsort" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surf2);color:var(--text2);cursor:pointer;font-family:inherit;font-weight:700">↑ 날짜순</button><span style="font-size:11px;color:var(--text3)" id="rvcnt"></span></div></div>
+        <div id="rv-sections" style="display:none">
+          <div class="rv-sec-col" id="rv-sc-today">
+            <div class="rv-sec-lbl" id="rv-sc-today-hd">오늘 예약 0건</div>
+            <div class="rv-sec-scroll" id="rv-sc-today-list"></div>
+          </div>
+          <div class="rv-sec-col" id="rv-sc-future">
+            <div class="rv-sec-lbl" id="rv-sc-future-hd">이후 예약 0건</div>
+            <div class="rv-sec-scroll" id="rv-sc-future-list"></div>
+          </div>
+          <div class="rv-sec-col" id="rv-sc-past">
+            <div class="rv-sec-lbl" id="rv-sc-past-hd">완료된 예약 0건</div>
+            <div class="rv-sec-scroll" id="rv-sc-past-list"></div>
+          </div>
+        </div>
         <div id="rv-upcoming"></div>
         <div id="rv-past-wrap" style="display:none">
           <div class="rv-sec-lbl" id="rv-past-lbl">완료된 예약</div>

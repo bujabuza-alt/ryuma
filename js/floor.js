@@ -3,6 +3,7 @@ var custFilterMode = 'active'; // 'active' | 'cancel'
 var hallViewMode = 'monthly';  // 'monthly' | 'weekly' | 'hall'
 var schedCalYear  = new Date().getFullYear();
 var schedCalMonth = new Date().getMonth(); // 0-indexed
+var schedSelDate  = null; // currently selected date in schedule calendar
 // ── 헤더/통계 ──
 function renderHeader() {
   document.getElementById('hdate').textContent = new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
@@ -1143,17 +1144,15 @@ function renderTodayRvList() {
   }
   var html = '';
   todayRvs.forEach(function(r) {
+    var tblIds = getRvTableIds(r);
+    var tbls = tblIds.map(function(tid){ return S.tables.filter(function(t){return t.id===tid;})[0]; }).filter(Boolean);
+    var tblLabel = tbls.length ? tbls.map(function(t){return esc(t.n);}).join('+') : '미배정';
     html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
       + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
       + '<div class="schrv-body">'
-      + '<div class="schrv-name">'+(r.nm ? esc(r.nm) : '<span style="color:var(--text3)">·</span>')+'</div>'
-      + '<div class="schrv-info">'+esc(String(r.g))+'명'+(r.phone?' · '+esc(r.phone):'')+'</div>'
-      + '<div class="schrv-tags">'
-      + (r.st==='confirmed'?'<span class="schrv-tag-confirm">확정</span>':'')
-      + (r.st==='pending'?'<span class="schrv-tag-pending">대기</span>':'')
-      + (r.st==='arrived'?'<span class="schrv-tag-pending" style="color:var(--blue);background:rgba(42,114,200,.12)">방문</span>':'')
-      + '<span class="schrv-tag-call">전화</span>'
-      + '</div>'
+      + '<div class="schrv-name">'+esc(r.nm||'·')+'</div>'
+      + '<div class="schrv-info">'+esc(String(r.g))+'명 · <span style="color:var(--blue)">'+esc(tblLabel)+'</span></div>'
+      + (r.tags&&r.tags.length?'<div class="schrv-tags">'+r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join('')+'</div>':'')
       + '</div>'
       + '</div>';
   });
@@ -1219,15 +1218,29 @@ function renderSchedView() {
 
   gEl.querySelectorAll('[data-date]').forEach(function(el) {
     el.addEventListener('click', function() {
-      gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
-      this.classList.add('sel');
       var clickedDate = this.getAttribute('data-date');
-      renderSchedRvList(clickedDate > today() ? clickedDate : null);
+      if (schedSelDate === clickedDate) {
+        schedSelDate = null;
+        gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
+        var panel = document.getElementById('schcal-date-panel');
+        if (panel) panel.classList.remove('open');
+      } else {
+        schedSelDate = clickedDate;
+        gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
+        this.classList.add('sel');
+        renderSchedDatePanel(clickedDate);
+      }
     });
   });
 
+  // Re-apply selected state on re-render (called every second)
+  if (schedSelDate) {
+    var selEls = gEl.querySelectorAll('[data-date="'+schedSelDate+'"]');
+    selEls.forEach(function(e){ e.classList.add('sel'); });
+    renderSchedDatePanel(schedSelDate);
+  }
+
   renderTodayRvList();
-  renderSchedRvList(null);
 }
 
 function renderSchedRvList(filterDate) {
@@ -1270,6 +1283,46 @@ function renderSchedRvList(filterDate) {
       + '</div>';
   });
 
+  listEl.innerHTML = html;
+  listEl.querySelectorAll('.schrv-item').forEach(function(el) {
+    el.addEventListener('click', function() { openRvDetail(this.getAttribute('data-rid')); });
+  });
+}
+
+function renderSchedDatePanel(date) {
+  var panel   = document.getElementById('schcal-date-panel');
+  var titleEl = document.getElementById('schcal-date-title');
+  var cntEl   = document.getElementById('schcal-date-cnt');
+  var listEl  = document.getElementById('schcal-date-list');
+  if (!panel) return;
+
+  var rvs = S.ress.filter(function(r) {
+    return r.date === date && r.st !== 'cancelled' && r.st !== 'completed';
+  }).sort(function(a,b){ return (a.time||'')<(b.time||'')?-1:1; });
+
+  if (titleEl) titleEl.textContent = dlabel(date) + ' 예약';
+  if (cntEl)   cntEl.textContent   = rvs.length + '건';
+  panel.classList.add('open');
+
+  if (!listEl) return;
+  if (!rvs.length) {
+    listEl.innerHTML = '<div class="schrv-empty">예약이 없습니다</div>';
+    return;
+  }
+  var html = '';
+  rvs.forEach(function(r) {
+    var tblIds = getRvTableIds(r);
+    var tbls   = tblIds.map(function(tid){ return S.tables.filter(function(t){return t.id===tid;})[0]; }).filter(Boolean);
+    var tblLabel = tbls.length ? tbls.map(function(t){return esc(t.n);}).join('+') : '미배정';
+    html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
+      + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
+      + '<div class="schrv-body">'
+      + '<div class="schrv-name">'+esc(r.nm||'·')+'</div>'
+      + '<div class="schrv-info">'+esc(String(r.g))+'명 · <span style="color:var(--blue)">'+esc(tblLabel)+'</span></div>'
+      + (r.tags&&r.tags.length?'<div class="schrv-tags">'+r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join('')+'</div>':'')
+      + '</div>'
+      + '</div>';
+  });
   listEl.innerHTML = html;
   listEl.querySelectorAll('.schrv-item').forEach(function(el) {
     el.addEventListener('click', function() { openRvDetail(this.getAttribute('data-rid')); });

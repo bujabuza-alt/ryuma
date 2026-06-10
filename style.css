@@ -209,6 +209,10 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 .rvi-tbl{font-size:11px;color:var(--blue);margin-top:2px;font-weight:600;}
 .rv-sec-lbl{padding:6px 13px 5px;font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;background:var(--bg);border-bottom:1px solid var(--border);}
 .rv-empty-row{padding:12px 13px;font-size:12px;color:var(--text3);}
+#rv-sections{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+.rv-sec-col{flex:1;min-height:0;display:flex;flex-direction:column;border-bottom:1px solid var(--border);}
+.rv-sec-col:last-child{border-bottom:none;}
+.rv-sec-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .cal-today-btn{background:var(--red);color:#fff;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .cal-today-btn:active{opacity:.85;}
 .rv-fab{position:fixed;bottom:24px;right:16px;z-index:100;display:flex;align-items:center;gap:5px;background:var(--red);color:#fff;border:none;border-radius:99px;padding:13px 20px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(196,18,48,.4);letter-spacing:-.01em;white-space:nowrap;}
@@ -412,7 +416,7 @@ textarea.fi{resize:none;min-height:60px;}
 #schv-row {
   display: flex;
   gap: 10px;
-  align-items: flex-start;
+  align-items: stretch;
 }
 #today-rv {
   flex: 1;
@@ -420,11 +424,50 @@ textarea.fi{resize:none;min-height:60px;}
   background: var(--surf);
   border-radius: 12px;
   overflow: hidden;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
 }
-#schrv {
+#today-rv-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 260px;
+}
+#schv-add-rv {
   flex: 1;
   min-width: 0;
+  background: var(--surf);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
+.schv-add-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 10px;
+}
+.schv-add-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: rgba(196,18,48,.1);
+  color: var(--red2);
+  border: 1.5px dashed rgba(196,18,48,.35);
+  border-radius: 12px;
+  padding: 14px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 12px;
+  width: 100%;
+}
+.schv-add-btn:active { opacity: 0.8; transform: scale(0.97); }
 .schv-hd {
   display: flex;
   align-items: center;
@@ -572,12 +615,25 @@ textarea.fi{resize:none;min-height:60px;}
 .schcal-wday.sat .schcal-wday-num { color: var(--blue); }
 .schcal-wday.today .schcal-wday-num { color: #fff; }
 
-/* ── 예정 예약 리스트 ── */
-#schrv {
+/* ── 날짜 선택 패널 ── */
+#schcal-date-panel {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.28s ease;
+}
+#schcal-date-panel.open {
+  max-height: 380px;
+}
+#schcal-date-panel-inner {
   background: var(--surf);
   border-radius: 12px;
   border: 1px solid var(--border);
   overflow: hidden;
+}
+#schcal-date-list {
+  max-height: 260px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .schrv-hd-row {
   padding: 10px 13px;
