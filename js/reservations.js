@@ -124,6 +124,11 @@ function renderRvList(){
     if(sectionsEl) sectionsEl.style.display='none';
     upcomingEl.style.display='';
     list.sort(function(a,b){
+      // When a single date is selected, always sort ascending by time for clarity
+      if(calSel) {
+        var ta=(a.time||'99:99'), tb=(b.time||'99:99');
+        return ta<tb?-1:1;
+      }
       var ka=(a.date||'9999')+(a.time||'99:99'), kb=(b.date||'9999')+(b.time||'99:99');
       return rvSortAsc?(ka<kb?-1:1):(ka>kb?-1:1);
     });

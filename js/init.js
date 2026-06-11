@@ -50,8 +50,104 @@ document.getElementById('schcal-date-close').addEventListener('click', function(
 document.getElementById('schv-btn-addrv').addEventListener('click', function() {
   openAddRv();
 });
+document.getElementById('schv-btn-imgimport').addEventListener('click', function() {
+  openNaverImport();
+});
 document.getElementById('baddRv').addEventListener('click', openAddRv);
 document.getElementById('bNaverImport').addEventListener('click', openNaverImport);
+
+// ── 피드백 섹션 인터랙션 ──
+(function() {
+  var feedbackState = { service: 0, food: 0, revisit: '' };
+
+  function bindFeedback() {
+    // 이모지 버튼
+    document.querySelectorAll('.feedback-emoji-row .fb-emoji-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var q = this.closest('[data-q]').getAttribute('data-q');
+        var val = +this.getAttribute('data-val');
+        feedbackState[q] = val;
+        this.closest('[data-q]').querySelectorAll('.fb-emoji-btn').forEach(function(b){ b.classList.remove('on'); });
+        this.classList.add('on');
+      });
+    });
+
+    // 별점 버튼
+    document.querySelectorAll('.feedback-stars-row .fb-star-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var q = this.closest('[data-q]').getAttribute('data-q');
+        var val = +this.getAttribute('data-val');
+        feedbackState[q] = val;
+        var stars = this.closest('[data-q]').querySelectorAll('.fb-star-btn');
+        stars.forEach(function(b, i) {
+          b.classList.toggle('on', i < val);
+        });
+      });
+      btn.addEventListener('mouseover', function() {
+        var val = +this.getAttribute('data-val');
+        var stars = this.closest('[data-q]').querySelectorAll('.fb-star-btn');
+        stars.forEach(function(b, i) { b.classList.toggle('on', i < val); });
+      });
+      btn.addEventListener('mouseout', function() {
+        var q = this.closest('[data-q]').getAttribute('data-q');
+        var saved = feedbackState[q] || 0;
+        var stars = this.closest('[data-q]').querySelectorAll('.fb-star-btn');
+        stars.forEach(function(b, i) { b.classList.toggle('on', i < saved); });
+      });
+    });
+
+    // 예/아니오 버튼
+    document.querySelectorAll('.feedback-yn-row .fb-yn-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var val = this.getAttribute('data-val');
+        feedbackState.revisit = val;
+        this.closest('[data-q]').querySelectorAll('.fb-yn-btn').forEach(function(b){ b.classList.remove('on'); });
+        this.classList.add('on');
+      });
+    });
+
+    // 제출 버튼
+    var submitBtn = document.getElementById('feedback-submit');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', function() {
+        var thanks = document.getElementById('feedback-thanks');
+        var form = document.querySelector('.feedback-questions');
+        var comment = document.querySelector('.feedback-comment');
+        var actions = document.querySelector('.feedback-actions');
+        if (thanks) { thanks.style.display = 'flex'; thanks.style.flexDirection = 'column'; thanks.style.alignItems = 'center'; }
+        if (form) form.style.display = 'none';
+        if (comment) comment.style.display = 'none';
+        if (actions) actions.style.display = 'none';
+        // Auto-reset after 4 seconds
+        setTimeout(function() { resetFeedback(); }, 4000);
+      });
+    }
+
+    // 초기화 버튼
+    var resetBtn = document.getElementById('feedback-reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function() { resetFeedback(); });
+    }
+  }
+
+  function resetFeedback() {
+    feedbackState = { service: 0, food: 0, revisit: '' };
+    var thanks = document.getElementById('feedback-thanks');
+    var form = document.querySelector('.feedback-questions');
+    var comment = document.querySelector('.feedback-comment');
+    var actions = document.querySelector('.feedback-actions');
+    var textArea = document.getElementById('feedback-text');
+    if (thanks) thanks.style.display = 'none';
+    if (form) form.style.display = '';
+    if (comment) comment.style.display = '';
+    if (actions) actions.style.display = '';
+    if (textArea) textArea.value = '';
+    document.querySelectorAll('.fb-emoji-btn, .fb-yn-btn').forEach(function(b){ b.classList.remove('on'); });
+    document.querySelectorAll('.fb-star-btn').forEach(function(b){ b.classList.remove('on'); });
+  }
+
+  bindFeedback();
+})();
 document.getElementById('btn-theme').addEventListener('click', toggleTheme);
 document.getElementById('sel-theme').addEventListener('click', toggleTheme);
 document.getElementById('btn-cfg').addEventListener('click', openCfg);

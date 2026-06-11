@@ -76,14 +76,17 @@
       <div id="sched-view">
         <div id="schcal">
           <div class="schcal-hd">
-            <button class="schcal-nav" id="schcal-p">‹</button>
-            <span id="schcal-m" class="schcal-month"></span>
-            <button class="schcal-nav" id="schcal-n">›</button>
-            <button class="cal-today-btn" id="bschcaltoday" style="font-size:11px;padding:4px 8px">오늘</button>
+            <div class="schcal-nav-group">
+              <button class="schcal-nav" id="schcal-p">‹</button>
+              <span id="schcal-m" class="schcal-month"></span>
+              <button class="schcal-nav" id="schcal-n">›</button>
+            </div>
+            <button class="cal-today-btn" id="bschcaltoday">오늘</button>
           </div>
           <div id="schcal-g"></div>
         </div>
-        <div id="schcal-date-panel">
+        <!-- date panel kept in DOM for backwards-compat event bindings, but hidden -->
+        <div id="schcal-date-panel" style="display:none">
           <div id="schcal-date-panel-inner">
             <div class="schrv-hd-row">
               <span class="schrv-title" id="schcal-date-title">날짜 예약</span>
@@ -105,10 +108,67 @@
               <span class="schrv-title">예약 추가</span>
             </div>
             <div class="schv-add-body">
-              <button class="schv-add-btn" id="schv-btn-addrv">
-                <span style="font-size:22px;line-height:1">＋</span>
-                <span>예약 추가</span>
-              </button>
+              <div class="schv-add-btns">
+                <button class="schv-add-main-btn" id="schv-btn-addrv">
+                  <span class="schv-add-icon">＋</span>
+                  <span>새 예약 등록</span>
+                </button>
+                <button class="schv-img-btn" id="schv-btn-imgimport">
+                  <span class="schv-add-icon">📷</span>
+                  <span>이미지 가져오기</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 고객 만족도 및 피드백 섹션 -->
+        <div id="feedback-section">
+          <div class="schrv-hd-row feedback-hd-row">
+            <span class="schrv-title">고객 만족도 및 피드백</span>
+            <span class="feedback-subtitle">오늘의 방문 후기를 남겨주세요</span>
+          </div>
+          <div class="feedback-body">
+            <div class="feedback-questions">
+              <div class="feedback-q">
+                <div class="feedback-q-label">오늘 서비스에 만족하셨나요?</div>
+                <div class="feedback-emoji-row" data-q="service">
+                  <button class="fb-emoji-btn" data-val="1" title="매우 불만족">😞</button>
+                  <button class="fb-emoji-btn" data-val="2" title="불만족">😕</button>
+                  <button class="fb-emoji-btn" data-val="3" title="보통">😐</button>
+                  <button class="fb-emoji-btn" data-val="4" title="만족">🙂</button>
+                  <button class="fb-emoji-btn" data-val="5" title="매우 만족">😄</button>
+                </div>
+              </div>
+              <div class="feedback-q">
+                <div class="feedback-q-label">음식 맛은 어떠셨나요?</div>
+                <div class="feedback-stars-row" data-q="food">
+                  <button class="fb-star-btn" data-val="1">★</button>
+                  <button class="fb-star-btn" data-val="2">★</button>
+                  <button class="fb-star-btn" data-val="3">★</button>
+                  <button class="fb-star-btn" data-val="4">★</button>
+                  <button class="fb-star-btn" data-val="5">★</button>
+                </div>
+              </div>
+              <div class="feedback-q">
+                <div class="feedback-q-label">재방문 의사가 있으신가요?</div>
+                <div class="feedback-yn-row" data-q="revisit">
+                  <button class="fb-yn-btn" data-val="yes">예, 다시 올게요! 👍</button>
+                  <button class="fb-yn-btn" data-val="no">아직은 글쎄요 🤔</button>
+                </div>
+              </div>
+            </div>
+            <div class="feedback-comment">
+              <div class="feedback-q-label">추가 의견을 남겨주세요</div>
+              <textarea class="feedback-textarea" id="feedback-text" placeholder="서비스, 음식, 분위기 등 자유롭게 의견을 남겨주세요…"></textarea>
+            </div>
+            <div class="feedback-actions">
+              <button class="feedback-submit-btn" id="feedback-submit">피드백 제출</button>
+              <button class="feedback-reset-btn" id="feedback-reset">초기화</button>
+            </div>
+            <div class="feedback-thanks" id="feedback-thanks" style="display:none">
+              <span style="font-size:28px">🙏</span>
+              <div class="feedback-thanks-text">소중한 피드백 감사합니다!</div>
+              <div class="feedback-thanks-sub">더 좋은 서비스로 보답하겠습니다.</div>
             </div>
           </div>
         </div>
@@ -137,9 +197,11 @@
       </div>
       <div id="cal">
         <div class="cal-hd">
-          <button class="cal-nav" id="bcalp">‹</button>
-          <span class="cal-m" id="calm"></span>
-          <button class="cal-nav" id="bcaln">›</button>
+          <div class="cal-nav-group">
+            <button class="cal-nav" id="bcalp">‹</button>
+            <span class="cal-m" id="calm"></span>
+            <button class="cal-nav" id="bcaln">›</button>
+          </div>
           <button class="cal-today-btn" id="bcaltoday">오늘</button>
         </div>
         <div class="cal-g">
