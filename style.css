@@ -172,8 +172,9 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 .rv-srch:focus{border-color:var(--red);}
 .rv-srch::placeholder{color:var(--text3);}
 #cal{background:var(--surf);border-radius:12px;border:1px solid var(--border);padding:12px;}
-.cal-hd{display:flex;align-items:center;gap:6px;margin-bottom:10px;}
-.cal-m{flex:1;text-align:center;font-weight:800;font-size:14px;color:var(--text);}
+.cal-hd{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:10px;}
+.cal-nav-group{display:flex;align-items:center;gap:6px;flex:1;}
+.cal-m{flex:1;text-align:center;font-weight:800;font-size:18px;color:var(--text);}
 .cal-nav{background:var(--surf2);border:1px solid var(--border2);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text2);}
 .cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
 .cal-dow{text-align:center;font-size:10px;font-weight:700;color:var(--text3);padding:3px 0;}
@@ -194,12 +195,14 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 #rv-past{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;}
 .rvw-hd{padding:11px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .rvw-title{font-weight:800;font-size:14px;color:var(--text);}
-.rvi{padding:11px 13px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:flex-start;gap:9px;}
+.rvi{padding:12px 13px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:flex-start;gap:10px;transition:background .14s;}
 .rvi:last-child{border-bottom:none;}
-.rvi-t{background:rgba(196,18,48,.12);color:var(--red2);border-radius:6px;padding:4px 7px;font-size:12px;font-weight:800;flex-shrink:0;min-width:46px;text-align:center;}
+.rvi:active{background:var(--surf2);}
+@media (hover:hover) and (pointer:fine){.rvi:hover{background:var(--surf2);}}
+.rvi-t{background:rgba(196,18,48,.12);color:var(--red2);border-radius:6px;padding:5px 8px;font-size:13px;font-weight:800;flex-shrink:0;min-width:50px;text-align:center;}
 .rvi-b{flex:1;min-width:0;}
-.rvi-n{font-weight:700;font-size:14px;color:var(--text);}
-.rvi-s{font-size:11px;color:var(--text2);margin-top:1px;}
+.rvi-n{font-weight:800;font-size:15px;color:var(--text);}
+.rvi-s{font-size:12px;color:var(--text2);margin-top:2px;}
 .rvi-m{font-size:11px;color:var(--text3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .rvi-st{font-size:11px;font-weight:700;border-radius:5px;padding:2px 6px;flex-shrink:0;}
 .rvi-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;}
@@ -493,8 +496,16 @@ textarea.fi{resize:none;min-height:60px;}
   justify-content: space-between;
   margin-bottom: 10px;
 }
+.schcal-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
 .schcal-month {
-  font-size: 14px;
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
   font-weight: 800;
   color: var(--text);
 }
@@ -724,5 +735,336 @@ body.light .schrv-tag-call { color: #c03060; }
   text-align: center;
   color: var(--text3);
   font-size: 12px;
+}
+
+/* ── Improved reservation item visibility ── */
+.schrv-item {
+  padding: 12px 13px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  transition: background .14s;
+}
+.schrv-item:last-child { border-bottom: none; }
+.schrv-item:active { background: var(--surf2); }
+@media (hover:hover) and (pointer:fine) {
+  .schrv-item:hover { background: var(--surf2); }
+}
+.schrv-time {
+  background: rgba(196,18,48,.12);
+  color: var(--red2);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+  min-width: 50px;
+  text-align: center;
+}
+.schrv-name {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.schrv-info {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 2px;
+}
+
+/* ── Inline calendar accordion panel ── */
+.schcal-week-row {
+  display: flex;
+  flex-direction: column;
+}
+.schcal-days-inner {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.schcal-inline-panel {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.32s ease, opacity 0.24s ease, margin 0.32s ease;
+  margin: 0;
+}
+.schcal-inline-panel.open {
+  max-height: 400px;
+  opacity: 1;
+  margin: 6px 0 4px;
+}
+.schcal-inline-panel-inner {
+  background: var(--surf2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.schcal-inline-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.schcal-inline-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+.schcal-inline-cnt {
+  font-size: 11px;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.schcal-inline-close {
+  background: var(--surf3);
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.schcal-inline-list {
+  max-height: 220px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Redesigned 예약 추가 buttons ── */
+.schv-add-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.schv-add-main-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 13px;
+  width: 100%;
+  box-shadow: 0 4px 14px rgba(196,18,48,.3);
+  transition: opacity .15s, transform .1s;
+}
+.schv-add-main-btn:active { opacity: 0.85; transform: scale(.97); }
+.schv-img-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: var(--surf2);
+  color: var(--text2);
+  border: 1.5px dashed var(--border2);
+  border-radius: 12px;
+  padding: 12px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12px;
+  width: 100%;
+  transition: background .15s, border-color .15s;
+}
+.schv-img-btn:active { background: var(--surf3); }
+@media (hover:hover) and (pointer:fine) {
+  .schv-img-btn:hover { background: var(--surf3); border-color: var(--text3); }
+}
+.schv-add-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* ── 고객 만족도 피드백 섹션 ── */
+#feedback-section {
+  background: var(--surf);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.feedback-hd-row {
+  flex-direction: column;
+  align-items: flex-start !important;
+  gap: 2px;
+}
+.feedback-subtitle {
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 500;
+}
+.feedback-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.feedback-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.feedback-q {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.feedback-q-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.feedback-emoji-row,
+.feedback-stars-row {
+  display: flex;
+  gap: 6px;
+}
+.fb-emoji-btn {
+  font-size: 24px;
+  background: var(--surf2);
+  border: 1.5px solid var(--border2);
+  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform .12s, background .12s, border-color .12s;
+  line-height: 1;
+}
+.fb-emoji-btn.on {
+  background: rgba(196,18,48,.1);
+  border-color: var(--red);
+  transform: scale(1.18);
+}
+.fb-emoji-btn:active { transform: scale(.92); }
+.fb-star-btn {
+  font-size: 26px;
+  color: var(--text3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  transition: color .12s, transform .1s;
+  line-height: 1;
+}
+.fb-star-btn.on { color: var(--amber); }
+.fb-star-btn.on:hover { transform: scale(1.12); }
+.feedback-yn-row {
+  display: flex;
+  gap: 8px;
+}
+.fb-yn-btn {
+  flex: 1;
+  padding: 10px 8px;
+  border: 1.5px solid var(--border2);
+  border-radius: 10px;
+  background: var(--surf2);
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.fb-yn-btn.on {
+  background: rgba(42,154,90,.12);
+  border-color: var(--green);
+  color: var(--green);
+}
+.fb-yn-btn:active { opacity: .85; }
+.feedback-comment {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.feedback-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border2);
+  border-radius: 9px;
+  font-size: 13px;
+  outline: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  background: var(--surf2);
+  color: var(--text);
+  resize: none;
+  min-height: 70px;
+}
+.feedback-textarea:focus { border-color: var(--red); }
+.feedback-textarea::placeholder { color: var(--text3); }
+.feedback-actions {
+  display: flex;
+  gap: 8px;
+}
+.feedback-submit-btn {
+  flex: 2;
+  padding: 12px 0;
+  background: var(--red);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: opacity .15s;
+}
+.feedback-submit-btn:active { opacity: .85; }
+.feedback-reset-btn {
+  flex: 1;
+  padding: 12px 0;
+  background: var(--surf2);
+  color: var(--text2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.feedback-reset-btn:active { opacity: .85; }
+.feedback-thanks {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 0 10px;
+  animation: fb-fade-in 0.4s ease;
+}
+.feedback-thanks-text {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+}
+.feedback-thanks-sub {
+  font-size: 12px;
+  color: var(--text3);
+}
+@keyframes fb-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 

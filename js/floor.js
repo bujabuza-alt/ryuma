@@ -1163,6 +1163,47 @@ function renderTodayRvList() {
 }
 
 // ── 스케줄 뷰 렌더 ──
+function buildInlinePanelHTML(date) {
+  var rvs = S.ress.filter(function(r) {
+    return r.date === date && r.st !== 'cancelled' && r.st !== 'completed';
+  }).sort(function(a,b){ return (a.time||'') < (b.time||'') ? -1 : 1; });
+
+  var titleText = dlabel(date) + ' 예약';
+  var cntText = rvs.length + '건';
+
+  var html = '<div class="schcal-inline-panel-inner">'
+    + '<div class="schcal-inline-hd">'
+    + '<span class="schcal-inline-title">'+esc(titleText)+'</span>'
+    + '<span class="schcal-inline-cnt"><span>'+esc(cntText)+'</span>'
+    + '<button class="schcal-inline-close" data-close="1">×</button>'
+    + '</span>'
+    + '</div>'
+    + '<div class="schcal-inline-list">';
+
+  if (!rvs.length) {
+    html += '<div class="schrv-empty">예약이 없습니다</div>';
+  } else {
+    rvs.forEach(function(r) {
+      var tblIds = getRvTableIds(r);
+      var tbls = tblIds.map(function(tid){ return S.tables.filter(function(t){return t.id===tid;})[0]; }).filter(Boolean);
+      var tblLabel = tbls.length ? tbls.map(function(t){return esc(t.n);}).join('+') : '미배정';
+      var stColor = {confirmed:['var(--green)','rgba(42,154,90,.12)','확정'],pending:['var(--amber)','rgba(200,146,42,.1)','대기'],arrived:['var(--blue)','rgba(42,114,200,.1)','방문']};
+      var sc = stColor[r.st] || stColor.confirmed;
+      html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
+        + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
+        + '<div class="schrv-body">'
+        + '<div class="schrv-name">'+esc(r.nm||'·')+'</div>'
+        + '<div class="schrv-info">'+esc(String(r.g))+'명 · <span style="color:var(--blue)">'+esc(tblLabel)+'</span></div>'
+        + (r.tags&&r.tags.length?'<div class="schrv-tags">'+r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join('')+'</div>':'')
+        + '</div>'
+        + '<span style="font-size:10px;font-weight:700;border-radius:5px;padding:2px 6px;background:'+sc[1]+';color:'+sc[0]+'">'+sc[2]+'</span>'
+        + '</div>';
+    });
+  }
+  html += '</div></div>';
+  return html;
+}
+
 function renderSchedView() {
   var mEl = document.getElementById('schcal-m');
   if (mEl) mEl.textContent = schedCalYear+'년 '+(schedCalMonth+1)+'월';
@@ -1180,65 +1221,128 @@ function renderSchedView() {
   dowsHTML += '</div>';
 
   var gridHTML = '';
+  var panelAlreadyOpen = schedSelDate && gEl.querySelector('.schcal-inline-panel.open');
+
   if (hallViewMode === 'weekly') {
     var todayDate = new Date();
     var weekStart = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate() - todayDate.getDay());
-    gridHTML += '<div class="schcal-week">';
+    var weekDates = [];
     for (var i = 0; i < 7; i++) {
       var wd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
-      var ds = wd.getFullYear()+'-'+pad(wd.getMonth()+1)+'-'+pad(wd.getDate());
+      weekDates.push(wd.getFullYear()+'-'+pad(wd.getMonth()+1)+'-'+pad(wd.getDate()));
+    }
+    var weekHasSel = schedSelDate && weekDates.indexOf(schedSelDate) >= 0;
+    gridHTML += '<div class="schcal-week-row"><div class="schcal-week">';
+    for (var i = 0; i < 7; i++) {
+      var wd2 = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
+      var ds = wd2.getFullYear()+'-'+pad(wd2.getMonth()+1)+'-'+pad(wd2.getDate());
       var isT = ds === td;
+      var isSel = ds === schedSelDate;
       var rvCnt = S.ress.filter(function(r){ return r.date===ds && r.st!=='cancelled' && r.st!=='completed'; }).length;
-      var cls = 'schcal-wday'+(isT?' today':'')+(i===0?' sun':i===6?' sat':'');
+      var cls = 'schcal-wday'+(isT?' today':'')+(isSel?' sel':'')+(i===0?' sun':i===6?' sat':'');
       gridHTML += '<div class="'+cls+'" data-date="'+ds+'">'
         + '<div class="schcal-wday-name">'+dows[i]+'</div>'
-        + '<div class="schcal-wday-num">'+wd.getDate()+(rvCnt?'<div class="schcal-dot"></div>':'')+'</div>'
+        + '<div class="schcal-wday-num">'+wd2.getDate()+(rvCnt?'<div class="schcal-dot"></div>':'')+'</div>'
         + '</div>';
     }
     gridHTML += '</div>';
+    var panelClass = 'schcal-inline-panel' + (weekHasSel && panelAlreadyOpen ? ' open' : '');
+    gridHTML += '<div class="'+panelClass+'" data-week-panel="0">';
+    if (weekHasSel) gridHTML += buildInlinePanelHTML(schedSelDate);
+    gridHTML += '</div></div>';
   } else {
     var firstDay = new Date(schedCalYear, schedCalMonth, 1).getDay();
     var daysInMonth = new Date(schedCalYear, schedCalMonth+1, 0).getDate();
-    gridHTML += '<div class="schcal-days">';
-    for (var i = 0; i < firstDay; i++) {
-      gridHTML += '<div class="schcal-day empty"></div>';
-    }
+    var weeks = [];
+    var week = [];
+    for (var i = 0; i < firstDay; i++) week.push(null);
     for (var d = 1; d <= daysInMonth; d++) {
-      var ds = schedCalYear+'-'+pad(schedCalMonth+1)+'-'+pad(d);
-      var isT = ds === td;
-      var dow = (firstDay + d - 1) % 7;
-      var rvCnt = S.ress.filter(function(r){ return r.date===ds && r.st!=='cancelled' && r.st!=='completed'; }).length;
-      var cls = 'schcal-day'+(isT?' today':'')+(dow===0?' sun':dow===6?' sat':'');
-      gridHTML += '<div class="'+cls+'" data-date="'+ds+'">'+d+(rvCnt?'<div class="schcal-dot"></div>':'')+'</div>';
+      week.push(d);
+      if (week.length === 7) { weeks.push(week); week = []; }
     }
-    gridHTML += '</div>';
+    if (week.length > 0) {
+      while (week.length < 7) week.push(null);
+      weeks.push(week);
+    }
+
+    var selWeekIdx = -1;
+    if (schedSelDate) {
+      weeks.forEach(function(wk, wi) {
+        wk.forEach(function(day) {
+          if (!day) return;
+          var ds = schedCalYear+'-'+pad(schedCalMonth+1)+'-'+pad(day);
+          if (ds === schedSelDate) selWeekIdx = wi;
+        });
+      });
+    }
+
+    weeks.forEach(function(wk, wi) {
+      gridHTML += '<div class="schcal-week-row"><div class="schcal-days-inner">';
+      wk.forEach(function(day, di) {
+        if (!day) {
+          gridHTML += '<div class="schcal-day empty"></div>';
+        } else {
+          var ds = schedCalYear+'-'+pad(schedCalMonth+1)+'-'+pad(day);
+          var isT = ds === td;
+          var isSel = ds === schedSelDate;
+          var dow = di % 7;
+          var rvCnt = S.ress.filter(function(r){ return r.date===ds && r.st!=='cancelled' && r.st!=='completed'; }).length;
+          var cls = 'schcal-day'+(isT?' today':'')+(isSel?' sel':'')+(dow===0?' sun':dow===6?' sat':'');
+          gridHTML += '<div class="'+cls+'" data-date="'+ds+'">'+day+(rvCnt?'<div class="schcal-dot"></div>':'')+'</div>';
+        }
+      });
+      gridHTML += '</div>';
+      var isSelWeek = wi === selWeekIdx;
+      var panelClass = 'schcal-inline-panel' + (isSelWeek && panelAlreadyOpen ? ' open' : '');
+      gridHTML += '<div class="'+panelClass+'" data-week-panel="'+wi+'">';
+      if (isSelWeek) gridHTML += buildInlinePanelHTML(schedSelDate);
+      gridHTML += '</div></div>';
+    });
   }
 
   gEl.innerHTML = dowsHTML + gridHTML;
+
+  // Animate panel open on first selection (not on re-renders)
+  if (schedSelDate && !panelAlreadyOpen) {
+    var newPanel = gEl.querySelector('.schcal-inline-panel[data-week-panel]');
+    var allPanels = gEl.querySelectorAll('.schcal-inline-panel');
+    allPanels.forEach(function(p) {
+      if (p.innerHTML.trim()) {
+        p.offsetHeight; // force reflow
+        requestAnimationFrame(function(){ p.classList.add('open'); });
+      }
+    });
+  }
 
   gEl.querySelectorAll('[data-date]').forEach(function(el) {
     el.addEventListener('click', function() {
       var clickedDate = this.getAttribute('data-date');
       if (schedSelDate === clickedDate) {
         schedSelDate = null;
-        gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
-        var panel = document.getElementById('schcal-date-panel');
-        if (panel) panel.classList.remove('open');
+        // Close inline panels
+        var panels = gEl.querySelectorAll('.schcal-inline-panel');
+        panels.forEach(function(p){ p.classList.remove('open'); });
+        setTimeout(function(){
+          gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
+          renderSchedView();
+        }, 320);
       } else {
         schedSelDate = clickedDate;
-        gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
-        this.classList.add('sel');
-        renderSchedDatePanel(clickedDate);
+        renderSchedView();
       }
     });
   });
 
-  // Re-apply selected state on re-render (called every second)
-  if (schedSelDate) {
-    var selEls = gEl.querySelectorAll('[data-date="'+schedSelDate+'"]');
-    selEls.forEach(function(e){ e.classList.add('sel'); });
-    renderSchedDatePanel(schedSelDate);
-  }
+  // Close button inside inline panel
+  gEl.querySelectorAll('[data-close]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      schedSelDate = null;
+      var panels = gEl.querySelectorAll('.schcal-inline-panel');
+      panels.forEach(function(p){ p.classList.remove('open'); });
+      setTimeout(function(){ renderSchedView(); }, 320);
+    });
+  });
 
   renderTodayRvList();
 }
@@ -1290,43 +1394,9 @@ function renderSchedRvList(filterDate) {
 }
 
 function renderSchedDatePanel(date) {
-  var panel   = document.getElementById('schcal-date-panel');
-  var titleEl = document.getElementById('schcal-date-title');
-  var cntEl   = document.getElementById('schcal-date-cnt');
-  var listEl  = document.getElementById('schcal-date-list');
-  if (!panel) return;
-
-  var rvs = S.ress.filter(function(r) {
-    return r.date === date && r.st !== 'cancelled' && r.st !== 'completed';
-  }).sort(function(a,b){ return (a.time||'')<(b.time||'')?-1:1; });
-
-  if (titleEl) titleEl.textContent = dlabel(date) + ' 예약';
-  if (cntEl)   cntEl.textContent   = rvs.length + '건';
-  panel.classList.add('open');
-
-  if (!listEl) return;
-  if (!rvs.length) {
-    listEl.innerHTML = '<div class="schrv-empty">예약이 없습니다</div>';
-    return;
-  }
-  var html = '';
-  rvs.forEach(function(r) {
-    var tblIds = getRvTableIds(r);
-    var tbls   = tblIds.map(function(tid){ return S.tables.filter(function(t){return t.id===tid;})[0]; }).filter(Boolean);
-    var tblLabel = tbls.length ? tbls.map(function(t){return esc(t.n);}).join('+') : '미배정';
-    html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
-      + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
-      + '<div class="schrv-body">'
-      + '<div class="schrv-name">'+esc(r.nm||'·')+'</div>'
-      + '<div class="schrv-info">'+esc(String(r.g))+'명 · <span style="color:var(--blue)">'+esc(tblLabel)+'</span></div>'
-      + (r.tags&&r.tags.length?'<div class="schrv-tags">'+r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join('')+'</div>':'')
-      + '</div>'
-      + '</div>';
-  });
-  listEl.innerHTML = html;
-  listEl.querySelectorAll('.schrv-item').forEach(function(el) {
-    el.addEventListener('click', function() { openRvDetail(this.getAttribute('data-rid')); });
-  });
+  // Inline panel is now rendered within the calendar via renderSchedView.
+  // This function is kept for backwards compatibility (init.js close button).
+  renderSchedView();
 }
 
 function renderAll(){
