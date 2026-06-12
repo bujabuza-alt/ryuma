@@ -124,14 +124,35 @@
         <!-- 마감 체크리스트 섹션 -->
         <div id="checklist-section">
           <div class="schrv-hd-row cl-hd-row">
-            <span class="schrv-title">✅ 마감 체크리스트</span>
+            <span class="schrv-title" id="cl-title">✅ 마감 체크</span>
             <span class="cl-progress" id="cl-progress">0 / 0</span>
           </div>
-          <div class="cl-body">
-            <ul class="cl-list" id="cl-list"></ul>
-            <div class="cl-add-row">
-              <input class="cl-add-input" id="cl-add-input" type="text" placeholder="항목 추가…" maxlength="60">
-              <button class="cl-add-btn" id="cl-add-btn">추가</button>
+          <div class="cl-tabs" id="cl-tabs">
+            <button class="cl-tab on" data-idx="0">마감</button>
+            <button class="cl-tab" data-idx="1">업무</button>
+            <button class="cl-tab" data-idx="2">기타</button>
+          </div>
+          <div class="cl-track" id="cl-track">
+            <div class="cl-slide" data-cat="closing">
+              <ul class="cl-list"></ul>
+              <div class="cl-add-row">
+                <input class="cl-add-input" type="text" placeholder="항목 추가…" maxlength="60">
+                <button class="cl-add-btn">추가</button>
+              </div>
+            </div>
+            <div class="cl-slide" data-cat="task">
+              <ul class="cl-list"></ul>
+              <div class="cl-add-row">
+                <input class="cl-add-input" type="text" placeholder="항목 추가…" maxlength="60">
+                <button class="cl-add-btn">추가</button>
+              </div>
+            </div>
+            <div class="cl-slide" data-cat="etc">
+              <ul class="cl-list"></ul>
+              <div class="cl-add-row">
+                <input class="cl-add-input" type="text" placeholder="항목 추가…" maxlength="60">
+                <button class="cl-add-btn">추가</button>
+              </div>
             </div>
           </div>
         </div>
