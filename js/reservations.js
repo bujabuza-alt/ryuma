@@ -216,7 +216,7 @@ function openRvDetail(rid){
       S.ress=S.ress.map(function(x){return x.id==rid?Object.assign({},x,{st:st}):x;});
       if(st==='arrived'&&tblIds.length){S.tables=S.tables.map(function(t){return tblIds.indexOf(t.id)>=0?Object.assign({},t,{st:'occupied',seatTime:Date.now(),g:r.g,res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
       if(st==='cancelled'&&tblIds.length){S.tables=S.tables.map(function(t){return tblIds.indexOf(t.id)>=0&&t.st==='reserved'?Object.assign({},t,{st:'empty',res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
-      saveData(); closeModal(); renderReservations(); renderHeader(); renderStats(); renderSidebar(); if(currentTab==='floor') renderCanvas();
+      saveData(); closeModal(); renderReservations(); renderHeader(); renderStats(); renderSidebar(); if(currentTab==='floor'){ if(hallViewMode==='hall') renderCanvas(); else renderSchedView(); }
     });
   });
   var ba=document.getElementById('bassign');
