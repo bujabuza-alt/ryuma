@@ -81,7 +81,9 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
 
   function save(data) {
     localStorage.setItem(STORE_KEY, JSON.stringify(data));
-    if (typeof saveData === 'function' && typeof fbRef !== 'undefined' && fbRef) saveData();
+    if (typeof fbRef !== 'undefined' && fbRef) {
+      fbRef.child('checklist').set(data).catch(function(){});
+    }
   }
 
   function getData() {

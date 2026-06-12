@@ -26,8 +26,6 @@ function saveData() {
   saveTimer = setTimeout(function() {
     var ts = Date.now(); lastSavedTs = ts;
 
-    var ck = {};
-    try { ck = JSON.parse(localStorage.getItem('checklist_v2') || '{}'); } catch(e) {}
     var p = {
       tables: S.tables,
       waits: S.waits,
@@ -38,7 +36,6 @@ function saveData() {
       inventory: S.inventory || [],
       stockCats: S.stockCats || [],
       stockUnits: S.stockUnits || [],
-      checklist: ck,
       _ts: ts
     };
     
@@ -79,6 +76,16 @@ function startFb() {
   if (!fbRef) return;
   fbRef.off();
   var listenStore = currentStore; // 이 리스너가 등록된 매장 기억
+
+  // 체크리스트 전용 리스너 — _ts 타임스탬프 가드 없이 독립적으로 동기화
+  fbRef.child('checklist').on('value', function(snap) {
+    if (listenStore !== currentStore) return;
+    var ck = snap.val();
+    if (!ck) return;
+    try { localStorage.setItem('checklist_v2', JSON.stringify(ck)); } catch(e) {}
+    if (typeof renderChecklist === 'function') renderChecklist();
+  });
+
   fbRef.on('value', function(snap) {
     clearTimeout(fbReconnectTimer);
     var d = snap.val();
@@ -96,10 +103,6 @@ function startFb() {
     if (Array.isArray(d.inventory)) S.inventory = d.inventory;
     if (Array.isArray(d.stockCats) && d.stockCats.length) S.stockCats = d.stockCats;
     if (Array.isArray(d.stockUnits) && d.stockUnits.length) S.stockUnits = d.stockUnits;
-    if (d.checklist) {
-      try { localStorage.setItem('checklist_v2', JSON.stringify(d.checklist)); } catch(e) {}
-      if (typeof renderChecklist === 'function') renderChecklist();
-    }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {}
     S.tables.forEach(function(t){ cardCache[t.id]=''; });
     isSyncingFromRemote = true;
