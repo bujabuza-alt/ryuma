@@ -56,9 +56,14 @@ document.getElementById('schv-btn-imgimport').addEventListener('click', function
 document.getElementById('baddRv').addEventListener('click', openAddRv);
 document.getElementById('bNaverImport').addEventListener('click', openNaverImport);
 
-// ── 마감 체크리스트 ──
+// ── 마감 체크리스트 (3분류 슬라이드) ──
 (function() {
-  var STORE_KEY = 'checklist_v1';
+  var STORE_KEY = 'checklist_v2';
+  var CATS = [
+    { key: 'closing', label: '마감 체크' },
+    { key: 'task',    label: '업무 체크' },
+    { key: 'etc',     label: '기타 체크' }
+  ];
 
   function todayStr() {
     var d = new Date();
@@ -76,92 +81,127 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
   function getData() {
     var data = load();
     if (data.date !== todayStr()) {
-      // 날짜가 바뀌면 완료 상태만 초기화, 항목 목록은 유지
       data.date = todayStr();
-      if (data.items) data.items.forEach(function(it){ it.done = false; });
+      CATS.forEach(function(c) {
+        if (data[c.key]) data[c.key].forEach(function(it){ it.done = false; });
+      });
       save(data);
     }
-    if (!data.items) data.items = [];
+    CATS.forEach(function(c) { if (!data[c.key]) data[c.key] = []; });
     return data;
   }
 
-  function render() {
+  function renderSlide(slide) {
+    var cat = slide.getAttribute('data-cat');
     var data = getData();
-    var list = document.getElementById('cl-list');
-    var prog = document.getElementById('cl-progress');
-    if (!list) return;
+    var items = data[cat];
+    var list = slide.querySelector('.cl-list');
 
-    var total = data.items.length;
-    var done = data.items.filter(function(it){ return it.done; }).length;
-    prog.textContent = done + ' / ' + total;
+    if (items.length === 0) {
+      list.innerHTML = '<li class="cl-empty">항목이 없습니다.</li>';
+    } else {
+      list.innerHTML = '';
+      items.forEach(function(item, idx) {
+        var li = document.createElement('li');
+        li.className = 'cl-item' + (item.done ? ' done' : '');
 
-    if (total === 0) {
-      list.innerHTML = '<li class="cl-empty">항목이 없습니다. 아래에서 추가해주세요.</li>';
-      return;
+        var chk = document.createElement('button');
+        chk.className = 'cl-check';
+        chk.textContent = item.done ? '✓' : '';
+        chk.addEventListener('click', function() {
+          var d = getData();
+          d[cat][idx].done = !d[cat][idx].done;
+          save(d);
+          renderAll();
+        });
+
+        var lbl = document.createElement('span');
+        lbl.className = 'cl-label';
+        lbl.textContent = item.text;
+
+        var del = document.createElement('button');
+        del.className = 'cl-del';
+        del.textContent = '×';
+        del.addEventListener('click', function() {
+          var d = getData();
+          d[cat].splice(idx, 1);
+          save(d);
+          renderAll();
+        });
+
+        li.appendChild(chk);
+        li.appendChild(lbl);
+        li.appendChild(del);
+        list.appendChild(li);
+      });
     }
+  }
 
-    list.innerHTML = '';
-    data.items.forEach(function(item, idx) {
-      var li = document.createElement('li');
-      li.className = 'cl-item' + (item.done ? ' done' : '');
-
-      var chk = document.createElement('button');
-      chk.className = 'cl-check';
-      chk.setAttribute('aria-label', item.done ? '완료 취소' : '완료');
-      chk.textContent = item.done ? '✓' : '';
-      chk.addEventListener('click', function() {
-        var d = getData();
-        d.items[idx].done = !d.items[idx].done;
-        save(d);
-        render();
-      });
-
-      var lbl = document.createElement('span');
-      lbl.className = 'cl-label';
-      lbl.textContent = item.text;
-
-      var del = document.createElement('button');
-      del.className = 'cl-del';
-      del.setAttribute('aria-label', '삭제');
-      del.textContent = '×';
-      del.addEventListener('click', function() {
-        var d = getData();
-        d.items.splice(idx, 1);
-        save(d);
-        render();
-      });
-
-      li.appendChild(chk);
-      li.appendChild(lbl);
-      li.appendChild(del);
-      list.appendChild(li);
+  function updateHeader(idx) {
+    var data = getData();
+    var cat = CATS[idx].key;
+    var items = data[cat];
+    var done = items.filter(function(it){ return it.done; }).length;
+    document.getElementById('cl-title').textContent = '✅ ' + CATS[idx].label;
+    document.getElementById('cl-progress').textContent = done + ' / ' + items.length;
+    document.querySelectorAll('.cl-tab').forEach(function(t, i) {
+      t.classList.toggle('on', i === idx);
     });
   }
 
-  function addItem(text) {
-    text = text.trim();
-    if (!text) return;
-    var data = getData();
-    data.items.push({ text: text, done: false });
-    save(data);
-    render();
+  function renderAll() {
+    var track = document.getElementById('cl-track');
+    var idx = Math.round(track.scrollLeft / track.clientWidth) || 0;
+    document.querySelectorAll('.cl-slide').forEach(function(slide) {
+      renderSlide(slide);
+    });
+    updateHeader(idx);
   }
 
-  document.getElementById('cl-add-btn').addEventListener('click', function() {
-    var input = document.getElementById('cl-add-input');
-    addItem(input.value);
-    input.value = '';
-    input.focus();
+  // 탭 클릭 → 해당 슬라이드로 이동
+  document.querySelectorAll('.cl-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var idx = +this.getAttribute('data-idx');
+      var track = document.getElementById('cl-track');
+      track.scrollTo({ left: idx * track.clientWidth, behavior: 'smooth' });
+      updateHeader(idx);
+    });
   });
 
-  document.getElementById('cl-add-input').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      addItem(this.value);
-      this.value = '';
+  // 스와이프 후 헤더 동기화
+  var scrollTimer;
+  document.getElementById('cl-track').addEventListener('scroll', function() {
+    clearTimeout(scrollTimer);
+    var track = this;
+    scrollTimer = setTimeout(function() {
+      var idx = Math.round(track.scrollLeft / track.clientWidth);
+      updateHeader(idx);
+    }, 80);
+  });
+
+  // 항목 추가 — 각 슬라이드의 버튼/입력 바인딩
+  document.querySelectorAll('.cl-slide').forEach(function(slide) {
+    var cat = slide.getAttribute('data-cat');
+    var input = slide.querySelector('.cl-add-input');
+    var btn   = slide.querySelector('.cl-add-btn');
+
+    function add() {
+      var text = input.value.trim();
+      if (!text) return;
+      var d = getData();
+      d[cat].push({ text: text, done: false });
+      save(d);
+      input.value = '';
+      renderAll();
     }
+
+    btn.addEventListener('click', add);
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') add();
+    });
   });
 
-  render();
+  renderAll();
 })();
 document.getElementById('btn-theme').addEventListener('click', toggleTheme);
 document.getElementById('sel-theme').addEventListener('click', toggleTheme);

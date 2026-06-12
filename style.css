@@ -913,11 +913,48 @@ body.light .schrv-tag-call { color: #c03060; }
   color: var(--text3);
   white-space: nowrap;
 }
-.cl-body {
-  padding: 8px 14px 14px;
+/* 탭 */
+.cl-tabs {
+  display: flex;
+  padding: 0 14px 10px;
+  gap: 6px;
+}
+.cl-tab {
+  flex: 1;
+  padding: 6px 0;
+  border: 1.5px solid var(--border2);
+  border-radius: 8px;
+  background: var(--surf2);
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.cl-tab.on {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+/* 슬라이드 트랙 */
+.cl-track {
+  display: flex;
+  overflow-x: scroll;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.cl-track::-webkit-scrollbar { display: none; }
+.cl-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  padding: 0 14px 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-sizing: border-box;
 }
 .cl-list {
   list-style: none;
@@ -994,7 +1031,6 @@ body.light .schrv-tag-call { color: #c03060; }
 .cl-add-row {
   display: flex;
   gap: 8px;
-  margin-top: 4px;
 }
 .cl-add-input {
   flex: 1;
