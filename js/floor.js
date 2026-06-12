@@ -93,6 +93,8 @@ function switchTab(t) {
   // bedit/btn-view shown only in hall canvas mode; renderAll() handles this for floor tab
   document.getElementById('bedit').style.display = (t==='floor' && hallViewMode==='hall') ? '' : 'none';
   document.getElementById('btn-view').style.display = (t==='floor' && hallViewMode==='hall') ? '' : 'none';
+  var _hvt = document.getElementById('btn-hall-toggle');
+  if (_hvt) _hvt.style.display = (t==='floor') ? '' : 'none';
   if (t==='floor') renderAll();
   else if (t==='reserve') renderReservations();
   else if (t==='cust') renderCustTab();
@@ -1410,6 +1412,7 @@ function renderAll(){
   var fnEl    = document.getElementById('floor-nav');
   var bedit   = document.getElementById('bedit');
   var bview   = document.getElementById('btn-view');
+  var hvt = document.getElementById('btn-hall-toggle');
   if (hallViewMode === 'hall') {
     if (sbEl)   sbEl.style.display   = 'flex';
     if (schv)   schv.classList.remove('on');
@@ -1419,6 +1422,7 @@ function renderAll(){
     if (fnEl)   fnEl.style.display   = '';
     if (bedit)  bedit.style.display  = '';
     if (bview)  bview.style.display  = '';
+    if (hvt)  { hvt.style.display = (currentTab === 'floor') ? '' : 'none'; hvt.textContent = '📅'; }
     renderSidebar(); renderStats(); renderFloorNav();
     if(viewMode==='list') renderListView(); else renderCanvas();
   } else {
@@ -1431,6 +1435,7 @@ function renderAll(){
     if (lvEl)   { lvEl.classList.remove('on'); lvEl.style.display = 'none'; }
     if (bedit)  bedit.style.display  = 'none';
     if (bview)  bview.style.display  = 'none';
+    if (hvt)  { hvt.style.display = (currentTab === 'floor') ? '' : 'none'; hvt.textContent = '🪑 홀'; }
     renderSchedView();
   }
 }

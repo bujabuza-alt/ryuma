@@ -24,6 +24,10 @@ document.getElementById('cust-filter-row').addEventListener('click', function(e)
 document.getElementById('btn-cust-notion').addEventListener('click', function(){ runNotionCustBackup(); });
 document.getElementById('btn-view').addEventListener('click', toggleView);
 document.getElementById('bedit').addEventListener('click', toggleEdit);
+document.getElementById('btn-hall-toggle').addEventListener('click', function() {
+  hallViewMode = (hallViewMode === 'hall') ? 'monthly' : 'hall';
+  renderAll();
+});
 document.getElementById('schcal-p').addEventListener('click', function() {
   schedCalMonth--;
   if (schedCalMonth < 0) { schedCalMonth = 11; schedCalYear--; }
@@ -246,10 +250,11 @@ setInterval(function(){
     if (hallViewMode === 'hall') {
       renderCanvas();
       renderStats();
+      renderSidebar();
     } else {
-      renderSchedView();
+      // 캘린더 뷰: 오늘 예약 목록만 갱신 (매초 DOM 전체 교체 방지)
+      renderTodayRvList();
     }
-    renderSidebar();
     renderHeader();
   }
 }, 1000);
