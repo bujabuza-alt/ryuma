@@ -26,6 +26,8 @@ function saveData() {
   saveTimer = setTimeout(function() {
     var ts = Date.now(); lastSavedTs = ts;
 
+    var ck = {};
+    try { ck = JSON.parse(localStorage.getItem('checklist_v2') || '{}'); } catch(e) {}
     var p = {
       tables: S.tables,
       waits: S.waits,
@@ -36,6 +38,7 @@ function saveData() {
       inventory: S.inventory || [],
       stockCats: S.stockCats || [],
       stockUnits: S.stockUnits || [],
+      checklist: ck,
       _ts: ts
     };
     
@@ -93,6 +96,10 @@ function startFb() {
     if (Array.isArray(d.inventory)) S.inventory = d.inventory;
     if (Array.isArray(d.stockCats) && d.stockCats.length) S.stockCats = d.stockCats;
     if (Array.isArray(d.stockUnits) && d.stockUnits.length) S.stockUnits = d.stockUnits;
+    if (d.checklist) {
+      try { localStorage.setItem('checklist_v2', JSON.stringify(d.checklist)); } catch(e) {}
+      if (typeof renderChecklist === 'function') renderChecklist();
+    }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {}
     S.tables.forEach(function(t){ cardCache[t.id]=''; });
     isSyncingFromRemote = true;
