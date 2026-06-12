@@ -81,6 +81,7 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
 
   function save(data) {
     localStorage.setItem(STORE_KEY, JSON.stringify(data));
+    if (typeof saveData === 'function' && typeof fbRef !== 'undefined' && fbRef) saveData();
   }
 
   function getData() {
@@ -207,6 +208,7 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
   });
 
   renderAll();
+  window.renderChecklist = renderAll;
 })();
 document.getElementById('btn-theme').addEventListener('click', toggleTheme);
 document.getElementById('sel-theme').addEventListener('click', toggleTheme);
