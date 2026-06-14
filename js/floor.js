@@ -1,14 +1,17 @@
 // ── 홀 현황 (Floor View) ──
 var custFilterMode = 'active'; // 'active' | 'cancel'
-// 기본 홀 현황(캔버스) 뷰로 변경 — 앱 진입 시 홀 현황 화면 표시
-var hallViewMode = 'hall';  // 'monthly' | 'weekly' | 'hall'
+var hallViewMode = 'monthly';  // 'monthly' | 'weekly' | 'hall'
 var schedCalYear  = new Date().getFullYear();
 var schedCalMonth = new Date().getMonth(); // 0-indexed
 var schedSelDate  = null; // currently selected date in schedule calendar
 // ── 헤더/통계 ──
 function renderHeader() {
-  // 상단 상태 칩(착석/예약/완료) 제거로 인해 날짜만 갱신
   document.getElementById('hdate').textContent = new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+  var occ = S.tables.filter(function(t){ return t.st==='occupied'; }).length;
+  var rsv = S.tables.filter(function(t){ return t.st==='reserved'; }).length;
+  var c1 = document.getElementById('c1'); if(c1) c1.textContent = '착석 '+occ+'/'+S.tables.length;
+  var c2 = document.getElementById('c2'); if(c2) c2.textContent = '예약 '+rsv;
+  var c3 = document.getElementById('c3'); if(c3) c3.textContent = '완료 '+doneCnt();
 }
 function renderStats() {
   var guests = S.tables.reduce(function(a,t){ return a+(t.st==='occupied'?t.g:0); }, 0);

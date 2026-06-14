@@ -204,11 +204,10 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 .rvi-tbl{font-size:11px;color:var(--blue);margin-top:2px;font-weight:600;}
 .rv-sec-lbl{padding:6px 13px 5px;font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;background:var(--bg);border-bottom:1px solid var(--border);}
 .rv-empty-row{padding:12px 13px;font-size:12px;color:var(--text3);}
-/* 예약 목록: 이후예약(왼쪽) / 완료예약(오른쪽) 2단 가로 레이아웃 */
-#rv-sections{flex:1;min-height:0;display:flex;flex-direction:row;overflow:hidden;}
-.rv-sec-col{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--border2);min-width:0;overflow:hidden;}
-.rv-sec-col:last-child{border-right:none;}
-.rv-sec-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;}
+#rv-sections{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.rv-sec-col{display:flex;flex-direction:column;border-bottom:1px solid var(--border);}
+.rv-sec-col:last-child{border-bottom:none;}
+.rv-sec-scroll{overflow:visible;}
 .cal-today-btn{background:var(--red);color:#fff;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .cal-today-btn:active{opacity:.85;}
 /* 주의사항 (Hall Notes) */
