@@ -1,17 +1,14 @@
 // ── 홀 현황 (Floor View) ──
 var custFilterMode = 'active'; // 'active' | 'cancel'
-var hallViewMode = 'monthly';  // 'monthly' | 'weekly' | 'hall'
+// 기본 홀 현황(캔버스) 뷰로 변경 — 앱 진입 시 홀 현황 화면 표시
+var hallViewMode = 'hall';  // 'monthly' | 'weekly' | 'hall'
 var schedCalYear  = new Date().getFullYear();
 var schedCalMonth = new Date().getMonth(); // 0-indexed
 var schedSelDate  = null; // currently selected date in schedule calendar
 // ── 헤더/통계 ──
 function renderHeader() {
+  // 상단 상태 칩(착석/예약/완료) 제거로 인해 날짜만 갱신
   document.getElementById('hdate').textContent = new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
-  var occ = S.tables.filter(function(t){ return t.st==='occupied'; }).length;
-  var rsv = S.tables.filter(function(t){ return t.st==='reserved'; }).length;
-  document.getElementById('c1').textContent = '착석 '+occ+'/'+S.tables.length;
-  document.getElementById('c2').textContent = '예약 '+rsv;
-  document.getElementById('c3').textContent = '완료 '+doneCnt();
 }
 function renderStats() {
   var guests = S.tables.reduce(function(a,t){ return a+(t.st==='occupied'?t.g:0); }, 0);
@@ -133,60 +130,201 @@ function deleteCustomer(phone) {
   saveData();
   renderCustTab();
 }
+// ── 손님 정보 불러오기 (CSV / XLSX / JSON / Notion API) ──
+// 필수 필드 검증: 이름, 전화번호, 방문 날짜
+function _custImportValidate(item) {
+  var errs = [];
+  if (!item.name || !item.name.trim()) errs.push('이름 누락');
+  if (!item.phone || !item.phone.trim()) errs.push('전화번호 누락');
+  if (!item.visitDate || !item.visitDate.trim()) errs.push('방문 날짜 누락');
+  return errs;
+}
+
+// CSV/XLSX/JSON 행 → 고객 객체 정규화
+function _normalizeRow(row) {
+  return {
+    name:      (row['이름'] || row['name'] || row['성명'] || '').trim(),
+    phone:     (row['전화번호'] || row['phone'] || row['연락처'] || row['휴대폰'] || '').trim(),
+    visitDate: (row['방문 날짜'] || row['방문날짜'] || row['visit_date'] || row['visitDate'] || row['날짜'] || '').trim(),
+    memo:      (row['메모'] || row['memo'] || row['특이사항'] || '').trim()
+  };
+}
+
+// 검증 오류가 없는 항목 필터 후 기존 고객에 병합 저장
+function _applyImportedCustomers(imported, statusEl) {
+  var valid = [], skipped = 0;
+  imported.forEach(function(item) {
+    var errs = _custImportValidate(item);
+    if (errs.length) { skipped++; return; }
+    valid.push(item);
+  });
+  if (!valid.length) {
+    statusEl.textContent = '유효한 데이터가 없습니다. 이름·전화번호·방문 날짜를 확인하세요. (건너뜀: ' + skipped + '건)';
+    return;
+  }
+  if (!S.customers) S.customers = [];
+  var existingPhones = {};
+  S.customers.forEach(function(c){ if (!c.deleted) existingPhones[c.phone] = true; });
+  var added = 0;
+  valid.forEach(function(item) {
+    if (!existingPhones[item.phone]) {
+      S.customers.push(item);
+      existingPhones[item.phone] = true;
+      added++;
+    }
+  });
+  saveData();
+  closeModal();
+  renderCustTab();
+  var msg = added + '명 추가 완료';
+  if (skipped) msg += ' (필수 항목 누락으로 ' + skipped + '건 건너뜀)';
+  alert(msg);
+}
+
 function openCustImport() {
-  showModal('<div class="md-hd"><span class="md-title">외부 고객 정보 불러오기</span><button class="md-x" id="mxbtn">×</button></div>'
+  var notionToken = (typeof getNotionToken === 'function') ? getNotionToken() : (localStorage.getItem('ryuma_notion_token') || '');
+  showModal(
+    '<div class="md-hd"><span class="md-title">손님 정보 불러오기</span><button class="md-x" id="mxbtn">×</button></div>'
     +'<div class="mb">'
-    +'<div style="font-size:12px;color:var(--text2);line-height:1.6;background:var(--surf2);border-radius:8px;padding:9px 11px">CSV 또는 JSON 파일을 선택하세요.<br>CSV: 이름, 전화번호, 메모 (첫 줄 헤더 제외)<br>JSON: [{"name":"홍길동","phone":"010-XXXX-XXXX","memo":""}…]</div>'
-    +'<input type="file" id="cust-import-file" accept=".csv,.json,.txt" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:8px;background:var(--surf2);color:var(--text);font-family:inherit;font-size:12px;cursor:pointer">'
-    +'<div id="cust-import-status" style="font-size:11px;color:var(--text3);min-height:16px;text-align:center"></div>'
-    +'<button class="ab" style="background:var(--blue);width:100%" id="cust-import-btn">불러오기</button>'
-    +'</div>');
+    +'<div style="font-size:12px;color:var(--text2);line-height:1.6;background:var(--surf2);border-radius:8px;padding:9px 11px;margin-bottom:10px">'
+    +'<b>지원 형식:</b> CSV · XLSX · JSON<br>'
+    +'<b>필수 열:</b> 이름, 전화번호, 방문 날짜<br>'
+    +'CSV/XLSX 헤더 예: 이름, 전화번호, 방문 날짜, 메모'
+    +'</div>'
+    +'<input type="file" id="cust-import-file" accept=".csv,.xlsx,.xls,.json,.txt" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:8px;background:var(--surf2);color:var(--text);font-family:inherit;font-size:12px;cursor:pointer;margin-bottom:6px">'
+    +'<div id="cust-import-status" style="font-size:11px;color:var(--red);min-height:16px;text-align:center;margin-bottom:6px"></div>'
+    +'<button class="ab" style="background:var(--blue);width:100%;margin-bottom:8px" id="cust-import-btn">파일 불러오기</button>'
+    +(notionToken
+      ? '<button class="ab" style="background:#2e2e2e;width:100%" id="cust-notion-import-btn">☁ Notion에서 손님 가져오기</button>'
+        +'<input class="fi" id="cust-notion-db-id" placeholder="Notion DB ID (손님 데이터베이스)" style="margin-top:6px;font-size:12px">'
+      : '<div style="font-size:11px;color:var(--text3);text-align:center">⚙ 설정에서 Notion 토큰을 등록하면 Notion DB 불러오기도 사용 가능합니다.</div>'
+    )
+    +'</div>'
+  );
+
+  // ── 파일 불러오기 (CSV / XLSX / JSON) ──
   document.getElementById('cust-import-btn').addEventListener('click', function() {
     var fileInput = document.getElementById('cust-import-file');
     var statusEl  = document.getElementById('cust-import-status');
     if (!fileInput.files.length) { statusEl.textContent = '파일을 선택하세요'; return; }
     var file = fileInput.files[0];
+    var fname = file.name.toLowerCase();
+
+    // ── XLSX / XLS ──
+    if (fname.endsWith('.xlsx') || fname.endsWith('.xls')) {
+      if (typeof XLSX === 'undefined') { statusEl.textContent = 'XLSX 라이브러리 로딩 중… 잠시 후 다시 시도하세요.'; return; }
+      var arrReader = new FileReader();
+      arrReader.onload = function(e) {
+        try {
+          var wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+          var imported = rows.map(_normalizeRow);
+          _applyImportedCustomers(imported, statusEl);
+        } catch(err) { statusEl.textContent = 'XLSX 오류: ' + err.message; }
+      };
+      arrReader.readAsArrayBuffer(file);
+      return;
+    }
+
+    // ── CSV / JSON ──
     var reader = new FileReader();
     reader.onload = function(e) {
       var text = e.target.result;
       var imported = [];
       try {
-        if (file.name.toLowerCase().endsWith('.json')) {
+        if (fname.endsWith('.json')) {
           var data = JSON.parse(text);
-          if (!Array.isArray(data)) throw new Error('배열 형식이 아닙니다');
-          data.forEach(function(item) {
-            if (item.phone) imported.push({name:(item.name||'').trim(), phone:item.phone.trim(), memo:(item.memo||'').trim()});
-          });
+          if (!Array.isArray(data)) throw new Error('JSON 배열 형식이 아닙니다');
+          imported = data.map(_normalizeRow);
         } else {
-          var lines = text.split(/\r?\n/).slice(1);
-          lines.forEach(function(line) {
-            var parts = line.split(',');
-            if (parts.length >= 2 && parts[1].trim()) {
-              imported.push({name:(parts[0]||'').trim(), phone:parts[1].trim(), memo:(parts[2]||'').trim()});
-            }
-          });
-        }
-        if (!imported.length) { statusEl.textContent = '불러올 데이터가 없습니다'; return; }
-        if (!S.customers) S.customers = [];
-        var existingPhones = {};
-        S.customers.forEach(function(c){ if (!c.deleted) existingPhones[c.phone] = true; });
-        var added = 0;
-        imported.forEach(function(item) {
-          if (!existingPhones[item.phone]) {
-            S.customers.push(item);
-            added++;
+          // CSV: 첫 줄을 헤더로 파싱
+          var lines = text.split(/\r?\n/);
+          if (!lines.length) { statusEl.textContent = '빈 파일입니다'; return; }
+          var headers = lines[0].split(',').map(function(h){ return h.trim(); });
+          for (var i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            var parts = lines[i].split(',');
+            var row = {};
+            headers.forEach(function(h, idx){ row[h] = (parts[idx]||'').trim(); });
+            imported.push(_normalizeRow(row));
           }
-        });
-        saveData();
-        closeModal();
-        renderCustTab();
-        alert(added + '명의 고객 정보를 추가했습니다.');
-      } catch(err) {
-        statusEl.textContent = '오류: ' + err.message;
-      }
+        }
+        _applyImportedCustomers(imported, statusEl);
+      } catch(err) { statusEl.textContent = '오류: ' + err.message; }
     };
     reader.readAsText(file, 'utf-8');
   });
+
+  // ── Notion DB 불러오기 ──
+  var notionBtn = document.getElementById('cust-notion-import-btn');
+  if (notionBtn) {
+    notionBtn.addEventListener('click', function() {
+      var statusEl = document.getElementById('cust-import-status');
+      var dbIdEl   = document.getElementById('cust-notion-db-id');
+      var dbId     = (dbIdEl ? dbIdEl.value.trim() : '') || NOTION_CUST_DB_ID || '';
+      if (!dbId) { statusEl.textContent = 'Notion 손님 DB ID를 입력하세요'; return; }
+      var token = (typeof getNotionToken === 'function') ? getNotionToken() : localStorage.getItem('ryuma_notion_token');
+      if (!token) { statusEl.textContent = 'Notion 토큰이 없습니다. 설정에서 등록하세요.'; return; }
+      statusEl.style.color = 'var(--text2)';
+      statusEl.textContent = 'Notion에서 불러오는 중…';
+      notionBtn.disabled = true;
+
+      // Notion 데이터베이스 쿼리 (페이지당 최대 100건, 페이지네이션 처리)
+      function fetchNotionPage(cursor) {
+        var body = {page_size: 100};
+        if (cursor) body.start_cursor = cursor;
+        return fetch('https://api.notion.com/v1/databases/' + dbId + '/query', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Notion-Version': '2022-06-28',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        }).then(function(r){
+          if (r.status === 401) { localStorage.removeItem('ryuma_notion_token'); throw new Error('Notion 토큰이 만료됐습니다. 설정에서 재등록하세요.'); }
+          if (!r.ok) throw new Error('Notion API 오류: ' + r.status);
+          return r.json();
+        });
+      }
+
+      // 모든 페이지 순차 수집
+      var allRows = [];
+      function collectAll(cursor) {
+        fetchNotionPage(cursor).then(function(data) {
+          (data.results || []).forEach(function(page) {
+            var props = page.properties || {};
+            function getText(p) {
+              if (!p) return '';
+              if (p.type === 'title') return (p.title||[]).map(function(t){return t.plain_text||'';}).join('').trim();
+              if (p.type === 'rich_text') return (p.rich_text||[]).map(function(t){return t.plain_text||'';}).join('').trim();
+              if (p.type === 'phone_number') return (p.phone_number||'').trim();
+              if (p.type === 'date') return p.date ? (p.date.start||'').trim() : '';
+              return '';
+            }
+            allRows.push({
+              name:      getText(props['이름'] || props['name'] || props['Name']),
+              phone:     getText(props['전화번호'] || props['연락처'] || props['phone'] || props['Phone']),
+              visitDate: getText(props['방문 날짜'] || props['방문날짜'] || props['visit_date'] || props['날짜']),
+              memo:      getText(props['메모'] || props['memo'] || props['특이사항'])
+            });
+          });
+          if (data.has_more && data.next_cursor) {
+            collectAll(data.next_cursor);
+          } else {
+            notionBtn.disabled = false;
+            _applyImportedCustomers(allRows, statusEl);
+          }
+        }).catch(function(err) {
+          notionBtn.disabled = false;
+          statusEl.style.color = 'var(--red)';
+          statusEl.textContent = err.message;
+        });
+      }
+      collectAll(null);
+    });
+  }
 }
 function openRvActionMenu() {
   showModal('<div class="md-hd"><span class="md-title">예약 추가</span><button class="md-x" id="mxbtn">×</button></div>'
