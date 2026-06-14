@@ -93,17 +93,17 @@ function switchTab(t) {
   // bedit/btn-view shown only in hall canvas mode; renderAll() handles this for floor tab
   document.getElementById('bedit').style.display = (t==='floor' && hallViewMode==='hall') ? '' : 'none';
   document.getElementById('btn-view').style.display = (t==='floor' && hallViewMode==='hall') ? '' : 'none';
-  var _hvt = document.getElementById('btn-hall-toggle');
-  if (_hvt) _hvt.style.display = (t==='floor') ? '' : 'none';
   if (t==='floor') renderAll();
   else if (t==='reserve') renderReservations();
   else if (t==='cust') renderCustTab();
   else if (t==='stock') renderStock();
 }
 function getAllCustomers() {
+  var deletedPhones = {};
+  (S.customers||[]).forEach(function(c) { if (c.deleted) deletedPhones[c.phone] = true; });
   var map = {};
   S.ress.forEach(function(r) {
-    if (!r.phone) return;
+    if (!r.phone || deletedPhones[r.phone]) return;
     if (!map[r.phone]) map[r.phone] = {name:'', phone:r.phone, latestDate:'', visitDates:[], memo:''};
     if ((r.date||'') >= map[r.phone].latestDate) {
       map[r.phone].latestDate = r.date||'';
@@ -112,6 +112,7 @@ function getAllCustomers() {
     if (r.st==='arrived' || r.st==='completed') map[r.phone].visitDates.push(r.date);
   });
   (S.customers||[]).forEach(function(c) {
+    if (c.deleted) return;
     if (!map[c.phone]) map[c.phone] = {name:c.name||'', phone:c.phone, latestDate:'', visitDates:[], memo:''};
     map[c.phone].memo = c.memo||'';
     if (!map[c.phone].name) map[c.phone].name = c.name||'';
@@ -123,6 +124,83 @@ function getAllCustomers() {
     c.last  = c.visitDates.length ? c.visitDates[c.visitDates.length-1] : null;
     return c;
   });
+}
+function deleteCustomer(phone) {
+  if (!confirm('이 고객 정보를 삭제하시겠습니까?')) return;
+  if (!S.customers) S.customers = [];
+  S.customers = S.customers.filter(function(c){ return c.phone !== phone; });
+  S.customers.push({phone: phone, name: '', memo: '', deleted: true});
+  saveData();
+  renderCustTab();
+}
+function openCustImport() {
+  showModal('<div class="md-hd"><span class="md-title">외부 고객 정보 불러오기</span><button class="md-x" id="mxbtn">×</button></div>'
+    +'<div class="mb">'
+    +'<div style="font-size:12px;color:var(--text2);line-height:1.6;background:var(--surf2);border-radius:8px;padding:9px 11px">CSV 또는 JSON 파일을 선택하세요.<br>CSV: 이름, 전화번호, 메모 (첫 줄 헤더 제외)<br>JSON: [{"name":"홍길동","phone":"010-XXXX-XXXX","memo":""}…]</div>'
+    +'<input type="file" id="cust-import-file" accept=".csv,.json,.txt" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:8px;background:var(--surf2);color:var(--text);font-family:inherit;font-size:12px;cursor:pointer">'
+    +'<div id="cust-import-status" style="font-size:11px;color:var(--text3);min-height:16px;text-align:center"></div>'
+    +'<button class="ab" style="background:var(--blue);width:100%" id="cust-import-btn">불러오기</button>'
+    +'</div>');
+  document.getElementById('cust-import-btn').addEventListener('click', function() {
+    var fileInput = document.getElementById('cust-import-file');
+    var statusEl  = document.getElementById('cust-import-status');
+    if (!fileInput.files.length) { statusEl.textContent = '파일을 선택하세요'; return; }
+    var file = fileInput.files[0];
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var text = e.target.result;
+      var imported = [];
+      try {
+        if (file.name.toLowerCase().endsWith('.json')) {
+          var data = JSON.parse(text);
+          if (!Array.isArray(data)) throw new Error('배열 형식이 아닙니다');
+          data.forEach(function(item) {
+            if (item.phone) imported.push({name:(item.name||'').trim(), phone:item.phone.trim(), memo:(item.memo||'').trim()});
+          });
+        } else {
+          var lines = text.split(/\r?\n/).slice(1);
+          lines.forEach(function(line) {
+            var parts = line.split(',');
+            if (parts.length >= 2 && parts[1].trim()) {
+              imported.push({name:(parts[0]||'').trim(), phone:parts[1].trim(), memo:(parts[2]||'').trim()});
+            }
+          });
+        }
+        if (!imported.length) { statusEl.textContent = '불러올 데이터가 없습니다'; return; }
+        if (!S.customers) S.customers = [];
+        var existingPhones = {};
+        S.customers.forEach(function(c){ if (!c.deleted) existingPhones[c.phone] = true; });
+        var added = 0;
+        imported.forEach(function(item) {
+          if (!existingPhones[item.phone]) {
+            S.customers.push(item);
+            added++;
+          }
+        });
+        saveData();
+        closeModal();
+        renderCustTab();
+        alert(added + '명의 고객 정보를 추가했습니다.');
+      } catch(err) {
+        statusEl.textContent = '오류: ' + err.message;
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  });
+}
+function openRvActionMenu() {
+  showModal('<div class="md-hd"><span class="md-title">예약 추가</span><button class="md-x" id="mxbtn">×</button></div>'
+    +'<div class="mb">'
+    +'<button class="ab" style="background:var(--red);width:100%;font-size:15px;padding:16px 0" id="rv-menu-new">＋ 새 예약 등록</button>'
+    +'<button class="ab" style="background:var(--surf2);color:var(--text2);width:100%;font-size:13px;padding:13px 0;border:1px solid var(--border2)" id="rv-menu-img">📷 이미지 불러오기</button>'
+    +'</div>');
+  document.getElementById('rv-menu-new').addEventListener('click', function(){ closeModal(); setTimeout(openAddRv, 100); });
+  document.getElementById('rv-menu-img').addEventListener('click', function(){ closeModal(); setTimeout(openNaverImport, 100); });
+}
+function loadHallNotes() {
+  var ta = document.getElementById('schv-notes');
+  if (!ta) return;
+  try { ta.value = localStorage.getItem('hall_notes_' + (currentStore||'')) || ''; } catch(e) {}
 }
 function renderCustTab() {
   var q = (document.getElementById('custsrch').value||'').trim().toLowerCase();
@@ -183,12 +261,19 @@ function renderCustTab() {
         +'</div>'
         +'</div>'
         +(c.total>0?'<div class="cust-badge">'+c.total+'회</div>':'<div class="cust-no-visit">방문 없음</div>')
+        +'<button class="cust-del-btn" data-phone="'+esc(c.phone)+'">삭제</button>'
         +'</div>';
     });
     if(!html) html='<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">손님 정보 없음</div>';
     document.getElementById('custlist').innerHTML=html;
     document.getElementById('custlist').querySelectorAll('.cust-card').forEach(function(el){
       el.addEventListener('click',function(){openCustInfo(this.getAttribute('data-phone'),this.getAttribute('data-name'));});
+    });
+    document.getElementById('custlist').querySelectorAll('.cust-del-btn').forEach(function(btn){
+      btn.addEventListener('click',function(e){
+        e.stopPropagation();
+        deleteCustomer(this.getAttribute('data-phone'));
+      });
     });
   }
 }
@@ -1013,10 +1098,6 @@ function showOccupied(tb, isViewingToday){
 function showReserved(tb, isViewingToday){
   var r=tb.res||{};
   var assignedList = tableAssignedListHtml(tb.id);
-  // 오늘이 아닌 날짜에서는 착석 처리 비활성화
-  var seatBtnHtml = isViewingToday
-    ? '<button class="ab" style="background:var(--blue)" id="bseatr">착석 처리</button>'
-    : '<button class="ab" style="background:var(--surf3);color:var(--text3);cursor:not-allowed" disabled>착석 처리</button>';
   showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' — 예약</span><button class="md-x" id="mxbtn">×</button></div>'
     +'<div class="ib" style="background:rgba(42,114,200,.08);border-color:rgba(42,114,200,.3)">'
     +'<div class="ir"><span class="il">예약자</span><span class="iv">'+esc(r.name||'')+'</span></div>'
@@ -1024,15 +1105,8 @@ function showReserved(tb, isViewingToday){
     +'<div class="ir"><span class="il">시간</span><span class="iv">'+esc(r.time||'')+'</span></div>'
     +(r.phone?'<div class="ir"><span class="il">연락처</span><span class="iv"><a href="tel:'+esc(r.phone)+'" style="color:#60a5fa;text-decoration:none">'+esc(r.phone)+'</a></span></div>':'')
     +(r.memo?'<div class="ir"><span class="il">메모</span><span class="iv" style="text-align:right;max-width:160px">'+esc(r.memo)+'</span></div>':'')
-    +'</div>'+assignedList+'<div class="abs">'+seatBtnHtml
+    +'</div>'+assignedList+'<div class="abs">'
     +'<button class="ab" style="background:var(--red)" id="bcancr">예약 취소</button></div>');
-  if(isViewingToday){
-    document.getElementById('bseatr').addEventListener('click',function(){
-      S.tables=S.tables.map(function(t){return t.id===tb.id?Object.assign({},t,{st:'occupied',seatTime:Date.now(),g:r.g||tb.c,res:null}):t;});
-      if(r.resId) S.ress=S.ress.map(function(x){return x.id==r.resId?Object.assign({},x,{st:'arrived'}):x;});
-      closeModal(); saveData(); renderAll();
-    });
-  }
   document.getElementById('bcancr').addEventListener('click',function(){
     // 오늘이면 실제 테이블 상태도 초기화, 미래/과거 날짜면 예약 데이터만 처리
     if(isViewingToday){
@@ -1207,6 +1281,7 @@ function buildInlinePanelHTML(date) {
 }
 
 function renderSchedView() {
+  loadHallNotes();
   var mEl = document.getElementById('schcal-m');
   if (mEl) mEl.textContent = schedCalYear+'년 '+(schedCalMonth+1)+'월';
 
@@ -1412,7 +1487,6 @@ function renderAll(){
   var fnEl    = document.getElementById('floor-nav');
   var bedit   = document.getElementById('bedit');
   var bview   = document.getElementById('btn-view');
-  var hvt = document.getElementById('btn-hall-toggle');
   if (hallViewMode === 'hall') {
     if (sbEl)   sbEl.style.display   = 'flex';
     if (schv)   schv.classList.remove('on');
@@ -1422,7 +1496,6 @@ function renderAll(){
     if (fnEl)   fnEl.style.display   = '';
     if (bedit)  bedit.style.display  = '';
     if (bview)  bview.style.display  = '';
-    if (hvt)  { hvt.style.display = (currentTab === 'floor') ? '' : 'none'; hvt.textContent = '📅'; }
     renderSidebar(); renderStats(); renderFloorNav();
     if(viewMode==='list') renderListView(); else renderCanvas();
   } else {
@@ -1435,7 +1508,6 @@ function renderAll(){
     if (lvEl)   { lvEl.classList.remove('on'); lvEl.style.display = 'none'; }
     if (bedit)  bedit.style.display  = 'none';
     if (bview)  bview.style.display  = 'none';
-    if (hvt)  { hvt.style.display = (currentTab === 'floor') ? '' : 'none'; hvt.textContent = '🪑 홀'; }
     renderSchedView();
   }
 }

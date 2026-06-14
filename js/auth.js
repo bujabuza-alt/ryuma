@@ -30,6 +30,7 @@ function doEnter(store) {
   document.getElementById('bedit').classList.remove('on');
   document.getElementById('sel').style.display  = 'none';
   document.getElementById('wrap').style.display = '';
+  try { localStorage.setItem('ryuma_auth', JSON.stringify({store:store})); } catch(e) {}
 
   // 로딩 표시
   showBadge('saving');

@@ -1,11 +1,8 @@
 // ── 초기화 및 이벤트 바인딩 (Initialization & Event Binding) ──
 
 // ── 이벤트 바인딩 ──
-document.getElementById('btn-covent').addEventListener('click', function(){ showPw('covent'); });
-document.getElementById('btn-paragon').addEventListener('click', function(){ showPw('paragon'); });
-document.getElementById('pw-back').addEventListener('click', showStore);
-document.getElementById('pw-enter').addEventListener('click', tryEnter);
-document.getElementById('pw-input').addEventListener('keydown', function(e){ if(e.key==='Enter') tryEnter(); });
+document.getElementById('btn-covent').addEventListener('click', function(){ doEnter('covent'); });
+document.getElementById('btn-paragon').addEventListener('click', function(){ doEnter('paragon'); });
 document.getElementById('t1').addEventListener('click', function(){ switchTab('floor'); });
 document.getElementById('t2').addEventListener('click', function(){ switchTab('reserve'); });
 document.getElementById('t3').addEventListener('click', function(){ switchTab('cust'); });
@@ -24,10 +21,6 @@ document.getElementById('cust-filter-row').addEventListener('click', function(e)
 document.getElementById('btn-cust-notion').addEventListener('click', function(){ runNotionCustBackup(); });
 document.getElementById('btn-view').addEventListener('click', toggleView);
 document.getElementById('bedit').addEventListener('click', toggleEdit);
-document.getElementById('btn-hall-toggle').addEventListener('click', function() {
-  hallViewMode = (hallViewMode === 'hall') ? 'monthly' : 'hall';
-  renderAll();
-});
 document.getElementById('schcal-p').addEventListener('click', function() {
   schedCalMonth--;
   if (schedCalMonth < 0) { schedCalMonth = 11; schedCalYear--; }
@@ -52,11 +45,8 @@ document.getElementById('schcal-date-close').addEventListener('click', function(
   var gEl = document.getElementById('schcal-g');
   if (gEl) gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
 });
-document.getElementById('schv-btn-addrv').addEventListener('click', function() {
-  openAddRv();
-});
-document.getElementById('schv-btn-imgimport').addEventListener('click', function() {
-  openNaverImport();
+document.getElementById('schv-btn-rv-menu').addEventListener('click', function() {
+  openRvActionMenu();
 });
 document.getElementById('baddRv').addEventListener('click', openAddRv);
 document.getElementById('bNaverImport').addEventListener('click', openNaverImport);
@@ -218,7 +208,10 @@ document.getElementById('bcaln').addEventListener('click', function(){ calM++; i
 document.getElementById('bcaltoday').addEventListener('click', function(){ var now=new Date(); calY=now.getFullYear(); calM=now.getMonth(); calSel=today(); renderCal(); renderRvList(); });
 document.getElementById('rvsrch').addEventListener('input', renderRvList);
 document.getElementById('rvsort').addEventListener('click', function(){ rvSortAsc=!rvSortAsc; renderRvList(); });
-document.getElementById('rv-fab').addEventListener('click', openAddRv);
+document.getElementById('btn-cust-import').addEventListener('click', openCustImport);
+document.getElementById('schv-notes').addEventListener('input', function() {
+  try { localStorage.setItem('hall_notes_' + (currentStore||''), this.value); } catch(e) {}
+});
 document.getElementById('mo').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 document.getElementById('mo').addEventListener('touchend', function(e){ if(e.target===this) closeModal(); });
 
