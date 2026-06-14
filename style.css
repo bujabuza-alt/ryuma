@@ -190,7 +190,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 .cd.sel.sun,.cd.sel.sat{color:#fff;}
 .dot{width:4px;height:4px;border-radius:50%;background:var(--red);}
 #rvw{background:var(--surf);border-radius:12px;border:1px solid var(--border);overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column;}
-#rv-upcoming{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:60px;padding-bottom:80px;}
+#rv-upcoming{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:60px;padding-bottom:16px;}
 #rv-past-wrap{flex-shrink:0;max-height:45%;display:flex;flex-direction:column;border-top:2px solid var(--border2);}
 #rv-past{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;}
 .rvw-hd{padding:11px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}

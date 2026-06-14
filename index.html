@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#0f0e0d">
+<meta name="theme-color" content="#f5f3f0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="류마">
@@ -15,10 +15,9 @@
 <link rel="stylesheet" href="style-stock.css">
 <link rel="apple-touch-icon" href="app_icon_preview.png">
 </head>
-<body>
+<body class="light">
 <!-- 매장선택 -->
 <div id="sel">
-  <button id="sel-theme" style="position:absolute;top:20px;right:20px;background:none;border:none;font-size:22px;cursor:pointer;opacity:.6;padding:6px">☀️</button>
   <img id="sel-logo" class="sel-logo" alt="류마">
   <div class="sel-brand">RYUMA</div>
   <div class="sel-step" id="step-store">
@@ -29,14 +28,6 @@
     <button class="sel-store-btn" id="btn-paragon">
       <span>류마 파라곤</span><span class="sel-store-icon">›</span>
     </button>
-  </div>
-  <div class="pw-form" id="step-pw" style="display:none">
-    <div class="pw-store-name" id="pw-name"></div>
-    <div class="pw-sub">비밀번호를 입력하세요</div>
-    <input type="password" class="pw-input" id="pw-input" placeholder="비밀번호" autocomplete="current-password">
-    <button class="pw-btn" id="pw-enter">입장</button>
-    <div class="pw-err" id="pw-err"></div>
-    <button class="sel-back" id="pw-back">← 매장 변경</button>
   </div>
 </div>
 
@@ -57,7 +48,6 @@
       <span class="chip" id="c3" style="color:var(--amber);border-color:rgba(200,146,42,.3);background:rgba(200,146,42,.1)"></span>
       <button class="bg" id="btn-view" style="font-size:14px;padding:5px 9px">☰</button>
       <button class="be" id="bedit">✏️</button>
-      <button class="bg" id="btn-theme" style="font-size:14px;padding:5px 8px">☀️</button>
       <button class="bg" id="btn-cfg" style="font-size:14px;padding:5px 8px">⚙</button>
     </div>
   </div>
@@ -152,7 +142,7 @@
         </div>
       </div>
       <div id="leg">
-        <div class="ld"><div class="lc" id="lc-empty" style="background:#3a3835"></div>빈</div>
+        <div class="ld"><div class="lc" id="lc-empty" style="background:#d8d2c8"></div>빈</div>
         <div class="ld"><div class="lc" style="background:var(--blue)"></div>예약</div>
         <div class="ld"><div class="lc" style="background:var(--amber)"></div>~1h</div>
         <div class="ld"><div class="lc" style="background:#c87030"></div>~1.5h</div>

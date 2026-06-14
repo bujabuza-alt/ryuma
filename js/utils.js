@@ -203,6 +203,17 @@ function tagHtml(pid,sel){ return '<div class="tag-picker" id="'+pid+'">'+S.tags
 function bindTag(pid){ var c=document.getElementById(pid); if(!c)return; c.querySelectorAll('.tag-pill').forEach(function(btn){btn.addEventListener('click',function(){this.classList.toggle('on');});}); var m=document.getElementById(pid+'_mgr'); if(m)m.addEventListener('click',function(){openTagMgr(pid);}); }
 function getTags(pid){ var c=document.getElementById(pid); if(!c)return[]; var r=[]; c.querySelectorAll('.tag-pill.on').forEach(function(b){r.push(b.getAttribute('data-tag'));}); return r; }
 
+// ── 테마 (라이트 전용) ──
+function applyTheme(mode) {
+  document.body.classList.add('light');
+  document.querySelectorAll('.sel-logo,.hd-logo').forEach(function(l){
+    l.src = LOGO_BLACK; l.style.filter = ''; l.style.opacity = '.9';
+  });
+  localStorage.setItem('ryuma_theme', 'light');
+}
+function initTheme() { applyTheme('light'); }
+function toggleTheme() {}
+
 // ── 토스트 알림 ──
 function showToast(msg) {
   var t = document.createElement('div');
