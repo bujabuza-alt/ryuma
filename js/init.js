@@ -200,8 +200,7 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
   renderAll();
   window.renderChecklist = renderAll;
 })();
-document.getElementById('btn-theme').addEventListener('click', toggleTheme);
-document.getElementById('sel-theme').addEventListener('click', toggleTheme);
+// 다크 모드 제거로 인해 테마 버튼 이벤트 바인딩 제거
 document.getElementById('btn-cfg').addEventListener('click', openCfg);
 document.getElementById('bcalp').addEventListener('click', function(){ calM--; if(calM<0){calM=11;calY--;} renderCal(); renderRvList(); });
 document.getElementById('bcaln').addEventListener('click', function(){ calM++; if(calM>11){calM=0;calY++;} renderCal(); renderRvList(); });
@@ -283,14 +282,12 @@ try {
 })();
 
 initTheme();
-document.getElementById('sel-logo').src = LOGO_DATA;
-document.getElementById('hd-logo').src  = LOGO_DATA;
-// 초기 테마에 맞는 로고 적용
-(function(){
-  var isLight = document.body.classList.contains('light');
-  var logo = isLight ? LOGO_BLACK : LOGO_WHITE;
-  document.querySelectorAll('.sel-logo,.hd-logo').forEach(function(el){ el.src=logo; el.style.filter=''; el.style.opacity=isLight?'.9':'.85'; });
-})();
+// 라이트 모드 전용: 로고는 항상 검정(LOGO_BLACK) 사용
+document.querySelectorAll('.sel-logo,.hd-logo').forEach(function(el){
+  el.src = LOGO_BLACK;
+  el.style.filter = '';
+  el.style.opacity = '.9';
+});
 // ====== 가로모드 전환 시 캔버스 높이 자동 보정 ======
 (function(){
   var _rszT;

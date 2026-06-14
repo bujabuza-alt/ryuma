@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#0f0e0d">
+<meta name="theme-color" content="#f5f3f0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="류마">
@@ -15,10 +15,9 @@
 <link rel="stylesheet" href="style-stock.css">
 <link rel="apple-touch-icon" href="app_icon_preview.png">
 </head>
-<body>
+<body class="light">
 <!-- 매장선택 -->
 <div id="sel">
-  <button id="sel-theme" style="position:absolute;top:20px;right:20px;background:none;border:none;font-size:22px;cursor:pointer;opacity:.6;padding:6px">☀️</button>
   <img id="sel-logo" class="sel-logo" alt="류마">
   <div class="sel-brand">RYUMA</div>
   <div class="sel-step" id="step-store">
@@ -52,12 +51,8 @@
     </div>
     <div class="hd-right">
       <span id="badge"></span>
-      <span class="chip" id="c1" style="color:#60a5fa;border-color:#60a5fa33;background:rgba(42,114,200,.1)"></span>
-      <span class="chip" id="c2" style="color:var(--red2);border-color:rgba(196,18,48,.3);background:rgba(196,18,48,.1)"></span>
-      <span class="chip" id="c3" style="color:var(--amber);border-color:rgba(200,146,42,.3);background:rgba(200,146,42,.1)"></span>
       <button class="bg" id="btn-view" style="font-size:14px;padding:5px 9px">☰</button>
       <button class="be" id="bedit">✏️</button>
-      <button class="bg" id="btn-theme" style="font-size:14px;padding:5px 8px">☀️</button>
       <button class="bg" id="btn-cfg" style="font-size:14px;padding:5px 8px">⚙</button>
     </div>
   </div>
@@ -152,7 +147,7 @@
         </div>
       </div>
       <div id="leg">
-        <div class="ld"><div class="lc" id="lc-empty" style="background:#3a3835"></div>빈</div>
+        <div class="ld"><div class="lc" id="lc-empty" style="background:#c8c0b0"></div>빈</div>
         <div class="ld"><div class="lc" style="background:var(--blue)"></div>예약</div>
         <div class="ld"><div class="lc" style="background:var(--amber)"></div>~1h</div>
         <div class="ld"><div class="lc" style="background:#c87030"></div>~1.5h</div>
@@ -190,18 +185,15 @@
       </div>
       <div id="rvw">
         <div class="rvw-hd"><span class="rvw-title" id="rvtitle">전체 예약</span><div style="display:flex;align-items:center;gap:6px"><button id="rvsort" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surf2);color:var(--text2);cursor:pointer;font-family:inherit;font-weight:700">↑ 날짜순</button><span style="font-size:11px;color:var(--text3)" id="rvcnt"></span></div></div>
+        <!-- 예약 목록: 이후예약(왼쪽) / 완료예약(오른쪽) 2단 레이아웃 -->
         <div id="rv-sections" style="display:none">
-          <div class="rv-sec-col" id="rv-sc-today">
-            <div class="rv-sec-lbl" id="rv-sc-today-hd">오늘 예약 0건</div>
-            <div class="rv-sec-scroll" id="rv-sc-today-list"></div>
+          <div class="rv-sec-col" id="rv-sc-upcoming">
+            <div class="rv-sec-lbl" id="rv-sc-upcoming-hd">이후 예약 0건</div>
+            <div class="rv-sec-scroll" id="rv-sc-upcoming-list"></div>
           </div>
-          <div class="rv-sec-col" id="rv-sc-future">
-            <div class="rv-sec-lbl" id="rv-sc-future-hd">이후 예약 0건</div>
-            <div class="rv-sec-scroll" id="rv-sc-future-list"></div>
-          </div>
-          <div class="rv-sec-col" id="rv-sc-past">
-            <div class="rv-sec-lbl" id="rv-sc-past-hd">완료된 예약 0건</div>
-            <div class="rv-sec-scroll" id="rv-sc-past-list"></div>
+          <div class="rv-sec-col" id="rv-sc-done">
+            <div class="rv-sec-lbl" id="rv-sc-done-hd">완료 예약 0건</div>
+            <div class="rv-sec-scroll" id="rv-sc-done-list"></div>
           </div>
         </div>
         <div id="rv-upcoming"></div>
@@ -260,6 +252,8 @@
 <div id="mo"><div class="md" id="mdc"></div></div>
 <div id="mo2"><div class="md" id="mdc2"></div></div>
  
+<!-- SheetJS: xlsx 파일 불러오기 지원 -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="js/globals.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/firebase.js"></script>

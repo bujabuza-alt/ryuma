@@ -83,36 +83,25 @@ function tryEnter() {
     else { document.getElementById('pw-err').textContent = '비밀번호가 틀렸습니다'; }
   });
 }
+// 다크 모드 제거 — 라이트 모드(일반 모드)만 사용
 function initTheme() {
-  var saved = localStorage.getItem('ryuma_theme') || 'dark';
-  applyTheme(saved);
+  applyTheme('light');
 }
 function applyTheme(mode) {
-  if (mode === 'light') {
-    document.body.classList.add('light');
-    document.querySelectorAll('#btn-theme,#sel-theme').forEach(function(b){ if(b) b.textContent='🌙'; });
-    // 라이트모드에서 로고는 검정 버전 느낌이 더 어울리나 흰색도 괜찮으므로 opacity 조정
-    var logos = document.querySelectorAll('.sel-logo, .hd-logo');
-    logos.forEach(function(l){ l.src=LOGO_BLACK; l.style.filter=''; l.style.opacity='.9'; });
-  } else {
-    document.body.classList.remove('light');
-    document.querySelectorAll('#btn-theme,#sel-theme').forEach(function(b){ if(b) b.textContent='☀️'; });
-    var logos = document.querySelectorAll('.sel-logo, .hd-logo');
-    logos.forEach(function(l){ l.src=LOGO_WHITE; l.style.filter=''; l.style.opacity='.85'; });
-  }
-  // 범례 빈 테이블 색상 갱신
+  // 항상 라이트 모드 적용
+  document.body.classList.add('light');
+  var logos = document.querySelectorAll('.sel-logo, .hd-logo');
+  logos.forEach(function(l){ l.src=LOGO_BLACK; l.style.filter=''; l.style.opacity='.9'; });
   var lcEmpty = document.getElementById('lc-empty');
-  if (lcEmpty) lcEmpty.style.background = (mode==='light') ? '#c8c0b0' : '#3a3835';
-  // 테이블 카드 캐시 무효화 → 색상 즉시 갱신
+  if (lcEmpty) lcEmpty.style.background = '#c8c0b0';
   if (currentStore) {
     S.tables.forEach(function(t){ cardCache[t.id]=''; });
     if (viewMode==='list') renderListView(); else renderCanvas();
   }
-  localStorage.setItem('ryuma_theme', mode);
+  localStorage.setItem('ryuma_theme', 'light');
 }
 function toggleTheme() {
-  var cur = localStorage.getItem('ryuma_theme') || 'dark';
-  applyTheme(cur === 'dark' ? 'light' : 'dark');
+  // 다크 모드 비활성화 — 라이트 모드 고정
 }
 function saveAuth(store) {
   try { localStorage.setItem('ryuma_auth', JSON.stringify({store:store})); } catch(e) {}
@@ -537,14 +526,9 @@ function doneCnt() {
        + S.ress.filter(function(r){ return r.st==='completed' && r.date===td; }).length;
 }
 
-// ── 헤더/통계 ──
+// ── 헤더/통계 (상단 상태 칩 제거 후 날짜만 갱신) ──
 function renderHeader() {
   document.getElementById('hdate').textContent = new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
-  var occ = S.tables.filter(function(t){ return t.st==='occupied'; }).length;
-  var rsv = S.tables.filter(function(t){ return t.st==='reserved'; }).length;
-  document.getElementById('c1').textContent = '착석 '+occ+'/'+S.tables.length;
-  document.getElementById('c2').textContent = '예약 '+rsv;
-  document.getElementById('c3').textContent = '완료 '+doneCnt();
 }
 function renderStats() {
   var guests = S.tables.reduce(function(a,t){ return a+(t.st==='occupied'?t.g:0); }, 0);
