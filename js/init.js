@@ -281,8 +281,8 @@ try {
   setTimeout(runNfcAction, 500);
 })();
 
-initTheme();
 // 라이트 모드 전용: 로고는 항상 검정(LOGO_BLACK) 사용
+document.body.classList.add('light');
 document.querySelectorAll('.sel-logo,.hd-logo').forEach(function(el){
   el.src = LOGO_BLACK;
   el.style.filter = '';
