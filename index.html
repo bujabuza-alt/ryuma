@@ -55,7 +55,6 @@
       <span class="chip" id="c1" style="color:#60a5fa;border-color:#60a5fa33;background:rgba(42,114,200,.1)"></span>
       <span class="chip" id="c2" style="color:var(--red2);border-color:rgba(196,18,48,.3);background:rgba(196,18,48,.1)"></span>
       <span class="chip" id="c3" style="color:var(--amber);border-color:rgba(200,146,42,.3);background:rgba(200,146,42,.1)"></span>
-      <button class="bg" id="btn-hall-toggle" style="display:none;font-size:12px;padding:5px 9px;font-weight:700">🪑 홀</button>
       <button class="bg" id="btn-view" style="font-size:14px;padding:5px 9px">☰</button>
       <button class="be" id="bedit">✏️</button>
       <button class="bg" id="btn-theme" style="font-size:14px;padding:5px 8px">☀️</button>
@@ -106,20 +105,14 @@
           </div>
           <div id="schv-add-rv">
             <div class="schrv-hd-row">
-              <span class="schrv-title">예약 추가</span>
+              <span class="schrv-title">주의사항</span>
+              <button class="schv-rv-action-btn" id="schv-btn-rv-menu">＋ 예약</button>
             </div>
-            <div class="schv-add-body">
-              <div class="schv-add-btns">
-                <button class="schv-add-main-btn" id="schv-btn-addrv">
-                  <span class="schv-add-icon">＋</span>
-                  <span>새 예약 등록</span>
-                </button>
-                <button class="schv-img-btn" id="schv-btn-imgimport">
-                  <span class="schv-add-icon">📷</span>
-                  <span>이미지 가져오기</span>
-                </button>
-              </div>
+            <div class="schv-notes-body">
+              <textarea class="schv-notes-area" id="schv-notes" placeholder="영업 공지, 주의사항을 입력하세요…"></textarea>
             </div>
+            <button style="display:none" id="schv-btn-addrv"></button>
+            <button style="display:none" id="schv-btn-imgimport"></button>
           </div>
         </div>
         <!-- 마감 체크리스트 섹션 -->
@@ -217,16 +210,16 @@
           <div id="rv-past"></div>
         </div>
       </div>
-      <button id="rv-fab" class="rv-fab">＋ 예약 추가</button>
     </div>
     <div id="cust">
       <div class="rv-top">
         <input class="rv-srch" id="custsrch" type="search" placeholder="이름, 연락처 검색…">
         <select id="custsort" style="flex-shrink:0;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--surf);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;outline:none">
-          <option value="visits">방문 많은 순</option>
-          <option value="recent">최근 방문 순</option>
+          <option value="visits">방문 횟수 많은 순</option>
+          <option value="recent">최근 방문순</option>
           <option value="name">이름순</option>
         </select>
+        <button class="bg" id="btn-cust-import" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">📥 불러오기</button>
         <button class="bg" id="btn-cust-notion" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">☁ 노션</button>
       </div>
       <div id="cust-filter-row">

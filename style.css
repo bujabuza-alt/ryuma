@@ -212,14 +212,22 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 .rvi-tbl{font-size:11px;color:var(--blue);margin-top:2px;font-weight:600;}
 .rv-sec-lbl{padding:6px 13px 5px;font-size:10px;font-weight:800;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;background:var(--bg);border-bottom:1px solid var(--border);}
 .rv-empty-row{padding:12px 13px;font-size:12px;color:var(--text3);}
-#rv-sections{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
-.rv-sec-col{flex:1;min-height:0;display:flex;flex-direction:column;border-bottom:1px solid var(--border);}
+#rv-sections{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.rv-sec-col{display:flex;flex-direction:column;border-bottom:1px solid var(--border);}
 .rv-sec-col:last-child{border-bottom:none;}
-.rv-sec-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.rv-sec-scroll{overflow:visible;}
 .cal-today-btn{background:var(--red);color:#fff;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .cal-today-btn:active{opacity:.85;}
-.rv-fab{position:fixed;bottom:24px;right:16px;z-index:100;display:flex;align-items:center;gap:5px;background:var(--red);color:#fff;border:none;border-radius:99px;padding:13px 20px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(196,18,48,.4);letter-spacing:-.01em;white-space:nowrap;}
-.rv-fab:active{opacity:.85;transform:scale(.97);}
+/* 주의사항 (Hall Notes) */
+.schv-rv-action-btn{background:var(--red);color:#fff;border:none;border-radius:8px;padding:5px 11px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;}
+.schv-rv-action-btn:active{opacity:.85;}
+.schv-notes-body{padding:8px 12px 12px;flex:1;display:flex;flex-direction:column;}
+.schv-notes-area{width:100%;flex:1;min-height:90px;padding:9px 11px;border:1px solid var(--border2);border-radius:9px;font-size:13px;outline:none;font-family:inherit;background:var(--surf2);color:var(--text);resize:none;line-height:1.6;}
+.schv-notes-area:focus{border-color:var(--amber);}
+.schv-notes-area::placeholder{color:var(--text3);}
+/* 고객 삭제 버튼 */
+.cust-del-btn{background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap;margin-left:6px;transition:background .14s,color .14s,border-color .14s;}
+.cust-del-btn:active,.cust-del-btn:hover{background:rgba(196,18,48,.1);color:var(--red2);border-color:rgba(196,18,48,.3);}
 
 /* 플로어 날짜 네비게이션 */
 #floor-nav{display:flex;align-items:stretch;border-radius:10px;overflow:hidden;margin-bottom:8px;gap:1px;background:rgba(0,0,0,.15);}
