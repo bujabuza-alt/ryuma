@@ -6,64 +6,6 @@ function showStore() {
   document.getElementById('pw-input').value = '';
   document.getElementById('pw-err').textContent = '';
 }
-function showPw(store) {
-  _pendingStore = store;
-  document.getElementById('pw-name').textContent = STORE_NAMES[store];
-  document.getElementById('step-store').style.display = 'none';
-  document.getElementById('step-pw').style.display    = '';
-  document.getElementById('pw-input').value = '';
-  document.getElementById('pw-err').textContent = '';
-  setTimeout(function(){ document.getElementById('pw-input').focus(); }, 200);
-}
-function tryEnter() {
-  if (!_pendingStore) return;
-  var store = _pendingStore;
-  var pw    = document.getElementById('pw-input').value;
-  fbDb.ref('tableApp/config/' + store + 'Pw').once('value').then(function(snap) {
-    var stored = snap.val() || DEFAULT_PW[store];
-    if (pw === stored) {
-      saveAuth(store);
-      doEnter(store);
-    } else { document.getElementById('pw-err').textContent = '비밀번호가 틀렸습니다'; }
-  }).catch(function() {
-    if (pw === DEFAULT_PW[store]) { saveAuth(store); doEnter(store); }
-    else { document.getElementById('pw-err').textContent = '비밀번호가 틀렸습니다'; }
-  });
-}
-function initTheme() {
-  var saved = localStorage.getItem('ryuma_theme') || 'dark';
-  applyTheme(saved);
-}
-function applyTheme(mode) {
-  if (mode === 'light') {
-    document.body.classList.add('light');
-    document.querySelectorAll('#btn-theme,#sel-theme').forEach(function(b){ if(b) b.textContent='🌙'; });
-    // 라이트모드에서 로고는 검정 버전 느낌이 더 어울리나 흰색도 괜찮으므로 opacity 조정
-    var logos = document.querySelectorAll('.sel-logo, .hd-logo');
-    logos.forEach(function(l){ l.src=LOGO_BLACK; l.style.filter=''; l.style.opacity='.9'; });
-  } else {
-    document.body.classList.remove('light');
-    document.querySelectorAll('#btn-theme,#sel-theme').forEach(function(b){ if(b) b.textContent='☀️'; });
-    var logos = document.querySelectorAll('.sel-logo, .hd-logo');
-    logos.forEach(function(l){ l.src=LOGO_WHITE; l.style.filter=''; l.style.opacity='.85'; });
-  }
-  // 범례 빈 테이블 색상 갱신
-  var lcEmpty = document.getElementById('lc-empty');
-  if (lcEmpty) lcEmpty.style.background = (mode==='light') ? '#c8c0b0' : '#3a3835';
-  // 테이블 카드 캐시 무효화 → 색상 즉시 갱신
-  if (currentStore) {
-    S.tables.forEach(function(t){ cardCache[t.id]=''; });
-    if (viewMode==='list') renderListView(); else renderCanvas();
-  }
-  localStorage.setItem('ryuma_theme', mode);
-}
-function toggleTheme() {
-  var cur = localStorage.getItem('ryuma_theme') || 'dark';
-  applyTheme(cur === 'dark' ? 'light' : 'dark');
-}
-function saveAuth(store) {
-  try { localStorage.setItem('ryuma_auth', JSON.stringify({store:store})); } catch(e) {}
-}
 function doEnter(store) {
   currentStore = store;
   STORAGE_KEY  = 'tv5_' + store;
@@ -199,7 +141,8 @@ function openCfg() {
     '<div class="ss-label">Gemini API (네이버 예약 가져오기)</div>' +
     '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">스크린샷으로 예약 정보를 자동 파싱합니다 (무료)</div>' +
     '<button class="ab" style="background:var(--indigo);width:100%" id="btn-gemini-key">🔑 API 키 ' + (localStorage.getItem('ryuma_gemini_key') ? '변경' : '설정') + '</button>' +
-    '<div id="gemini-key-status" style="font-size:11px;text-align:center;min-height:14px;margin-top:4px;color:var(--green)">' + (localStorage.getItem('ryuma_gemini_key') ? '✓ 설정됨' : '') + '</div>' +
+    '<div id="gemini-key-status" style="font-size:11px;text-align:center;min-height:14px;margin-top:4px;color:var(--green)">' + (localStorage.getItem('ryuma_gemini_key') ? '✓ 설정됨' : '') +
+    '</div>' +
     '<div class="divider"></div>' +
     '<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%" id="btn-out">← 매장 선택으로</button>' +
     '</div>'
@@ -230,4 +173,3 @@ function openCfg() {
     closeModal(); setTimeout(logout, 150);
   });
 }
-
