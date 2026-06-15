@@ -127,11 +127,6 @@ function openCfg() {
   showModal(
     '<div class="md-hd"><span class="md-title">⚙ 설정</span><button class="md-x" id="mxbtn">×</button></div>' +
     '<div class="mb">' +
-    '<div class="ss-label">비밀번호 변경</div>' +
-    '<div class="fg"><label class="fl">현재 비밀번호</label><input class="fi" id="pw-cur" type="password" autocomplete="current-password"></div>' +
-    '<div class="fg"><label class="fl">새 비밀번호 (4자 이상)</label><input class="fi" id="pw-new" type="password" autocomplete="new-password"></div>' +
-    '<button class="ab" style="background:var(--indigo);width:100%" id="pw-chg">변경하기</button>' +
-    '<div class="divider"></div>' +
     '<div class="ss-label">노션 백업</div>' +
     '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">예약·손님 데이터를 노션에 저장합니다</div>' +
     '<div style="display:flex;gap:7px">' +
@@ -149,19 +144,6 @@ function openCfg() {
     '<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%" id="btn-out">← 매장 선택으로</button>' +
     '</div>'
   );
-  document.getElementById('pw-chg').addEventListener('click', function() {
-    var cur = document.getElementById('pw-cur').value;
-    var nw  = document.getElementById('pw-new').value;
-    if (!cur || !nw) { alert('비밀번호를 입력하세요'); return; }
-    if (nw.length < 4) { alert('4자 이상 입력하세요'); return; }
-    fbDb.ref('tableApp/config/' + currentStore + 'Pw').once('value', function(snap) {
-      var stored = snap.val() || DEFAULT_PW[currentStore];
-      if (cur !== stored) { alert('현재 비밀번호가 틀렸습니다'); return; }
-      fbDb.ref('tableApp/config/' + currentStore + 'Pw').set(nw)
-        .then(function() { alert('✅ 비밀번호 변경 완료'); closeModal(); })
-        .catch(function() { alert('저장 실패'); });
-    });
-  });
   document.getElementById('btn-backup').addEventListener('click', function() {
     runNotionBackup();
   });

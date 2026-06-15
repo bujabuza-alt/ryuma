@@ -338,10 +338,56 @@ function openRvActionMenu() {
   document.getElementById('rv-menu-new').addEventListener('click', function(){ closeModal(); setTimeout(openAddRv, 100); });
   document.getElementById('rv-menu-img').addEventListener('click', function(){ closeModal(); setTimeout(openNaverImport, 100); });
 }
+// ── 주의사항 목록 관리 ──
+function getHallNotes() {
+  try {
+    return JSON.parse(localStorage.getItem('hall_notes_items_' + (currentStore||'')) || '[]');
+  } catch(e) { return []; }
+}
+function saveHallNotes(items) {
+  try {
+    localStorage.setItem('hall_notes_items_' + (currentStore||''), JSON.stringify(items));
+  } catch(e) {}
+}
+function renderHallNotesList() {
+  var listEl = document.getElementById('schv-notes-list');
+  if (!listEl) return;
+  var items = getHallNotes();
+  if (!items.length) {
+    listEl.innerHTML = '<li class="notes-empty">주의사항이 없습니다</li>';
+    return;
+  }
+  listEl.innerHTML = '';
+  items.forEach(function(text, idx) {
+    var li = document.createElement('li');
+    li.className = 'notes-item';
+    var span = document.createElement('span');
+    span.className = 'notes-text';
+    span.textContent = text;
+    var del = document.createElement('button');
+    del.className = 'notes-del';
+    del.textContent = '×';
+    del.addEventListener('click', function() {
+      var notes = getHallNotes();
+      notes.splice(idx, 1);
+      saveHallNotes(notes);
+      renderHallNotesList();
+    });
+    li.appendChild(span);
+    li.appendChild(del);
+    listEl.appendChild(li);
+  });
+}
+function addHallNote(text) {
+  text = (text || '').trim();
+  if (!text) return;
+  var items = getHallNotes();
+  items.push(text);
+  saveHallNotes(items);
+  renderHallNotesList();
+}
 function loadHallNotes() {
-  var ta = document.getElementById('schv-notes');
-  if (!ta) return;
-  try { ta.value = localStorage.getItem('hall_notes_' + (currentStore||'')) || ''; } catch(e) {}
+  renderHallNotesList();
 }
 function renderCustTab() {
   var q = (document.getElementById('custsrch').value||'').trim().toLowerCase();
