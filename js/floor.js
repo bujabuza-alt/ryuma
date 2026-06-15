@@ -348,6 +348,8 @@ function saveHallNotes(items) {
   try {
     localStorage.setItem('hall_notes_items_' + (currentStore||''), JSON.stringify(items));
   } catch(e) {}
+  // 체크리스트와 동일하게 Firebase 동기화 트리거
+  if (typeof saveData === 'function' && typeof fbRef !== 'undefined' && fbRef) saveData();
 }
 function renderHallNotesList() {
   var listEl = document.getElementById('schv-notes-list');
@@ -1605,6 +1607,14 @@ function renderSchedView() {
       var panels = gEl.querySelectorAll('.schcal-inline-panel');
       panels.forEach(function(p){ p.classList.remove('open'); });
       setTimeout(function(){ renderSchedView(); }, 320);
+    });
+  });
+
+  // 인라인 패널 예약 항목 터치 → 상세 보기
+  gEl.querySelectorAll('.schcal-inline-list .schrv-item').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openRvDetail(this.getAttribute('data-rid'));
     });
   });
 

@@ -28,6 +28,8 @@ function saveData() {
 
     var ck = {};
     try { ck = JSON.parse(localStorage.getItem('checklist_v2') || '{}'); } catch(e) {}
+    var hn = [];
+    try { hn = JSON.parse(localStorage.getItem('hall_notes_items_' + (currentStore||'')) || '[]'); } catch(e) {}
     var p = {
       tables: S.tables,
       waits: S.waits,
@@ -39,6 +41,7 @@ function saveData() {
       stockCats: S.stockCats || [],
       stockUnits: S.stockUnits || [],
       checklist: ck,
+      hallNotes: hn,
       _ts: ts
     };
     
@@ -99,6 +102,10 @@ function startFb() {
     if (d.checklist) {
       try { localStorage.setItem('checklist_v2', JSON.stringify(d.checklist)); } catch(e) {}
       if (typeof renderChecklist === 'function') renderChecklist();
+    }
+    if (Array.isArray(d.hallNotes)) {
+      try { localStorage.setItem('hall_notes_items_' + (currentStore||''), JSON.stringify(d.hallNotes)); } catch(e) {}
+      if (typeof renderHallNotesList === 'function') renderHallNotesList();
     }
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {}
     S.tables.forEach(function(t){ cardCache[t.id]=''; });
