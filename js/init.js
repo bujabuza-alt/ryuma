@@ -208,9 +208,19 @@ document.getElementById('bcaltoday').addEventListener('click', function(){ var n
 document.getElementById('rvsrch').addEventListener('input', renderRvList);
 document.getElementById('rvsort').addEventListener('click', function(){ rvSortAsc=!rvSortAsc; renderRvList(); });
 document.getElementById('btn-cust-import').addEventListener('click', openCustImport);
-document.getElementById('schv-notes').addEventListener('input', function() {
-  try { localStorage.setItem('hall_notes_' + (currentStore||''), this.value); } catch(e) {}
-});
+// 주의사항 항목 추가 버튼 바인딩
+(function() {
+  var input = document.getElementById('schv-notes-input');
+  var btn   = document.getElementById('schv-notes-add');
+  function add() {
+    var text = input.value.trim();
+    if (!text) return;
+    addHallNote(text);
+    input.value = '';
+  }
+  btn.addEventListener('click', add);
+  input.addEventListener('keydown', function(e) { if (e.key === 'Enter') add(); });
+})();
 document.getElementById('mo').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 document.getElementById('mo').addEventListener('touchend', function(e){ if(e.target===this) closeModal(); });
 
