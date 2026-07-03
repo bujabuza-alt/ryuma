@@ -1,7 +1,7 @@
 // ── Service Worker ────────────────────────────────────────
 // 모든 로컬 파일 → 네트워크 우선, 오프라인 시 캐시 폴백
 // CACHE_NAME을 올려서 기존 캐시(v1) 강제 삭제
-var CACHE_NAME = 'table-app-v4';
+var CACHE_NAME = 'table-app-v5';
 
 // ── 설치 ─────────────────────────────────────────────────
 self.addEventListener('install', function(event) {
@@ -44,8 +44,9 @@ self.addEventListener('fetch', function(event) {
 
   // 모든 로컬 리소스 → 네트워크 우선, 오프라인 시 캐시 폴백
   // script.js, style.css, index.html, manifest.json 모두 동일하게 처리
+  // cache: 'no-store'로 브라우저/WKWebView의 HTTP 캐시까지 우회하여 배포 즉시 최신 버전을 받도록 함
   event.respondWith(
-    fetch(event.request).then(function(response) {
+    fetch(event.request, { cache: 'no-store' }).then(function(response) {
       if (response && response.status === 200) {
         var clone = response.clone();
         caches.open(CACHE_NAME).then(function(cache) {

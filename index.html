@@ -236,5 +236,28 @@
 <script src="js/integrations.js"></script>
 <script src="js/stock.js"></script>
 <script src="js/init.js"></script>
+<!-- 서비스워커 등록 + 자동 업데이트: 새 배포 감지 시 즉시 반영 (PWA 캐시 지연 방지) -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').then(function(reg) {
+      reg.update();
+      // 앱이 켜져있는 동안 주기적으로 새 버전 확인 (PWA는 재시작 없이 오래 켜둘 수 있으므로)
+      setInterval(function(){ reg.update(); }, 60000);
+      // 백그라운드에서 돌아왔을 때(iOS 홈 화면 바로가기 포함)도 확인
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') reg.update();
+      });
+    }).catch(function(){});
+  });
+  // 새 서비스워커가 활성화되어 페이지를 넘겨받으면 자동으로 새로고침해서 최신 화면 반영
+  var swRefreshed = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (swRefreshed) return;
+    swRefreshed = true;
+    window.location.reload();
+  });
+}
+</script>
 </body>
 </html>
