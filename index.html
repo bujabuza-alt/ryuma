@@ -51,7 +51,6 @@
     </div>
     <div class="hd-right">
       <span id="badge"></span>
-      <span class="chip" id="c1" style="color:#60a5fa;border-color:#60a5fa33;background:rgba(42,114,200,.1)"></span>
       <span class="chip" id="c2" style="color:var(--red2);border-color:rgba(196,18,48,.3);background:rgba(196,18,48,.1)"></span>
       <span class="chip" id="c3" style="color:var(--amber);border-color:rgba(200,146,42,.3);background:rgba(200,146,42,.1)"></span>
       <button class="bg" id="btn-view" style="font-size:14px;padding:5px 9px">☰</button>
@@ -73,13 +72,16 @@
       <div id="floor-nav"></div>
       <div id="sched-view">
         <div id="schcal">
+          <div class="schcal-actions">
+            <button class="cal-today-btn" id="bschcaltoday">오늘로 바로가기</button>
+            <button class="schv-rv-action-btn" id="schv-btn-rv-menu">＋ 예약</button>
+          </div>
           <div class="schcal-hd">
             <div class="schcal-nav-group">
               <button class="schcal-nav" id="schcal-p">‹</button>
               <span id="schcal-m" class="schcal-month"></span>
               <button class="schcal-nav" id="schcal-n">›</button>
             </div>
-            <button class="cal-today-btn" id="bschcaltoday">오늘</button>
           </div>
           <div id="schcal-g"></div>
         </div>
@@ -93,64 +95,24 @@
             <div id="schcal-date-list"></div>
           </div>
         </div>
-        <div id="schv-row">
-          <div id="today-rv">
-            <div class="schrv-hd-row">
-              <span class="schrv-title">오늘 예약 현황</span>
-              <span class="schrv-cnt" id="today-rv-cnt"></span>
-            </div>
-            <div id="today-rv-list"></div>
+        <div id="today-rv">
+          <div class="schrv-hd-row">
+            <span class="schrv-title">오늘 예약 현황</span>
+            <span class="schrv-cnt" id="today-rv-cnt"></span>
           </div>
-          <div id="schv-add-rv">
-            <div class="schrv-hd-row">
-              <span class="schrv-title">주의사항</span>
-              <button class="schv-rv-action-btn" id="schv-btn-rv-menu">＋ 예약</button>
-            </div>
-            <div class="schv-notes-body">
-              <ul class="notes-list" id="schv-notes-list"></ul>
-              <div class="notes-add-row">
-                <input class="notes-add-input" type="text" id="schv-notes-input" placeholder="주의사항 추가…" maxlength="100">
-                <button class="notes-add-btn" id="schv-notes-add">추가</button>
-              </div>
-            </div>
-            <button style="display:none" id="schv-btn-addrv"></button>
-            <button style="display:none" id="schv-btn-imgimport"></button>
-          </div>
+          <div id="today-rv-list"></div>
         </div>
-        <!-- 마감 체크리스트 섹션 -->
-        <div id="checklist-section">
+        <!-- 확인 사항 섹션 (주의사항 + 체크리스트 통합, 카테고리 동적 관리) -->
+        <div id="confirm-section">
           <div class="schrv-hd-row cl-hd-row">
-            <span class="schrv-title" id="cl-title">✅ 마감 체크</span>
-            <span class="cl-progress" id="cl-progress">0 / 0</span>
+            <span class="schrv-title" id="cf-title">✅ 확인 사항</span>
+            <span style="display:flex;align-items:center;gap:8px">
+              <span class="cl-progress" id="cf-progress">0 / 0</span>
+              <button class="cf-cat-del" id="cf-del-cat" title="이 카테고리 삭제">🗑</button>
+            </span>
           </div>
-          <div class="cl-tabs" id="cl-tabs">
-            <button class="cl-tab on" data-idx="0">마감</button>
-            <button class="cl-tab" data-idx="1">업무</button>
-            <button class="cl-tab" data-idx="2">기타</button>
-          </div>
-          <div class="cl-track" id="cl-track">
-            <div class="cl-slide" data-cat="closing">
-              <ul class="cl-list"></ul>
-              <div class="cl-add-row">
-                <input class="cl-add-input" type="text" placeholder="항목 추가…" maxlength="60">
-                <button class="cl-add-btn">추가</button>
-              </div>
-            </div>
-            <div class="cl-slide" data-cat="task">
-              <ul class="cl-list"></ul>
-              <div class="cl-add-row">
-                <input class="cl-add-input" type="text" placeholder="항목 추가…" maxlength="60">
-                <button class="cl-add-btn">추가</button>
-              </div>
-            </div>
-            <div class="cl-slide" data-cat="etc">
-              <ul class="cl-list"></ul>
-              <div class="cl-add-row">
-                <input class="cl-add-input" type="text" placeholder="항목 추가…" maxlength="60">
-                <button class="cl-add-btn">추가</button>
-              </div>
-            </div>
-          </div>
+          <div class="cl-tabs" id="cf-tabs"></div>
+          <div class="cl-track" id="cf-track"></div>
         </div>
       </div>
       <div id="leg">

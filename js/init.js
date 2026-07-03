@@ -51,154 +51,230 @@ document.getElementById('schv-btn-rv-menu').addEventListener('click', function()
 document.getElementById('baddRv').addEventListener('click', openAddRv);
 document.getElementById('bNaverImport').addEventListener('click', openNaverImport);
 
-// ── 마감 체크리스트 (3분류 슬라이드) ──
+// ── 확인 사항 (구 주의사항 + 마감 체크리스트 통합, 카테고리 동적 관리) ──
 (function() {
-  var STORE_KEY = 'checklist_v2';
-  var CATS = [
-    { key: 'closing', label: '마감 체크' },
-    { key: 'task',    label: '업무 체크' },
-    { key: 'etc',     label: '기타 체크' }
+  var LEGACY_CL_KEY = 'checklist_v2';
+  var DEFAULT_CATS = [
+    { key: 'precaution', label: '주의사항' },
+    { key: 'closing',    label: '마감 체크' },
+    { key: 'task',       label: '업무 체크' },
+    { key: 'etc',        label: '기타 체크' }
   ];
+  var activeIdx = 0;
+
+  function storeKey() { return 'confirm_items_v1_' + (currentStore || ''); }
+  function legacyNotesKey() { return 'hall_notes_items_' + (currentStore || ''); }
 
   function todayStr() {
     var d = new Date();
     return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
   }
 
+  // 기존 주의사항(hall_notes_items_*) / 체크리스트(checklist_v2) 데이터를 최초 1회 이전
+  function migrate() {
+    var ck = {};
+    try { ck = JSON.parse(localStorage.getItem(LEGACY_CL_KEY) || '{}'); } catch(e) {}
+    var notes = [];
+    try { notes = JSON.parse(localStorage.getItem(legacyNotesKey()) || '[]'); } catch(e) {}
+
+    var data = { date: todayStr(), cats: DEFAULT_CATS.map(function(c){ return {key:c.key,label:c.label}; }), items: {} };
+    data.items.precaution = notes.map(function(t) { return { text: t, done: false }; });
+    ['closing','task','etc'].forEach(function(k) {
+      data.items[k] = Array.isArray(ck[k]) ? ck[k] : [];
+    });
+    save(data);
+    return data;
+  }
+
   function load() {
-    try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch(e) { return {}; }
+    var raw;
+    try { raw = localStorage.getItem(storeKey()); } catch(e) { raw = null; }
+    if (!raw) return migrate();
+    try { return JSON.parse(raw); } catch(e) { return migrate(); }
   }
 
   function save(data) {
-    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+    try { localStorage.setItem(storeKey(), JSON.stringify(data)); } catch(e) {}
     if (typeof saveData === 'function' && typeof fbRef !== 'undefined' && fbRef) saveData();
   }
 
   function getData() {
     var data = load();
+    if (!data.cats || !data.cats.length) data.cats = DEFAULT_CATS.map(function(c){ return {key:c.key,label:c.label}; });
+    if (!data.items) data.items = {};
+    data.cats.forEach(function(c) { if (!Array.isArray(data.items[c.key])) data.items[c.key] = []; });
     if (data.date !== todayStr()) {
       data.date = todayStr();
-      CATS.forEach(function(c) {
-        if (data[c.key]) data[c.key].forEach(function(it){ it.done = false; });
+      data.cats.forEach(function(c) {
+        data.items[c.key].forEach(function(it){ it.done = false; });
       });
       save(data);
     }
-    CATS.forEach(function(c) { if (!data[c.key]) data[c.key] = []; });
     return data;
   }
 
-  function renderSlide(slide) {
-    var cat = slide.getAttribute('data-cat');
+  function newCatKey() { return 'cat_' + Date.now() + '_' + Math.floor(Math.random()*1000); }
+
+  function clampIdx(data) {
+    if (activeIdx > data.cats.length - 1) activeIdx = data.cats.length - 1;
+    if (activeIdx < 0) activeIdx = 0;
+  }
+
+  function render() {
     var data = getData();
-    var items = data[cat];
-    var list = slide.querySelector('.cl-list');
+    clampIdx(data);
+    var tabsEl  = document.getElementById('cf-tabs');
+    var trackEl = document.getElementById('cf-track');
+    if (!tabsEl || !trackEl) return;
 
-    if (items.length === 0) {
-      list.innerHTML = '<li class="cl-empty">항목이 없습니다.</li>';
-    } else {
-      list.innerHTML = '';
-      items.forEach(function(item, idx) {
-        var li = document.createElement('li');
-        li.className = 'cl-item' + (item.done ? ' done' : '');
+    tabsEl.innerHTML = data.cats.map(function(c, i) {
+      return '<button type="button" class="cl-tab'+(i===activeIdx?' on':'')+'" data-idx="'+i+'">'+esc(c.label)+'</button>';
+    }).join('') + '<button type="button" class="cl-tab cl-tab-add" id="cf-add-cat">＋</button>';
 
-        var chk = document.createElement('button');
-        chk.className = 'cl-check';
-        chk.textContent = item.done ? '✓' : '';
-        chk.addEventListener('click', function() {
-          var d = getData();
-          d[cat][idx].done = !d[cat][idx].done;
-          save(d);
-          renderAll();
-        });
+    trackEl.innerHTML = data.cats.map(function(c) {
+      var items = data.items[c.key] || [];
+      var listHtml = items.length ? items.map(function(item, idx) {
+        return '<li class="cl-item'+(item.done ? ' done' : '')+'" data-idx="'+idx+'">'
+          + '<button type="button" class="cl-check" data-act="chk">'+(item.done ? '✓' : '')+'</button>'
+          + '<span class="cl-label" data-act="edit">'+esc(item.text)+'</span>'
+          + '<button type="button" class="cl-del" data-act="del">×</button>'
+          + '</li>';
+      }).join('') : '<li class="cl-empty">항목이 없습니다.</li>';
 
-        var lbl = document.createElement('span');
-        lbl.className = 'cl-label';
-        lbl.textContent = item.text;
+      return '<div class="cl-slide" data-cat="'+c.key+'">'
+        + '<ul class="cl-list">'+listHtml+'</ul>'
+        + '<div class="cl-add-row">'
+        + '<input class="cl-add-input" type="text" placeholder="항목 추가…" maxlength="60">'
+        + '<button type="button" class="cl-add-btn">추가</button>'
+        + '</div>'
+        + '</div>';
+    }).join('');
 
-        var del = document.createElement('button');
-        del.className = 'cl-del';
-        del.textContent = '×';
-        del.addEventListener('click', function() {
-          var d = getData();
-          d[cat].splice(idx, 1);
-          save(d);
-          renderAll();
-        });
+    var activeCat = data.cats[activeIdx];
+    var activeItems = activeCat ? (data.items[activeCat.key] || []) : [];
+    var done = activeItems.filter(function(it){ return it.done; }).length;
+    var titleEl = document.getElementById('cf-title');
+    var progEl  = document.getElementById('cf-progress');
+    var delEl   = document.getElementById('cf-del-cat');
+    if (titleEl) titleEl.textContent = '✅ 확인 사항';
+    if (progEl)  progEl.textContent  = done + ' / ' + activeItems.length;
+    if (delEl)   delEl.style.display = data.cats.length > 1 ? '' : 'none';
 
-        li.appendChild(chk);
-        li.appendChild(lbl);
-        li.appendChild(del);
-        list.appendChild(li);
+    bindEvents(data);
+
+    requestAnimationFrame(function() {
+      trackEl.scrollLeft = activeIdx * trackEl.clientWidth;
+    });
+  }
+
+  function bindEvents(data) {
+    var tabsEl  = document.getElementById('cf-tabs');
+    var trackEl = document.getElementById('cf-track');
+    var delEl   = document.getElementById('cf-del-cat');
+
+    tabsEl.querySelectorAll('.cl-tab[data-idx]').forEach(function(tab) {
+      var idx = +tab.getAttribute('data-idx');
+      tab.addEventListener('click', function() { activeIdx = idx; render(); });
+      var pressTimer = null;
+      tab.addEventListener('touchstart', function() {
+        pressTimer = setTimeout(function() { renameCat(idx); }, 550);
       });
-    }
-  }
-
-  function updateHeader(idx) {
-    var data = getData();
-    var cat = CATS[idx].key;
-    var items = data[cat];
-    var done = items.filter(function(it){ return it.done; }).length;
-    document.getElementById('cl-title').textContent = '✅ ' + CATS[idx].label;
-    document.getElementById('cl-progress').textContent = done + ' / ' + items.length;
-    document.querySelectorAll('.cl-tab').forEach(function(t, i) {
-      t.classList.toggle('on', i === idx);
+      tab.addEventListener('touchend', function() { clearTimeout(pressTimer); });
+      tab.addEventListener('touchmove', function() { clearTimeout(pressTimer); });
+      tab.addEventListener('dblclick', function() { renameCat(idx); });
     });
-  }
 
-  function renderAll() {
-    var track = document.getElementById('cl-track');
-    var idx = Math.round(track.scrollLeft / track.clientWidth) || 0;
-    document.querySelectorAll('.cl-slide').forEach(function(slide) {
-      renderSlide(slide);
-    });
-    updateHeader(idx);
-  }
-
-  // 탭 클릭 → 해당 슬라이드로 이동
-  document.querySelectorAll('.cl-tab').forEach(function(tab) {
-    tab.addEventListener('click', function() {
-      var idx = +this.getAttribute('data-idx');
-      var track = document.getElementById('cl-track');
-      track.scrollTo({ left: idx * track.clientWidth, behavior: 'smooth' });
-      updateHeader(idx);
-    });
-  });
-
-  // 스와이프 후 헤더 동기화
-  var scrollTimer;
-  document.getElementById('cl-track').addEventListener('scroll', function() {
-    clearTimeout(scrollTimer);
-    var track = this;
-    scrollTimer = setTimeout(function() {
-      var idx = Math.round(track.scrollLeft / track.clientWidth);
-      updateHeader(idx);
-    }, 80);
-  });
-
-  // 항목 추가 — 각 슬라이드의 버튼/입력 바인딩
-  document.querySelectorAll('.cl-slide').forEach(function(slide) {
-    var cat = slide.getAttribute('data-cat');
-    var input = slide.querySelector('.cl-add-input');
-    var btn   = slide.querySelector('.cl-add-btn');
-
-    function add() {
-      var text = input.value.trim();
-      if (!text) return;
+    var addCatBtn = document.getElementById('cf-add-cat');
+    if (addCatBtn) addCatBtn.addEventListener('click', function() {
+      var name = (prompt('새 카테고리 이름을 입력하세요') || '').trim();
+      if (!name) return;
       var d = getData();
-      d[cat].push({ text: text, done: false });
+      d.cats.push({ key: newCatKey(), label: name });
       save(d);
-      input.value = '';
-      renderAll();
-    }
-
-    btn.addEventListener('click', add);
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') add();
+      activeIdx = d.cats.length - 1;
+      render();
     });
-  });
 
-  renderAll();
-  window.renderChecklist = renderAll;
+    if (delEl) delEl.onclick = function() {
+      var d = getData();
+      if (d.cats.length <= 1) return;
+      var cat = d.cats[activeIdx];
+      if (!cat) return;
+      if (!confirm('"'+cat.label+'" 카테고리를 삭제할까요? 안의 항목도 함께 삭제됩니다.')) return;
+      delete d.items[cat.key];
+      d.cats.splice(activeIdx, 1);
+      save(d);
+      activeIdx = 0;
+      render();
+    };
+
+    trackEl.querySelectorAll('.cl-slide').forEach(function(slide) {
+      var cat = slide.getAttribute('data-cat');
+      var input = slide.querySelector('.cl-add-input');
+      var btn   = slide.querySelector('.cl-add-btn');
+
+      function add() {
+        var text = input.value.trim();
+        if (!text) return;
+        var d = getData();
+        (d.items[cat] = d.items[cat] || []).push({ text: text, done: false });
+        save(d);
+        render();
+      }
+      btn.addEventListener('click', add);
+      input.addEventListener('keydown', function(e) { if (e.key === 'Enter') add(); });
+
+      slide.querySelectorAll('.cl-item[data-idx]').forEach(function(li) {
+        var idx = +li.getAttribute('data-idx');
+        li.querySelector('[data-act="chk"]').addEventListener('click', function() {
+          var d = getData();
+          d.items[cat][idx].done = !d.items[cat][idx].done;
+          save(d); render();
+        });
+        li.querySelector('[data-act="del"]').addEventListener('click', function() {
+          var d = getData();
+          d.items[cat].splice(idx, 1);
+          save(d); render();
+        });
+        li.querySelector('[data-act="edit"]').addEventListener('click', function() {
+          var d = getData();
+          var cur = d.items[cat][idx].text;
+          var next = prompt('항목 내용 수정', cur);
+          if (next === null) return;
+          next = next.trim();
+          if (!next) return;
+          d.items[cat][idx].text = next;
+          save(d); render();
+        });
+      });
+    });
+
+    trackEl.onscroll = handleScroll;
+  }
+
+  var scrollTimer;
+  function handleScroll() {
+    var trackEl = document.getElementById('cf-track');
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(function() {
+      var idx = Math.round(trackEl.scrollLeft / trackEl.clientWidth);
+      if (idx !== activeIdx && idx >= 0) { activeIdx = idx; render(); }
+    }, 100);
+  }
+
+  function renameCat(idx) {
+    var d = getData();
+    var c = d.cats[idx];
+    if (!c) return;
+    var next = (prompt('카테고리 이름 수정', c.label) || '').trim();
+    if (!next) return;
+    d.cats[idx].label = next;
+    save(d);
+    render();
+  }
+
+  render();
+  window.renderConfirmItems = render;
 })();
 // 다크 모드 제거로 인해 테마 버튼 이벤트 바인딩 제거
 document.getElementById('btn-cfg').addEventListener('click', openCfg);
@@ -208,19 +284,6 @@ document.getElementById('bcaltoday').addEventListener('click', function(){ var n
 document.getElementById('rvsrch').addEventListener('input', renderRvList);
 document.getElementById('rvsort').addEventListener('click', function(){ rvSortAsc=!rvSortAsc; renderRvList(); });
 document.getElementById('btn-cust-import').addEventListener('click', openCustImport);
-// 주의사항 항목 추가 버튼 바인딩
-(function() {
-  var input = document.getElementById('schv-notes-input');
-  var btn   = document.getElementById('schv-notes-add');
-  function add() {
-    var text = input.value.trim();
-    if (!text) return;
-    addHallNote(text);
-    input.value = '';
-  }
-  btn.addEventListener('click', add);
-  input.addEventListener('keydown', function(e) { if (e.key === 'Enter') add(); });
-})();
 document.getElementById('mo').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 document.getElementById('mo').addEventListener('touchend', function(e){ if(e.target===this) closeModal(); });
 

@@ -67,7 +67,6 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 .ri-g{font-size:11px;color:var(--text2);flex-shrink:0;}
 .ri-sub{font-size:11px;color:var(--text3);margin-top:3px;display:flex;align-items:center;gap:4px;}
 .ri-tbl{color:var(--blue);font-weight:700;}
-.ri-dot{display:inline-block;width:5px;height:5px;border-radius:50%;flex-shrink:0;}
 .di{padding:8px 10px;border-bottom:1px solid var(--border);}
 .di-top{display:flex;align-items:center;justify-content:space-between;gap:4px;}
 .di-badge{font-size:9px;font-weight:700;border-radius:4px;padding:1px 5px;flex-shrink:0;}
@@ -196,7 +195,6 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 .rvi-n{font-weight:800;font-size:15px;color:var(--text);}
 .rvi-s{font-size:12px;color:var(--text2);margin-top:2px;}
 .rvi-m{font-size:11px;color:var(--text3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.rvi-st{font-size:11px;font-weight:700;border-radius:5px;padding:2px 6px;flex-shrink:0;}
 .rvi-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;}
 .rvi-tag{font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(196,18,48,.1);color:var(--red);font-weight:700;}
 .rvi.past{opacity:.7;}
@@ -210,23 +208,9 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 .rv-sec-scroll{overflow:visible;}
 .cal-today-btn{background:var(--red);color:#fff;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .cal-today-btn:active{opacity:.85;}
-/* 주의사항 (Hall Notes) */
+/* 캘린더 상단 액션 버튼 (오늘로 바로가기 / 예약 추가) */
 .schv-rv-action-btn{background:var(--red);color:#fff;border:none;border-radius:8px;padding:5px 11px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;}
 .schv-rv-action-btn:active{opacity:.85;}
-.schv-notes-body{padding:8px 12px 12px;flex:1;display:flex;flex-direction:column;gap:8px;}
-.notes-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;min-height:32px;}
-.notes-item{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);animation:cl-in .15s ease;}
-.notes-item:last-child{border-bottom:none;}
-.notes-text{flex:1;font-size:13px;color:var(--text);line-height:1.5;word-break:break-all;}
-.notes-del{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:2px 4px;line-height:1;opacity:.5;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
-.notes-del:active{opacity:1;}
-.notes-empty{text-align:center;color:var(--text3);font-size:13px;padding:14px 0 6px;}
-.notes-add-row{display:flex;gap:8px;}
-.notes-add-input{flex:1;padding:9px 12px;border:1px solid var(--border2);border-radius:9px;font-size:13px;font-family:inherit;background:var(--surf2);color:var(--text);outline:none;-webkit-appearance:none;}
-.notes-add-input:focus{border-color:var(--amber);}
-.notes-add-input::placeholder{color:var(--text3);}
-.notes-add-btn{padding:9px 14px;background:var(--red);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .15s;}
-.notes-add-btn:active{opacity:.8;}
 /* 고객 삭제 버튼 */
 .cust-del-btn{background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap;margin-left:6px;transition:background .14s,color .14s,border-color .14s;}
 .cust-del-btn:active,.cust-del-btn:hover{background:rgba(196,18,48,.1);color:var(--red2);border-color:rgba(196,18,48,.3);}
@@ -426,13 +410,7 @@ textarea.fi{resize:none;min-height:60px;}
 #sched-view.on {
   display: flex;
 }
-#schv-row {
-  display: flex;
-  gap: 10px;
-  align-items: stretch;
-}
 #today-rv {
-  flex: 1;
   min-width: 0;
   background: var(--surf);
   border-radius: 12px;
@@ -447,51 +425,6 @@ textarea.fi{resize:none;min-height:60px;}
   -webkit-overflow-scrolling: touch;
   max-height: 260px;
 }
-#schv-add-rv {
-  flex: 1;
-  min-width: 0;
-  background: var(--surf);
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.schv-add-body {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px 10px;
-}
-.schv-add-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  background: rgba(196,18,48,.1);
-  color: var(--red2);
-  border: 1.5px dashed rgba(196,18,48,.35);
-  border-radius: 12px;
-  padding: 14px 10px;
-  cursor: pointer;
-  font-family: inherit;
-  font-weight: 800;
-  font-size: 12px;
-  width: 100%;
-}
-.schv-add-btn:active { opacity: 0.8; transform: scale(0.97); }
-.schv-hd {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.schv-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--text);
-  letter-spacing: .02em;
-}
 
 /* ── 스케줄 캘린더 ── */
 #schcal {
@@ -499,6 +432,19 @@ textarea.fi{resize:none;min-height:60px;}
   border-radius: 12px;
   border: 1px solid var(--border);
   padding: 12px;
+}
+.schcal-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.schcal-actions .cal-today-btn,
+.schcal-actions .schv-rv-action-btn {
+  flex: 1;
+  padding: 9px 0;
+  font-size: 12px;
+  text-align: center;
+  border-radius: 9px;
 }
 .schcal-hd {
   display: flex;
@@ -906,8 +852,8 @@ body.light .schrv-tag-call { color: #c03060; }
   line-height: 1;
 }
 
-/* ── 마감 체크리스트 섹션 ── */
-#checklist-section {
+/* ── 확인 사항 섹션 (주의사항 + 마감 체크리스트 통합) ── */
+#confirm-section {
   background: var(--surf);
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -923,15 +869,31 @@ body.light .schrv-tag-call { color: #c03060; }
   color: var(--text3);
   white-space: nowrap;
 }
-/* 탭 */
+.cf-cat-del {
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 3px;
+  line-height: 1;
+  opacity: .6;
+  -webkit-tap-highlight-color: transparent;
+}
+.cf-cat-del:active { opacity: 1; }
+/* 탭 (카테고리 동적 추가/삭제 지원 — 가로 스크롤) */
 .cl-tabs {
   display: flex;
   padding: 0 14px 10px;
   gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.cl-tabs::-webkit-scrollbar { display: none; }
 .cl-tab {
-  flex: 1;
-  padding: 6px 0;
+  flex: 0 0 auto;
+  padding: 6px 14px;
   border: 1.5px solid var(--border2);
   border-radius: 8px;
   background: var(--surf2);
@@ -940,6 +902,7 @@ body.light .schrv-tag-call { color: #c03060; }
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
+  white-space: nowrap;
   transition: background .15s, color .15s, border-color .15s;
   -webkit-tap-highlight-color: transparent;
 }
@@ -947,6 +910,12 @@ body.light .schrv-tag-call { color: #c03060; }
   background: var(--red);
   border-color: var(--red);
   color: #fff;
+}
+.cl-tab-add {
+  color: var(--text3);
+  border-style: dashed;
+  font-weight: 800;
+  padding: 6px 12px;
 }
 /* 슬라이드 트랙 */
 .cl-track {
