@@ -32,8 +32,7 @@ function renderCal(){
     });
   });
 }
-function rvItemHtml(r,sm,isPast){
-  var s=sm[r.st||'confirmed']||sm.confirmed;
+function rvItemHtml(r,isPast){
   var tblIds=getRvTableIds(r);
   var tbls=tblIds.map(function(tid){return S.tables.filter(function(t){return t.id===tid;})[0];}).filter(Boolean);
   return '<div class="rvi'+(isPast?' past':'')+'" data-rid="'+esc(String(r.id))+'">'
@@ -46,7 +45,6 @@ function rvItemHtml(r,sm,isPast){
     +(r.tags&&r.tags.length?'<div class="rvi-tags">'+r.tags.map(function(t){return'<span class="rvi-tag">'+esc(t)+'</span>';}).join('')+'</div>':'')
     +(r.memo?'<div class="rvi-m">📝'+esc(r.memo)+'</div>':'')
     +'</div>'
-    +'<div class="rvi-st" style="color:'+s[0]+';background:'+s[1]+'">'+s[2]+'</div>'
     +'</div>';
 }
 function renderRvList(){
@@ -58,9 +56,6 @@ function renderRvList(){
   document.getElementById('rvcnt').textContent=list.length+'건';
   var sortBtn=document.getElementById('rvsort');
   if(sortBtn) sortBtn.textContent=rvSortAsc?'↑ 날짜순':'↓ 날짜순';
-  var sm={confirmed:['#2a9a5a','rgba(42,154,90,.12)','확정'],pending:['var(--amber)','rgba(200,146,42,.1)','대기'],
-          arrived:['var(--blue)','rgba(42,114,200,.1)','방문'],noshow:['var(--red2)','rgba(196,18,48,.1)','노쇼'],completed:['var(--indigo)','rgba(90,82,200,.1)','완료'],
-          cancelled:['var(--text3)','var(--surf3)','취소']};
   var nd=today();
   var upcomingEl=document.getElementById('rv-upcoming');
   var pastWrap=document.getElementById('rv-past-wrap');
@@ -96,7 +91,7 @@ function renderRvList(){
     if(todayHd) todayHd.textContent='오늘 예약 '+todayRvs.length+'건';
     if(todayList){
       todayList.innerHTML=todayRvs.length
-        ? todayRvs.map(function(r){return rvItemHtml(r,sm,false);}).join('')
+        ? todayRvs.map(function(r){return rvItemHtml(r,false);}).join('')
         : '<div class="rv-empty-row">오늘 예약 없음</div>';
       bindRvi(todayList);
     }
@@ -106,7 +101,7 @@ function renderRvList(){
     if(futureHd) futureHd.textContent='이후 예약 '+futureRvs.length+'건';
     if(futureList){
       futureList.innerHTML=futureRvs.length
-        ? futureRvs.map(function(r){return rvItemHtml(r,sm,false);}).join('')
+        ? futureRvs.map(function(r){return rvItemHtml(r,false);}).join('')
         : '<div class="rv-empty-row">이후 예약 없음</div>';
       bindRvi(futureList);
     }
@@ -116,7 +111,7 @@ function renderRvList(){
     if(pastHd) pastHd.textContent='완료된 예약 '+past.length+'건';
     if(pastList){
       pastList.innerHTML=past.length
-        ? past.map(function(r){return rvItemHtml(r,sm,true);}).join('')
+        ? past.map(function(r){return rvItemHtml(r,true);}).join('')
         : '<div class="rv-empty-row">완료된 예약 없음</div>';
       bindRvi(pastList);
     }
@@ -133,7 +128,7 @@ function renderRvList(){
       return rvSortAsc?(ka<kb?-1:1):(ka>kb?-1:1);
     });
     upcomingEl.innerHTML=list.length
-      ? list.map(function(r){return rvItemHtml(r,sm,!calSel&&r.date<nd);}).join('')
+      ? list.map(function(r){return rvItemHtml(r,!calSel&&r.date<nd);}).join('')
       : '<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">예약 없음</div>';
     bindRvi(upcomingEl);
     pastWrap.style.display='none';
@@ -201,7 +196,6 @@ function openRvDetail(rid){
     +(r.memo?'<div class="ir"><span class="il">메모</span><span class="iv" style="text-align:right;max-width:160px">'+esc(r.memo)+'</span></div>':'')
     +(r.tags&&r.tags.length?'<div class="ir"><span class="il">태그</span><span class="iv" style="text-align:right">'+r.tags.map(function(t){return'<span class="rvi-tag">'+esc(t)+'</span>';}).join(' ')+'</span></div>':'')
     +'<div class="ir"><span class="il">테이블</span><span class="iv" style="color:'+(tbls.length?'var(--blue)':'var(--text3)')+'">'+(tbls.length?tbls.map(function(t){return esc(t.n);}).join(' + '):'미배정')+'</span></div>'
-    +'<div class="ir"><span class="il">상태</span><span class="iv">'+sml[r.st]+'</span></div>'
     +'</div>'
     +'<div style="display:flex;gap:5px;margin-bottom:9px">'
     +['noshow','cancelled'].map(function(s){return '<button style="flex:1;padding:8px 0;border:none;border-radius:8px;background:'+(sc[s]?sc[s][1]:'var(--surf2)')+';color:'+(sc[s]?sc[s][0]:'var(--text2)')+';font-weight:700;font-size:12px;cursor:pointer;font-family:inherit" data-st="'+s+'">'+sml[s]+'</button>';}).join('')+'</div>'
