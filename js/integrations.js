@@ -106,8 +106,7 @@ function parseNaverScreenshot(base64, mediaType) {
     + '  "date": "이용날짜 YYYY-MM-DD 형식",\n'
     + '  "time": "이용시간 HH:MM 형식 (24시간제)",\n'
     + '  "g": 인원수 숫자,\n'
-    + '  "memo": "요청사항 내용 (없으면 빈 문자열)",\n'
-    + '  "st": "확정이면 confirmed, 완료이면 completed, 취소이면 cancelled, 나머지는 confirmed"\n'
+    + '  "memo": "요청사항 내용 (없으면 빈 문자열)"\n'
     + '}\n'
     + '값을 찾을 수 없으면 null 또는 빈 문자열로 처리하세요.';
 
@@ -165,12 +164,6 @@ function confirmNaverImport(p) {
     +'<div class="fg"><label class="fl">날짜 *</label><input class="fi" id="nvi-d" type="date" value="'+esc(d)+'"></div>'
     +'<div class="fg"><label class="fl">시간 *</label><input class="fi" id="nvi-t" type="time" value="'+esc(t)+'"></div></div>'
     +'<div class="fg"><label class="fl">인원</label>'+guestSelectHtml('nvi-g', g, 50)+'</div>'
-    +'<div class="fg"><label class="fl">상태</label><select class="fi" id="nvi-st">'
-    +['confirmed','completed','cancelled'].map(function(s){
-      var lbl={confirmed:'확정',completed:'완료',cancelled:'취소'}[s];
-      return '<option value="'+s+'"'+((p.st||'confirmed')===s?' selected':'')+'>'+lbl+'</option>';
-    }).join('')
-    +'</select></div>'
     +'<div class="fg"><label class="fl">메모</label><textarea class="fi" id="nvi-memo" rows="2">'+esc(memo)+'</textarea></div>'
     +'<div class="fg"><label class="fl">태그(선택)</label>'+tagHtml('nvi-tags',[])+'</div>'
     +'<button class="ab" style="background:var(--green);width:100%" id="nvi-save">저장</button>'
@@ -192,7 +185,7 @@ function confirmNaverImport(p) {
       g: getGuestVal('nvi-g'),
       memo: document.getElementById('nvi-memo').value,
       tags: getTags('nvi-tags'),
-      st: document.getElementById('nvi-st').value,
+      st: 'confirmed',
       tableId: null,
       src: 'naver'
     };
@@ -213,7 +206,7 @@ function saveOneToNotion(r) {
   var token = getNotionToken();
   if (!token) return;
   var storeName = currentStore === 'covent' ? '코벤트' : '파라곤';
-  var stMap = {confirmed:'확정', pending:'대기', arrived:'방문', noshow:'노쇼', completed:'완료', cancelled:'취소'};
+  var stMap = {confirmed:'확정', cancelled:'취소'};
   var body = {
     parent: { database_id: NOTION_DB_ID },
     properties: {
@@ -292,7 +285,7 @@ async function runNotionBackup() {
   setBackupStatus('백업 중…', 'var(--amber)');
 
   var storeName = currentStore === 'covent' ? '코벤트' : '파라곤';
-  var stMap = {confirmed:'확정', pending:'대기', arrived:'방문', noshow:'노쇼', completed:'완료'};
+  var stMap = {confirmed:'확정'};
   var ok = 0, fail = 0;
   var list = S.ress.filter(function(r){ return r.st !== 'cancelled'; });
 
