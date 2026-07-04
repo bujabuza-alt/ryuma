@@ -13,6 +13,7 @@
 
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="style-stock.css">
+<link rel="stylesheet" href="style-extra.css">
 <link rel="apple-touch-icon" href="app_icon_preview.png">
 </head>
 <body class="light">
@@ -63,6 +64,8 @@
     <button class="tab" id="t2">📋 예약 관리</button>
     <button class="tab" id="t3">👤 손님</button>
     <button class="tab" id="t4">📦 재고</button>
+    <button class="tab" id="t5">🖼 이미지 저장</button>
+    <button class="tab" id="t6">🕒 알바 출퇴근 기록</button>
   </div>
   <div id="body">
     <div id="sb">
@@ -220,6 +223,38 @@
     </div>
     <!-- ★ FAB: position:fixed, pill 형태 — 텍스트 잘림 없음, z-index:50 -->
     <button id="stock-btn-add" class="stock-fab">+ 추가</button>
+
+    <!-- 이미지 저장 탭 -->
+    <div id="images">
+      <div class="rv-top">
+        <input class="rv-srch" id="img-srch" type="search" placeholder="파일명, 메모 검색…">
+        <label class="bg img-upload-btn" for="img-upload-input">📷 업로드</label>
+        <input type="file" id="img-upload-input" accept="image/*" multiple style="display:none">
+      </div>
+      <div class="img-count" id="img-count"></div>
+      <div id="img-grid"></div>
+    </div>
+
+    <!-- 알바 출퇴근 기록 탭 (비밀번호 보호) -->
+    <div id="staff">
+      <div id="staff-lock">
+        <div class="pw-sub">🔒 비밀번호를 입력하세요</div>
+        <input type="password" class="pw-input" id="staff-pw-input" placeholder="비밀번호" maxlength="12" inputmode="numeric" autocomplete="off">
+        <button class="pw-btn" id="staff-pw-enter">입장</button>
+        <div class="pw-err" id="staff-pw-err"></div>
+      </div>
+      <div id="staff-content">
+        <div class="staff-topbar">
+          <div class="staff-subtabs" id="staff-subtabs">
+            <button class="staff-subtab on" data-sub="active">현재 알바생</button>
+            <button class="staff-subtab" data-sub="resigned">퇴사 알바생</button>
+            <button class="staff-subtab" data-sub="logs">출퇴근 기록</button>
+          </div>
+          <button class="bp" id="staff-btn-add">+ 알바생</button>
+        </div>
+        <div id="staff-body"></div>
+      </div>
+    </div>
   </div>
 </div>
 <div id="mo"><div class="md" id="mdc"></div></div>
@@ -235,6 +270,8 @@
 <script src="js/reservations.js"></script>
 <script src="js/integrations.js"></script>
 <script src="js/stock.js"></script>
+<script src="js/images.js"></script>
+<script src="js/attendance.js"></script>
 <script src="js/init.js"></script>
 <!-- 서비스워커 등록 + 자동 업데이트: 새 배포 감지 시 즉시 반영 (PWA 캐시 지연 방지) -->
 <script>
