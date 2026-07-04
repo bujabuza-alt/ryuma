@@ -96,6 +96,7 @@ function getAllCustomers() {
   var deletedPhones = {};
   (S.customers||[]).forEach(function(c) { if (c.deleted) deletedPhones[c.phone] = true; });
   var map = {};
+  var td = today();
   S.ress.forEach(function(r) {
     if (!r.phone || deletedPhones[r.phone]) return;
     if (!map[r.phone]) map[r.phone] = {name:'', phone:r.phone, latestDate:'', visitDates:[], memo:''};
@@ -103,7 +104,8 @@ function getAllCustomers() {
       map[r.phone].latestDate = r.date||'';
       map[r.phone].name = r.nm||'';
     }
-    if (r.st==='arrived' || r.st==='completed') map[r.phone].visitDates.push(r.date);
+    // 취소되지 않고 방문 날짜가 지난 예약은 자동으로 방문 횟수에 반영
+    if (r.st!=='cancelled' && r.date && r.date<td) map[r.phone].visitDates.push(r.date);
   });
   (S.customers||[]).forEach(function(c) {
     if (c.deleted) return;
@@ -1140,14 +1142,13 @@ function openTableModal(tid){
   var d = floorDate || today();
   var list = getAssignedReservationsForTable(tid, d).filter(function(r){ return r.st!=='completed'; });
   if (!list.length) return '';
-  var stMap = {confirmed:'확정', pending:'대기', arrived:'방문'};
   return '<div class="fg" style="margin-top:2px">'
     + '<div class="fl" style="font-weight:700">이 테이블 배정 예약 목록</div>'
     + '<div style="display:flex;flex-direction:column;gap:5px;max-height:130px;overflow:auto;padding-right:2px">'
     + list.map(function(r){
       return '<div style="background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:11px">'
         + '<div style="display:flex;justify-content:space-between;gap:6px"><b style="color:var(--text)">'+esc(r.nm||'이름없음')+'</b><span style="color:var(--text3)">'+esc(r.time||'시간미정')+'</span></div>'
-        + '<div style="margin-top:2px;color:var(--text2)">'+esc(String(r.g||0))+'명 · '+esc(stMap[r.st]||r.st)+'</div>'
+        + '<div style="margin-top:2px;color:var(--text2)">'+esc(String(r.g||0))+'명</div>'
         + '</div>';
     }).join('')
     + '</div></div>';
@@ -1311,7 +1312,7 @@ function syncToday(){
   // ==================== 기존 로직 (예약 → 착석 자동 적용) ====================
   // 오늘(td) 날짜의 예약만 S.tables에 반영; 미래/과거 날짜는 getVirtualTablesForDate()로 처리
   S.ress.forEach(function(r){
-    if(r.date === td && r.st === 'confirmed' && r.tableId){
+    if(r.date === td && r.st !== 'cancelled' && r.st !== 'completed' && r.tableId){
       var tbl = S.tables.filter(function(t){ return t.id === r.tableId; })[0];
       if(tbl && tbl.st === 'empty'){
         var ro = {
@@ -1580,7 +1581,6 @@ function renderSchedRvList(filterDate) {
     return;
   }
 
-  var stColor = {confirmed:'var(--green)', pending:'var(--amber)', arrived:'var(--blue)'};
   var html = '';
   upcoming.forEach(function(r) {
     var dateLabel = dlabel(r.date);
@@ -1590,9 +1590,6 @@ function renderSchedRvList(filterDate) {
       + '<div class="schrv-name">'+(r.nm ? esc(r.nm) : '<span style="color:var(--text3)">·</span>')+'</div>'
       + '<div class="schrv-info">'+esc(dateLabel)+' '+esc(String(r.g))+'명'+(r.phone?' · '+esc(r.phone):'')+'</div>'
       + '<div class="schrv-tags">'
-      + (r.st==='confirmed'?'<span class="schrv-tag-confirm">확정</span>':'')
-      + (r.st==='pending'?'<span class="schrv-tag-pending">대기</span>':'')
-      + (r.st==='arrived'?'<span class="schrv-tag-pending" style="color:var(--blue);background:rgba(42,114,200,.12)">방문</span>':'')
       + '<span class="schrv-tag-call">전화</span>'
       + '</div>'
       + '</div>'

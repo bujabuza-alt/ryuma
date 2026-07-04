@@ -327,13 +327,19 @@ setInterval(function(){
 }, 1000);
 
 // ── 자동 로그인 (이전에 인증한 기기) ──
+// #sel은 기본적으로 숨겨둔 상태(index.html)이므로, 자동 로그인 대상이 아닐 때만
+// 매장 선택 화면을 보여준다 (앱 실행 시 이전 화면이 잠깐 보이는 현상 방지)
 try {
   var _auth = JSON.parse(localStorage.getItem('ryuma_auth') || 'null');
   if (_auth && _auth.store) {
     _pendingStore = _auth.store;
     doEnter(_auth.store);
+  } else {
+    document.getElementById('sel').style.display = 'flex';
   }
-} catch(e) {}
+} catch(e) {
+  document.getElementById('sel').style.display = 'flex';
+}
 
 // ── NFC URL 파라미터 처리 ──
 // 사용법: ?action=reserve  (예약 추가 모달 자동 오픈)

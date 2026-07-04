@@ -67,10 +67,9 @@ function renderRvList(){
   var sectionsEl=document.getElementById('rv-sections');
   var showSections=!calSel&&!q;
   if(showSections){
-    var activeSt={confirmed:1,pending:1,arrived:1};
-    var todayRvs=list.filter(function(r){return r.date===nd && activeSt[r.st];});
-    var futureRvs=list.filter(function(r){return r.date>nd && activeSt[r.st];});
-    var past=list.filter(function(r){return r.st==='completed'||r.st==='noshow'||r.st==='cancelled'||r.date<nd;});
+    var todayRvs=list.filter(function(r){return r.date===nd && r.st!=='cancelled' && r.st!=='completed';});
+    var futureRvs=list.filter(function(r){return r.date>nd && r.st!=='cancelled' && r.st!=='completed';});
+    var past=list.filter(function(r){return r.st==='completed'||r.st==='cancelled'||r.date<nd;});
 
     todayRvs.sort(function(a,b){return (a.time||'99:99')<(b.time||'99:99')?-1:1;});
     futureRvs.sort(function(a,b){
@@ -151,9 +150,6 @@ function openAddRv(){
     +'<div class="fg"><label class="fl">테이블</label>'+tpH+'</div>'
     +'<div class="fg"><label class="fl">태그(선택)</label>'+tagHtml('avtags',[])+'</div>'
     +'<div class="fg"><label class="fl">메모</label><textarea class="fi" id="avm" placeholder="알레르기, 특별 요청 등…"></textarea></div>'
-    +'<div class="fg"><label class="fl">상태</label><select class="fi" id="avs">'
-    +['confirmed','pending','arrived','completed','noshow','cancelled'].map(function(s){return'<option value="'+s+'">'+{confirmed:'확정',pending:'대기',arrived:'방문',completed:'완료',noshow:'노쇼',cancelled:'취소'}[s]+'</option>';}).join('')
-    +'</select></div>'
     +'<button class="ab" style="background:var(--green);width:100%" id="avsubmit">예약 등록</button></div>');
   bindPh('avp'); bindTag('avtags');
   var tp=document.getElementById('avtbl');
@@ -171,7 +167,7 @@ function openAddRv(){
     var nm=document.getElementById('avn').value.trim(), d=document.getElementById('avd').value, t=document.getElementById('avt').value;
     if(!nm||!d||!t){alert('이름, 날짜, 시간은 필수입니다');return;}
     var tableIds=avTids.map(Number), tableId=tableIds[0]||null;
-    var nr={id:uid(),nm:nm,phone:getPh('avp'),date:d,time:t,g:getGuestVal('g-addrv'),memo:document.getElementById('avm').value,tags:getTags('avtags'),st:document.getElementById('avs').value,tableId:tableId,tableIds:tableIds};
+    var nr={id:uid(),nm:nm,phone:getPh('avp'),date:d,time:t,g:getGuestVal('g-addrv'),memo:document.getElementById('avm').value,tags:getTags('avtags'),st:'confirmed',tableId:tableId,tableIds:tableIds};
     S.ress.push(nr);
     if(tableIds.length){
       var ro={name:nm,g:getGuestVal('g-addrv'),time:t,date:d,phone:nr.phone,memo:nr.memo,tags:nr.tags,resId:nr.id};
@@ -183,10 +179,7 @@ function openAddRv(){
 }
 function openRvDetail(rid){
   var r=S.ress.filter(function(x){return x.id==rid;})[0]; if(!r)return;
-  var sml={confirmed:'확정',pending:'대기',arrived:'방문',noshow:'노쇼',cancelled:'취소',completed:'완료'};
-  var sc={confirmed:['#2a9a5a','rgba(42,154,90,.12)'],pending:['var(--amber)','rgba(200,146,42,.1)'],
-          arrived:['var(--blue)','rgba(42,114,200,.1)'],noshow:['var(--red2)','rgba(196,18,48,.1)'],completed:['var(--indigo)','rgba(90,82,200,.1)'],
-          cancelled:['var(--text3)','var(--surf3)']};
+  var isCancelled=r.st==='cancelled';
   var tblIds=getRvTableIds(r);
   var tbls=tblIds.map(function(tid){return S.tables.filter(function(t){return t.id===tid;})[0];}).filter(Boolean);
   showModal('<div class="md-hd"><span class="md-title">'+esc(r.nm)+' 예약</span><button class="md-x" id="mxbtn">×</button></div>'
@@ -198,22 +191,20 @@ function openRvDetail(rid){
     +(r.memo?'<div class="ir"><span class="il">메모</span><span class="iv" style="text-align:right;max-width:160px">'+esc(r.memo)+'</span></div>':'')
     +(r.tags&&r.tags.length?'<div class="ir"><span class="il">태그</span><span class="iv" style="text-align:right">'+r.tags.map(function(t){return'<span class="rvi-tag">'+esc(t)+'</span>';}).join(' ')+'</span></div>':'')
     +'<div class="ir"><span class="il">테이블</span><span class="iv" style="color:'+(tbls.length?'var(--blue)':'var(--text3)')+'">'+(tbls.length?tbls.map(function(t){return esc(t.n);}).join(' + '):'미배정')+'</span></div>'
+    +(isCancelled?'<div class="ir"><span class="il">상태</span><span class="iv" style="color:var(--text3)">취소됨</span></div>':'')
     +'</div>'
-    +'<div style="display:flex;gap:5px;margin-bottom:9px">'
-    +['noshow','cancelled'].map(function(s){return '<button style="flex:1;padding:8px 0;border:none;border-radius:8px;background:'+(sc[s]?sc[s][1]:'var(--surf2)')+';color:'+(sc[s]?sc[s][0]:'var(--text2)')+';font-weight:700;font-size:12px;cursor:pointer;font-family:inherit" data-st="'+s+'">'+sml[s]+'</button>';}).join('')+'</div>'
+    +'<button style="width:100%;padding:8px 0;border:none;border-radius:8px;margin-bottom:9px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;background:'+(isCancelled?'rgba(42,154,90,.12)':'var(--surf3)')+';color:'+(isCancelled?'#2a9a5a':'var(--text2)')+'" id="btoggle-cancel">'+(isCancelled?'🔄 취소 해제':'✕ 예약 취소')+'</button>'
     +(!tbls.length?'<button class="ab" style="background:var(--blue);width:100%;margin-bottom:7px" id="bassign">🪑 테이블 배정</button>':'<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-bottom:7px" id="bunassign">배정 해제</button>')
     +(r.phone?'<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-bottom:7px" id="bcustinfo">👤 고객 정보</button>':'')
-    +((r.st==='completed'||r.st==='noshow')?'<button class="ab" style="background:var(--green);width:100%;margin-bottom:7px" id="brestore">🔄 예약 복구 (확정으로 변경)</button>':'')
+    +(r.st==='completed'?'<button class="ab" style="background:var(--green);width:100%;margin-bottom:7px" id="brestore">🔄 완료 취소 (예약 복구)</button>':'')
     +'<div class="abs"><button class="ab" style="background:var(--indigo)" id="bedit2">✏️ 수정</button>'
     +'<button class="ab" style="background:var(--red)" id="bcanc">완전 삭제</button></div>');
-  document.getElementById('mdc').querySelectorAll('[data-st]').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      var st=this.getAttribute('data-st');
-      S.ress=S.ress.map(function(x){return x.id==rid?Object.assign({},x,{st:st}):x;});
-      if(st==='arrived'&&tblIds.length){S.tables=S.tables.map(function(t){return tblIds.indexOf(t.id)>=0?Object.assign({},t,{st:'occupied',seatTime:Date.now(),g:r.g,res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
-      if(st==='cancelled'&&tblIds.length){S.tables=S.tables.map(function(t){return tblIds.indexOf(t.id)>=0&&t.st==='reserved'?Object.assign({},t,{st:'empty',res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
-      saveData(); closeModal(); renderReservations(); renderHeader(); renderStats(); renderSidebar(); if(currentTab==='floor'){ if(hallViewMode==='hall') renderCanvas(); else renderSchedView(); }
-    });
+  var btoggle=document.getElementById('btoggle-cancel');
+  if(btoggle) btoggle.addEventListener('click',function(){
+    var newSt=isCancelled?'confirmed':'cancelled';
+    S.ress=S.ress.map(function(x){return x.id==rid?Object.assign({},x,{st:newSt}):x;});
+    if(newSt==='cancelled'&&tblIds.length){S.tables=S.tables.map(function(t){return tblIds.indexOf(t.id)>=0&&t.st==='reserved'?Object.assign({},t,{st:'empty',res:null}):t;});S.tables.forEach(function(t){cardCache[t.id]='';});}
+    saveData(); closeModal(); renderReservations(); renderHeader(); renderStats(); renderSidebar(); if(currentTab==='floor'){ if(hallViewMode==='hall') renderCanvas(); else renderSchedView(); }
   });
   var ba=document.getElementById('bassign');
   if(ba) ba.addEventListener('click',function(){closeModal();openAssignTable(rid);});
@@ -242,8 +233,9 @@ function openCustInfo(phone, name) {
   var cust=null;
   for(var ci=0;ci<S.customers.length;ci++){if(S.customers[ci].phone===phone){cust=S.customers[ci];break;}}
   if(!cust)cust={phone:phone,name:name,memo:''};
-  // 방문 통계
-  var visits=S.ress.filter(function(r){return r.phone===phone&&(r.st==='arrived'||r.st==='completed');});
+  // 방문 통계: 취소되지 않고 방문 날짜가 지난 예약을 자동으로 방문 횟수에 반영
+  var td=today();
+  var visits=S.ress.filter(function(r){return r.phone===phone&&r.st!=='cancelled'&&r.date&&r.date<td;});
   visits.sort(function(a,b){return a.date<b.date?-1:1;});
   var total=visits.length;
   var first=visits.length?visits[0].date:null;
@@ -425,15 +417,12 @@ function openEditRv(rid){
     +'<div class="fg"><label class="fl">인원</label>'+guestSelectHtml('g-editrv', gvRvEdit, 50)+'</div>'
     +'<div class="fg"><label class="fl">태그(선택)</label>'+tagHtml('evtags',r.tags||[])+'</div>'
     +'<div class="fg"><label class="fl">메모</label><textarea class="fi" id="evm">'+esc(r.memo||'')+'</textarea></div>'
-    +'<div class="fg"><label class="fl">상태</label><select class="fi" id="evs">'
-    +['confirmed','pending','arrived','completed','noshow','cancelled'].map(function(s){return'<option value="'+s+'"'+(r.st===s?' selected':'')+'>'+{confirmed:'확정',pending:'대기',arrived:'방문',completed:'완료',noshow:'노쇼',cancelled:'취소'}[s]+'</option>';}).join('')
-    +'</select></div>'
     +'<button class="ab" style="background:var(--green);width:100%" id="evsubmit">저장</button></div>');
   bindPh('evp'); bindTag('evtags');
   document.getElementById('evsubmit').addEventListener('click',function(){
     var nm=document.getElementById('evn').value.trim(), d=document.getElementById('evd').value, t=document.getElementById('evt').value;
     if(!nm||!d||!t){alert('이름, 날짜, 시간은 필수입니다');return;}
-    S.ress=S.ress.map(function(x){return x.id==rid?Object.assign({},x,{nm:nm,phone:getPh('evp'),date:d,time:t,g:getGuestVal('g-editrv'),memo:document.getElementById('evm').value,tags:getTags('evtags'),st:document.getElementById('evs').value}):x;});
+    S.ress=S.ress.map(function(x){return x.id==rid?Object.assign({},x,{nm:nm,phone:getPh('evp'),date:d,time:t,g:getGuestVal('g-editrv'),memo:document.getElementById('evm').value,tags:getTags('evtags')}):x;});
     closeModal(); saveData(); renderReservations();
   });
 }
