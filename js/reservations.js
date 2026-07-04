@@ -151,7 +151,9 @@ function openAddRv(){
     +'<div class="fg"><label class="fl">테이블</label>'+tpH+'</div>'
     +'<div class="fg"><label class="fl">태그(선택)</label>'+tagHtml('avtags',[])+'</div>'
     +'<div class="fg"><label class="fl">메모</label><textarea class="fi" id="avm" placeholder="알레르기, 특별 요청 등…"></textarea></div>'
-    +'<div class="fg"><label class="fl">상태</label><select class="fi" id="avs"><option value="confirmed">확정</option><option value="pending">대기</option></select></div>'
+    +'<div class="fg"><label class="fl">상태</label><select class="fi" id="avs">'
+    +['confirmed','pending','arrived','completed','noshow','cancelled'].map(function(s){return'<option value="'+s+'">'+{confirmed:'확정',pending:'대기',arrived:'방문',completed:'완료',noshow:'노쇼',cancelled:'취소'}[s]+'</option>';}).join('')
+    +'</select></div>'
     +'<button class="ab" style="background:var(--green);width:100%" id="avsubmit">예약 등록</button></div>');
   bindPh('avp'); bindTag('avtags');
   var tp=document.getElementById('avtbl');
@@ -424,7 +426,7 @@ function openEditRv(rid){
     +'<div class="fg"><label class="fl">태그(선택)</label>'+tagHtml('evtags',r.tags||[])+'</div>'
     +'<div class="fg"><label class="fl">메모</label><textarea class="fi" id="evm">'+esc(r.memo||'')+'</textarea></div>'
     +'<div class="fg"><label class="fl">상태</label><select class="fi" id="evs">'
-    +['confirmed','pending','noshow','completed'].map(function(s){return'<option value="'+s+'"'+(r.st===s?' selected':'')+'>'+{confirmed:'확정',pending:'대기',noshow:'노쇼',completed:'완료'}[s]+'</option>';}).join('')
+    +['confirmed','pending','arrived','completed','noshow','cancelled'].map(function(s){return'<option value="'+s+'"'+(r.st===s?' selected':'')+'>'+{confirmed:'확정',pending:'대기',arrived:'방문',completed:'완료',noshow:'노쇼',cancelled:'취소'}[s]+'</option>';}).join('')
     +'</select></div>'
     +'<button class="ab" style="background:var(--green);width:100%" id="evsubmit">저장</button></div>');
   bindPh('evp'); bindTag('evtags');
