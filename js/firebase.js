@@ -14,11 +14,20 @@ function loadData() {
     if (Array.isArray(d.inventory)) S.inventory = d.inventory;
     if (Array.isArray(d.stockCats)) S.stockCats = d.stockCats;
     if (Array.isArray(d.stockUnits)) S.stockUnits = d.stockUnits;
+    if (Array.isArray(d.images)) S.images = d.images;
+    if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
+    if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
+    if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
+    S.staffPw = d.staffPw || DEFAULT_STAFF_PW;
     S.tags = (d.tags && d.tags.length) ? d.tags : DEFAULT_TAGS.slice();
     if (!S.stockCats.length) S.stockCats = DEFAULT_STOCK_CATS.slice();
     if (!S.stockUnits.length) S.stockUnits = DEFAULT_STOCK_UNITS.slice();
     if (!S.inventory.length) S.inventory = DEFAULT_INVENTORY.slice();
-  } catch(e) { S.tags = DEFAULT_TAGS.slice(); }
+    if (!S.images) S.images = [];
+    if (!S.staffActive) S.staffActive = [];
+    if (!S.staffResigned) S.staffResigned = [];
+    if (!S.staffLogs) S.staffLogs = [];
+  } catch(e) { S.tags = DEFAULT_TAGS.slice(); S.staffPw = S.staffPw || DEFAULT_STAFF_PW; }
 }
 function saveData() {
   clearTimeout(saveTimer);
@@ -38,6 +47,11 @@ function saveData() {
       inventory: S.inventory || [],
       stockCats: S.stockCats || [],
       stockUnits: S.stockUnits || [],
+      images: S.images || [],
+      staffPw: S.staffPw || DEFAULT_STAFF_PW,
+      staffActive: S.staffActive || [],
+      staffResigned: S.staffResigned || [],
+      staffLogs: S.staffLogs || [],
       confirmItems: ci,
       _ts: ts
     };
@@ -96,6 +110,11 @@ function startFb() {
     if (Array.isArray(d.inventory)) S.inventory = d.inventory;
     if (Array.isArray(d.stockCats) && d.stockCats.length) S.stockCats = d.stockCats;
     if (Array.isArray(d.stockUnits) && d.stockUnits.length) S.stockUnits = d.stockUnits;
+    if (Array.isArray(d.images)) S.images = d.images;
+    if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
+    if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
+    if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
+    if (d.staffPw) S.staffPw = d.staffPw;
     if (d.confirmItems) {
       try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(d.confirmItems)); } catch(e) {}
       if (typeof renderConfirmItems === 'function') renderConfirmItems();
@@ -107,6 +126,8 @@ function startFb() {
     isSyncingFromRemote = false;
     if (currentTab === 'reserve') renderReservations();
     if (currentTab === 'stock') renderStock();
+    if (currentTab === 'images') renderImagesTab();
+    if (currentTab === 'staff' && staffUnlocked) renderStaffTab();
   }, function(err) {
     var code = (err && err.code) || '';
     showBadge('err');

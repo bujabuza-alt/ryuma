@@ -31,7 +31,7 @@ var INIT_PARAGON = [
   {id:9,n:'바2', shape:'bar', sz:'m',c:2,px:68,py:76}
 ];
 
-var S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[]};
+var S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[]};
 var DEFAULT_TAGS = ['생일','기념일','데이트','VIP','단체','비즈니스'];
 var currentTab='floor', editMode=false, saveTimer=null;
 var calY=new Date().getFullYear(), calM=new Date().getMonth(), calSel=null;

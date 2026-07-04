@@ -73,6 +73,8 @@ function switchTab(t) {
   document.getElementById('t2').className = 'tab' + (t==='reserve'?' on':'');
   document.getElementById('t3').className = 'tab' + (t==='cust'?' on':'');
   document.getElementById('t4').className = 'tab' + (t==='stock'?' on':'');
+  document.getElementById('t5').className = 'tab' + (t==='images'?' on':'');
+  document.getElementById('t6').className = 'tab' + (t==='staff'?' on':'');
   document.getElementById('sb').style.display   = t==='floor'?'flex':'none';
   document.getElementById('main').style.display = t==='floor'?'flex':'none';
   if (t==='reserve') document.getElementById('rv').classList.add('on');
@@ -81,6 +83,10 @@ function switchTab(t) {
   else document.getElementById('cust').classList.remove('on');
   if (t==='stock') document.getElementById('stock').classList.add('on');
   else document.getElementById('stock').classList.remove('on');
+  if (t==='images') document.getElementById('images').classList.add('on');
+  else document.getElementById('images').classList.remove('on');
+  if (t==='staff') document.getElementById('staff').classList.add('on');
+  else document.getElementById('staff').classList.remove('on');
   // FAB visibility managed here since it lives outside #stock
   var fab = document.getElementById('stock-btn-add');
   if (fab) fab.style.display = (t==='stock') ? 'flex' : 'none';
@@ -91,6 +97,8 @@ function switchTab(t) {
   else if (t==='reserve') renderReservations();
   else if (t==='cust') renderCustTab();
   else if (t==='stock') renderStock();
+  else if (t==='images') renderImagesTab();
+  else if (t==='staff') checkStaffLock();
 }
 function getAllCustomers() {
   var deletedPhones = {};
