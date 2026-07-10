@@ -42,12 +42,30 @@ function doEnter(store) {
   fbRef.once('value').then(function(newSnap) {
     var newData = newSnap.val();
 
+    // 이 기기의 로컬 캐시를 먼저 baseline으로 채워둔다. 아래 applyData()가
+    // 방금 받아온 서버(Firebase)의 실제 값으로 다시 덮어써서, 이 기기의
+    // 로컬 캐시가 오래됐거나 비어있어도(신규 기기 등) 서버 값이 항상 이기도록 한다.
+    // (과거엔 applyData() 다음에 loadData()를 호출해 순서가 반대였고, 그 결과
+    // 서버에 있던 최신 태그/데이터가 이 기기의 오래된 로컬 캐시로 되돌려써진 뒤
+    // 저장 시 서버까지 덮어써버리는 데이터 유실 버그가 있었다.)
+    loadData();
+
     function applyData(d) {
-      if (d && d.tables && d.tables.length) S.tables = d.tables;
-      if (d && d.waits)  S.waits = d.waits;
-      if (d && d.ress)   S.ress  = d.ress;
-      if (d && d.daily)  S.daily = d.daily;
-      if (d && d.tags && d.tags.length) S.tags = d.tags;
+      if (!d) return;
+      if (d.tables && d.tables.length) S.tables = d.tables;
+      if (d.waits)  S.waits = d.waits;
+      if (d.ress)   S.ress  = d.ress;
+      if (d.daily)  S.daily = d.daily;
+      if (d.tags && d.tags.length) S.tags = d.tags;
+      if (Array.isArray(d.customers)) S.customers = d.customers;
+      if (Array.isArray(d.inventory)) S.inventory = d.inventory;
+      if (Array.isArray(d.stockCats) && d.stockCats.length) S.stockCats = d.stockCats;
+      if (Array.isArray(d.stockUnits) && d.stockUnits.length) S.stockUnits = d.stockUnits;
+      if (Array.isArray(d.images)) S.images = d.images;
+      if (d.staffPw) S.staffPw = d.staffPw;
+      if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
+      if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
+      if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
     }
 
     function boot() {
@@ -67,8 +85,6 @@ function doEnter(store) {
         }
       } catch(e) {}
 
-      // 새 키로 저장된 localStorage도 병합
-      loadData();
       var init = store === 'covent' ? INIT_COVENT : INIT_PARAGON;
       if (!S.tables.length) S.tables = init.map(mkTable);
       if (!S.daily) S.daily = [];
