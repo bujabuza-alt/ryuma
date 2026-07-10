@@ -398,7 +398,9 @@ try {
   if (!action) return;
   // 앱 로딩 완료 후 실행
   function runNfcAction() {
-    if (!currentStore) { setTimeout(runNfcAction, 300); return; }
+    // currentStore만 확인하면 Firebase 데이터가 아직 로딩되기 전에 실행될 수 있어,
+    // 실제 데이터 반영이 끝났음을 의미하는 dataReady까지 함께 기다린다.
+    if (!currentStore || !dataReady) { setTimeout(runNfcAction, 300); return; }
     if (action === 'reserve') {
       switchTab('reserve');
       setTimeout(openAddRv, 200);

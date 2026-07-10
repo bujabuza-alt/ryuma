@@ -32,7 +32,13 @@ function loadData() {
 function saveData() {
   clearTimeout(saveTimer);
   showBadge('saving');
-  saveTimer = setTimeout(function() {
+  saveTimer = setTimeout(function saveDataTick() {
+    // 로그인 직후 서버 데이터가 아직 다 반영되기 전(NFC/단축어 자동화처럼
+    // 아주 빠르게 조작되는 경우 포함)에는 저장을 미루고, 데이터가 준비되면
+    // 그때 실제 최신 상태로 저장한다. 사용자가 입력한 내용은 S에 이미
+    // 반영되어 있으므로 유실되지 않고, 준비되지 않은 빈 상태가 서버를
+    // 덮어쓰는 것만 막는다.
+    if (!dataReady) { saveTimer = setTimeout(saveDataTick, 200); return; }
     var ts = Date.now(); lastSavedTs = ts;
 
     // 이 기기에 아직 로컬로 내려받은 확인사항이 없으면(신규 기기, 캐시 삭제 직후 등)

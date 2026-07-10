@@ -34,6 +34,10 @@ var INIT_PARAGON = [
 var S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[]};
 var DEFAULT_TAGS = ['생일','기념일','데이트','VIP','단체','비즈니스'];
 var currentTab='floor', editMode=false, saveTimer=null;
+// 로그인 후 Firebase의 실제 데이터가 로컬 상태(S)에 완전히 반영됐는지 여부.
+// NFC/단축어 자동화 등으로 앱이 아주 빠르게(데이터 로딩 완료 전에) 조작되어
+// 텅 빈 상태가 저장되는 것을 막기 위한 게이트.
+var dataReady = false;
 var calY=new Date().getFullYear(), calM=new Date().getMonth(), calSel=null;
 var floorDate = '';
 var rvSortAsc=true;

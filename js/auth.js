@@ -9,6 +9,7 @@ function showStore() {
 function doEnter(store) {
   currentStore = store;
   STORAGE_KEY  = 'tv5_' + store;
+  dataReady = false; // 실제 데이터 로딩이 끝나기 전까지 저장/자동화 동작을 막는다
   if (fbRef) fbRef.off();
   fbRef = null;
   lastSavedTs = 0;  // 매장 전환 시 반드시 초기화
@@ -66,6 +67,10 @@ function doEnter(store) {
       if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
       if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
       if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
+      // 확인 사항도 startFb() 리스너를 기다리지 않고 로그인 시점에 바로 반영
+      if (d.confirmItems && d.confirmItems.cats && d.confirmItems.cats.length) {
+        try { localStorage.setItem('confirm_items_v1_' + store, JSON.stringify(d.confirmItems)); } catch(e) {}
+      }
     }
 
     function boot() {
@@ -93,7 +98,9 @@ function doEnter(store) {
       syncToday();
       // 진입 시 항상 홀 현황 탭으로 이동
       switchTab('floor');
+      if (typeof renderConfirmItems === 'function') renderConfirmItems();
       startFb();
+      dataReady = true; // 이 시점부터 저장/자동화 동작 허용
     }
 
     if (newData && newData.tables && newData.tables.length) {
@@ -125,11 +132,13 @@ function doEnter(store) {
     if (!S.tags || !S.tags.length) S.tags = DEFAULT_TAGS.slice();
     showBadge('');
     syncToday(); switchTab('floor'); startFb();
+    dataReady = true; // 네트워크 없이 로컬 데이터만으로 부팅한 경우에도 저장은 허용
   });
 }
 function logout() {
   if (fbRef) { fbRef.off(); fbRef = null; }
   currentStore = null;
+  dataReady = false;
   S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[]};
   cardCache = {};
   editMode = false;
