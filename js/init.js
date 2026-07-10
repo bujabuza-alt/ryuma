@@ -67,11 +67,6 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
   function storeKey() { return 'confirm_items_v1_' + (currentStore || ''); }
   function legacyNotesKey() { return 'hall_notes_items_' + (currentStore || ''); }
 
-  function todayStr() {
-    var d = new Date();
-    return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
-  }
-
   // 기존 주의사항(hall_notes_items_*) / 체크리스트(checklist_v2) 데이터를 최초 1회 이전
   function migrate() {
     var ck = {};
@@ -79,10 +74,12 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
     var notes = [];
     try { notes = JSON.parse(localStorage.getItem(legacyNotesKey()) || '[]'); } catch(e) {}
 
-    var data = { date: todayStr(), cats: DEFAULT_CATS.map(function(c){ return {key:c.key,label:c.label}; }), items: {} };
-    data.items.precaution = notes.map(function(t) { return { text: t, done: false }; });
+    var data = { cats: DEFAULT_CATS.map(function(c){ return {key:c.key,label:c.label}; }), items: {} };
+    data.items.precaution = notes.map(function(t) { return { text: t }; });
     ['closing','task','etc'].forEach(function(k) {
-      data.items[k] = Array.isArray(ck[k]) ? ck[k] : [];
+      data.items[k] = (Array.isArray(ck[k]) ? ck[k] : []).map(function(it) {
+        return { text: (it && typeof it === 'object') ? it.text : it };
+      });
     });
     save(data);
     return data;
@@ -105,13 +102,6 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
     if (!data.cats || !data.cats.length) data.cats = DEFAULT_CATS.map(function(c){ return {key:c.key,label:c.label}; });
     if (!data.items) data.items = {};
     data.cats.forEach(function(c) { if (!Array.isArray(data.items[c.key])) data.items[c.key] = []; });
-    if (data.date !== todayStr()) {
-      data.date = todayStr();
-      data.cats.forEach(function(c) {
-        data.items[c.key].forEach(function(it){ it.done = false; });
-      });
-      save(data);
-    }
     return data;
   }
 
@@ -136,8 +126,8 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
     trackEl.innerHTML = data.cats.map(function(c) {
       var items = data.items[c.key] || [];
       var listHtml = items.length ? items.map(function(item, idx) {
-        return '<li class="cl-item'+(item.done ? ' done' : '')+'" data-idx="'+idx+'">'
-          + '<button type="button" class="cl-check" data-act="chk">'+(item.done ? '✓' : '')+'</button>'
+        return '<li class="cl-item" data-idx="'+idx+'">'
+          + '<button type="button" class="cl-drag" data-act="drag" aria-label="순서 변경">⠿</button>'
           + '<span class="cl-label" data-act="edit">'+esc(item.text)+'</span>'
           + '<button type="button" class="cl-del" data-act="del">×</button>'
           + '</li>';
@@ -154,12 +144,11 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
 
     var activeCat = data.cats[activeIdx];
     var activeItems = activeCat ? (data.items[activeCat.key] || []) : [];
-    var done = activeItems.filter(function(it){ return it.done; }).length;
     var titleEl = document.getElementById('cf-title');
     var progEl  = document.getElementById('cf-progress');
     var delEl   = document.getElementById('cf-del-cat');
-    if (titleEl) titleEl.textContent = '✅ 확인 사항';
-    if (progEl)  progEl.textContent  = done + ' / ' + activeItems.length;
+    if (titleEl) titleEl.textContent = '📋 확인 사항';
+    if (progEl)  progEl.textContent  = activeItems.length + '개';
     if (delEl)   delEl.style.display = data.cats.length > 1 ? '' : 'none';
 
     bindEvents(data);
@@ -219,20 +208,16 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
         var text = input.value.trim();
         if (!text) return;
         var d = getData();
-        (d.items[cat] = d.items[cat] || []).push({ text: text, done: false });
+        (d.items[cat] = d.items[cat] || []).push({ text: text });
         save(d);
         render();
       }
       btn.addEventListener('click', add);
       input.addEventListener('keydown', function(e) { if (e.key === 'Enter') add(); });
 
+      var listEl = slide.querySelector('.cl-list');
       slide.querySelectorAll('.cl-item[data-idx]').forEach(function(li) {
         var idx = +li.getAttribute('data-idx');
-        li.querySelector('[data-act="chk"]').addEventListener('click', function() {
-          var d = getData();
-          d.items[cat][idx].done = !d.items[cat][idx].done;
-          save(d); render();
-        });
         li.querySelector('[data-act="del"]').addEventListener('click', function() {
           var d = getData();
           d.items[cat].splice(idx, 1);
@@ -248,10 +233,72 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
           d.items[cat][idx].text = next;
           save(d); render();
         });
+        bindDrag(li, listEl, cat, idx);
       });
     });
 
     trackEl.onscroll = handleScroll;
+  }
+
+  // 항목 길게 잡고 위/아래로 끌어 순서 변경 (마우스 · 터치 공용, Pointer Events)
+  function bindDrag(li, listEl, cat, startIdx) {
+    var handle = li.querySelector('[data-act="drag"]');
+    if (!handle) return;
+    var dragging = false, startY = 0, curTarget = startIdx, others = null, rowH = 0;
+
+    handle.addEventListener('pointerdown', function(e) {
+      e.preventDefault();
+      dragging = true;
+      curTarget = startIdx;
+      startY = e.clientY;
+      rowH = li.getBoundingClientRect().height;
+      try { li.setPointerCapture(e.pointerId); } catch(err) {}
+      li.classList.add('cl-dragging');
+      others = Array.prototype.slice.call(listEl.querySelectorAll('.cl-item[data-idx]'))
+        .filter(function(el) { return el !== li; })
+        .map(function(el) {
+          var r = el.getBoundingClientRect();
+          return { el: el, oi: +el.getAttribute('data-idx'), mid: r.top + r.height / 2 };
+        });
+      li.addEventListener('pointermove', onMove);
+      li.addEventListener('pointerup', onUp);
+      li.addEventListener('pointercancel', onUp);
+    });
+
+    function onMove(e) {
+      if (!dragging) return;
+      var dy = e.clientY - startY;
+      li.style.transform = 'translateY(' + dy + 'px)';
+      var liMid = li.getBoundingClientRect().top + rowH / 2;
+      var count = 0;
+      others.forEach(function(o) { if (o.mid < liMid) count++; });
+      curTarget = count;
+      others.forEach(function(o) {
+        var shift = 0;
+        if (curTarget > startIdx && o.oi > startIdx && o.oi <= curTarget) shift = -1;
+        else if (curTarget < startIdx && o.oi < startIdx && o.oi >= curTarget) shift = 1;
+        o.el.style.transform = shift ? 'translateY(' + (shift * rowH) + 'px)' : '';
+      });
+    }
+
+    function onUp() {
+      if (!dragging) return;
+      dragging = false;
+      li.removeEventListener('pointermove', onMove);
+      li.removeEventListener('pointerup', onUp);
+      li.removeEventListener('pointercancel', onUp);
+      li.style.transform = '';
+      li.classList.remove('cl-dragging');
+      others.forEach(function(o) { o.el.style.transform = ''; });
+      if (curTarget !== startIdx) {
+        var d = getData();
+        var arr = d.items[cat];
+        var moved = arr.splice(startIdx, 1)[0];
+        arr.splice(curTarget, 0, moved);
+        save(d);
+      }
+      render();
+    }
   }
 
   var scrollTimer;

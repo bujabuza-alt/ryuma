@@ -950,32 +950,42 @@ body.light .schrv-tag-call { color: #c03060; }
   padding: 9px 4px;
   border-bottom: 1px solid var(--border);
   animation: cl-in .15s ease;
+  background: transparent;
+  transition: transform .12s ease;
+  touch-action: pan-y;
 }
 .cl-item:last-child { border-bottom: none; }
 @keyframes cl-in {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.cl-check {
+.cl-item.cl-dragging {
+  position: relative;
+  z-index: 5;
+  transition: none;
+  opacity: .96;
+  background: var(--surf);
+  box-shadow: 0 6px 16px rgba(0,0,0,.18);
+  border-radius: 8px;
+}
+.cl-drag {
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  border: 2px solid var(--border2);
-  background: var(--surf2);
-  cursor: pointer;
+  border: none;
+  background: none;
+  cursor: grab;
+  color: var(--text3);
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  transition: background .12s, border-color .12s;
+  font-size: 15px;
+  letter-spacing: -1px;
+  touch-action: none;
   -webkit-tap-highlight-color: transparent;
 }
-.cl-item.done .cl-check {
-  background: var(--red);
-  border-color: var(--red);
-  color: #fff;
-}
+.cl-item.cl-dragging .cl-drag { cursor: grabbing; color: var(--text2); }
 .cl-label {
   flex: 1;
   font-size: 14px;
@@ -983,10 +993,6 @@ body.light .schrv-tag-call { color: #c03060; }
   color: var(--text);
   transition: color .12s;
   word-break: break-all;
-}
-.cl-item.done .cl-label {
-  color: var(--text3);
-  text-decoration: line-through;
 }
 .cl-del {
   background: none;

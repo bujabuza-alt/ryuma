@@ -35,8 +35,15 @@ function saveData() {
   saveTimer = setTimeout(function() {
     var ts = Date.now(); lastSavedTs = ts;
 
-    var ci = {};
-    try { ci = JSON.parse(localStorage.getItem('confirm_items_v1_' + (currentStore||'')) || '{}'); } catch(e) {}
+    // 이 기기에 아직 로컬로 내려받은 확인사항이 없으면(신규 기기, 캐시 삭제 직후 등)
+    // 원격 데이터를 빈 값으로 덮어써 지워버리지 않도록 payload에서 아예 제외한다.
+    var ci = null;
+    try {
+      var ciRaw = localStorage.getItem('confirm_items_v1_' + (currentStore||''));
+      if (ciRaw) ci = JSON.parse(ciRaw);
+    } catch(e) { ci = null; }
+    var hasConfirmItems = !!(ci && ci.cats && ci.cats.length);
+
     var p = {
       tables: S.tables,
       waits: S.waits,
@@ -52,10 +59,10 @@ function saveData() {
       staffActive: S.staffActive || [],
       staffResigned: S.staffResigned || [],
       staffLogs: S.staffLogs || [],
-      confirmItems: ci,
       _ts: ts
     };
-    
+    if (hasConfirmItems) p.confirmItems = ci;
+
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch(e) {}
     // 로컬 저장은 항상 수행하고, Firebase 연결이 있을 때만 원격 동기화
     if (!fbRef) {
@@ -66,7 +73,9 @@ function saveData() {
     var retries = 0;
     var fbSaveTimeout = setTimeout(function() { showBadge('err'); setTimeout(function(){ showBadge(''); }, 8000); }, 30000);
     function tryWrite() {
-      fbRef.set(p)
+      // set() 대신 update()를 사용해, 이번 저장에 포함되지 않은 필드(예: 위에서 제외한
+      // confirmItems)는 원격에 남아있는 값을 그대로 보존한다.
+      fbRef.update(p)
         .then(function() { clearTimeout(fbSaveTimeout); showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000); })
         .catch(function(err) {
           var code = (err && err.code) || '';
@@ -115,7 +124,7 @@ function startFb() {
     if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
     if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
     if (d.staffPw) S.staffPw = d.staffPw;
-    if (d.confirmItems) {
+    if (d.confirmItems && d.confirmItems.cats && d.confirmItems.cats.length) {
       try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(d.confirmItems)); } catch(e) {}
       if (typeof renderConfirmItems === 'function') renderConfirmItems();
     }
