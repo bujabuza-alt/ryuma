@@ -1,31 +1,11 @@
 // ── 알바 출퇴근 기록 (Part-timer Attendance) ──
 var DEFAULT_STAFF_PW = '0000';
-var staffUnlocked  = false;
-var staffSubTab    = 'active';   // 'active' | 'resigned' | 'logs'
-var staffShiftSel  = {};         // staffId -> 'lunch' | 'dinner' (UI 선택 상태, 저장하지 않음)
-var staffTimeSel   = {};         // staffId -> 분 단위 선택 시각 (UI 선택 상태, 저장하지 않음)
+var staffUnlocked = false;
+var staffSubTab   = 'logs';   // 'logs' | 'active' | 'resigned'
+var recEditId      = null;    // 출퇴근 기록 폼에서 수정 중인 기록 id (null = 신규 입력)
+var recActiveField = 'rec-in'; // 즐겨찾기 시간 탭 시 채워질 입력칸 ('rec-in' | 'rec-out')
 
 function getStaffPw() { return (S && S.staffPw) || DEFAULT_STAFF_PW; }
-
-// ── 근무조 ──
-function shiftRange(shift) { return shift === 'dinner' ? {s: 16*60, e: 23*60} : {s: 10*60, e: 15*60}; }
-function shiftLabel(shift) { return shift === 'dinner' ? '디너' : '런치'; }
-function minToStr(m) { return pad(Math.floor(m/60)) + ':' + pad(m%60); }
-function nearestQuarterInRange(shift) {
-  var now = new Date();
-  var m = Math.round((now.getHours()*60 + now.getMinutes()) / 15) * 15;
-  var r = shiftRange(shift);
-  if (m < r.s) m = r.s;
-  if (m > r.e) m = r.e;
-  return m;
-}
-function shiftTimeOptionsHtml(shift, selected) {
-  var r = shiftRange(shift), html = '';
-  for (var m = r.s; m <= r.e; m += 15) {
-    html += '<option value="' + m + '"' + (m === selected ? ' selected' : '') + '>' + minToStr(m) + '</option>';
-  }
-  return html;
-}
 
 // ── 잠금 화면 ──
 function checkStaffLock() {
@@ -35,6 +15,7 @@ function checkStaffLock() {
   if (staffUnlocked) {
     lockEl.style.display = 'none';
     contentEl.classList.add('on');
+    migrateStaffLogsToRecords();
     renderStaffTab();
   } else {
     lockEl.style.display = 'flex';
@@ -172,69 +153,127 @@ function openStaffMenu(id, mode) {
   document.getElementById('stf-menu-del').addEventListener('click', function() { closeModal(); deleteStaff(id, mode); });
 }
 
-// ── 출퇴근 기록 ──
-function getTodayLogs(staffId) {
-  var td = today();
-  return (S.staffLogs||[]).filter(function(l) { return l.staffId === staffId && l.date === td; });
-}
-function getTodayShiftRecord(staffId, shift) {
-  var logs = getTodayLogs(staffId).filter(function(l) { return l.shift === shift; });
-  var inLog  = logs.filter(function(l) { return l.type === 'in';  }).sort(function(a,b){ return b.ts-a.ts; })[0];
-  var outLog = logs.filter(function(l) { return l.type === 'out'; }).sort(function(a,b){ return b.ts-a.ts; })[0];
-  return { inTime: inLog ? inLog.time : null, outTime: outLog ? outLog.time : null };
-}
-function recordAttendance(staff, shift, type, minutes) {
-  var timeStr = minToStr(minutes);
-  var text = staff.name + ' - ' + shiftLabel(shift) + ' ' + (type === 'in' ? '출근' : '퇴근') + ' 기록 완료 (' + timeStr + ')';
-  if (!S.staffLogs) S.staffLogs = [];
-  S.staffLogs.unshift({
-    id: uid(), ts: Date.now(), date: today(), staffId: staff.id, staffName: staff.name,
-    shift: shift, type: type, time: timeStr, text: text
-  });
-  if (S.staffLogs.length > 500) S.staffLogs.length = 500;
+// ── 구버전 출퇴근 로그(개별 출근/퇴근 이벤트) → 날짜별 통합 기록 1회 마이그레이션 ──
+function migrateStaffLogsToRecords() {
+  if (S._staffLogsMigrated) return;
+  S._staffLogsMigrated = true;
+  if (!S.staffRecords) S.staffRecords = [];
+  var logs = S.staffLogs || [];
+  if (logs.length) {
+    var groups = {};
+    logs.forEach(function(l) {
+      var key = l.staffId + '|' + l.date;
+      if (!groups[key]) groups[key] = {staffId: l.staffId, staffName: l.staffName, date: l.date, ins: [], outs: []};
+      if (l.type === 'in') groups[key].ins.push(l.time);
+      else groups[key].outs.push(l.time);
+    });
+    Object.keys(groups).forEach(function(key) {
+      var g = groups[key];
+      g.ins.sort(); g.outs.sort();
+      S.staffRecords.push({
+        id: uid(), staffId: g.staffId, staffName: g.staffName, date: g.date,
+        inTime: g.ins.length ? g.ins[0] : '', outTime: g.outs.length ? g.outs[g.outs.length - 1] : ''
+      });
+    });
+  }
   saveData();
-  renderStaffTab();
-  showToast(text);
 }
 
-// ── 렌더링 ──
+// ── 근무 시간 계산 (예: 10:00 출근, 14:00 퇴근 → "4시간") ──
+function calcWorkedHours(inTime, outTime) {
+  if (!inTime || !outTime) return null;
+  var ip = inTime.split(':'), op = outTime.split(':');
+  var inMin = (+ip[0]) * 60 + (+ip[1]);
+  var outMin = (+op[0]) * 60 + (+op[1]);
+  var diff = outMin - inMin;
+  if (diff <= 0) return null;
+  var h = Math.floor(diff / 60), m = diff % 60;
+  return h + '시간' + (m ? ' ' + m + '분' : '');
+}
+
+// ── 출퇴근 기록 저장/삭제 (알바생+날짜 당 하나의 통합 기록) ──
+function upsertStaffRecord(editId, staffId, staffName, date, inTime, outTime) {
+  if (!S.staffRecords) S.staffRecords = [];
+  var rec = editId ? S.staffRecords.filter(function(r) { return r.id === editId; })[0] : null;
+  if (!rec) rec = S.staffRecords.filter(function(r) { return r.staffId === staffId && r.date === date; })[0];
+  if (rec) {
+    rec.staffId = staffId; rec.staffName = staffName; rec.date = date;
+    rec.inTime = inTime; rec.outTime = outTime;
+  } else {
+    rec = {id: uid(), staffId: staffId, staffName: staffName, date: date, inTime: inTime, outTime: outTime};
+    S.staffRecords.push(rec);
+  }
+  saveData();
+  return rec;
+}
+function deleteStaffRecord(id) {
+  if (!confirm('이 출퇴근 기록을 삭제하시겠습니까?')) return;
+  S.staffRecords = (S.staffRecords || []).filter(function(r) { return r.id !== id; });
+  if (recEditId === id) recEditId = null;
+  saveData();
+  renderStaffTab();
+  showToast('기록이 삭제되었습니다');
+}
+function startEditRecord(id) {
+  recEditId = id;
+  renderStaffTab();
+}
+
+// ── 즐겨찾기 시간대 ──
+// 즐겨찾기 추가/삭제는 입력 중인 폼(알바생·날짜·시간)을 건드리지 않도록
+// 전체 탭을 다시 그리지 않고 즐겨찾기 칩 영역만 갱신한다.
+function addFavTime(t) {
+  if (!t) return;
+  if (!S.staffFavTimes) S.staffFavTimes = [];
+  if (S.staffFavTimes.indexOf(t) >= 0) { showToast('이미 즐겨찾기에 있습니다'); return; }
+  S.staffFavTimes.push(t);
+  S.staffFavTimes.sort();
+  saveData();
+  refreshFavRow();
+  showToast('⭐ 즐겨찾기에 추가했습니다 (' + t + ')');
+}
+function removeFavTime(t) {
+  S.staffFavTimes = (S.staffFavTimes || []).filter(function(x) { return x !== t; });
+  saveData();
+  refreshFavRow();
+}
+function refreshFavRow() {
+  var row = document.querySelector('.stf-fav-row');
+  if (!row) return;
+  row.innerHTML = renderFavChipsHtml();
+  bindFavChipEvents(row);
+}
+function bindFavChipEvents(scope) {
+  scope.querySelectorAll('[data-act="fav-pick"]').forEach(function(el) {
+    el.addEventListener('click', function() {
+      var target = document.getElementById(recActiveField) || document.getElementById('rec-in');
+      if (target) target.value = this.getAttribute('data-t');
+    });
+  });
+  scope.querySelectorAll('[data-act="fav-del"]').forEach(function(btn) {
+    btn.addEventListener('click', function() { removeFavTime(btn.getAttribute('data-t')); });
+  });
+}
+
+// ── 렌더링: 알바생 목록 (현재/퇴사) ──
 function staffCardHtml(s, mode) {
-  var shift = staffShiftSel[s.id] || 'lunch';
-  var timeSelected = staffTimeSel[s.id] != null ? staffTimeSel[s.id] : nearestQuarterInRange(shift);
   var isResigned = mode === 'resigned';
   var subParts = [];
   if (s.position) subParts.push(s.position);
   if (s.phone) subParts.push(s.phone);
-  subParts.push(isResigned ? '퇴사일 ' + (s.resignDate||'-') : '입사일 ' + (s.joinDate||'-'));
-  var rec = isResigned ? null : getTodayShiftRecord(s.id, shift);
-
-  var html = '<div class="stf-card" data-id="' + s.id + '">' +
+  subParts.push(isResigned ? '퇴사일 ' + (s.resignDate || '-') : '입사일 ' + (s.joinDate || '-'));
+  return '<div class="stf-card" data-id="' + s.id + '">' +
     '<div class="stf-hd"><div>' +
     '<div class="stf-name">' + esc(s.name) + '</div>' +
     '<div class="stf-sub">' + esc(subParts.join(' · ')) + '</div>' +
+    (s.memo ? '<div class="stf-sub">📝 ' + esc(s.memo) + '</div>' : '') +
     '</div>' +
     '<button type="button" class="stf-menu-btn" data-act="menu" data-id="' + s.id + '">⋯</button>' +
+    '</div>' +
     '</div>';
-
-  if (!isResigned) {
-    html += '<div class="stf-shift-row">' +
-      '<button type="button" class="stf-shift-pill' + (shift==='lunch'?' on':'') + '" data-act="shift" data-shift="lunch" data-id="' + s.id + '">런치 10:00~15:00</button>' +
-      '<button type="button" class="stf-shift-pill' + (shift==='dinner'?' on':'') + '" data-act="shift" data-shift="dinner" data-id="' + s.id + '">디너 16:00~23:00</button>' +
-      '</div>' +
-      '<div class="stf-time-row">' +
-      '<select class="stf-time-sel" data-act="time" data-id="' + s.id + '">' + shiftTimeOptionsHtml(shift, timeSelected) + '</select>' +
-      '</div>' +
-      '<div class="stf-actions">' +
-      '<button type="button" class="stf-btn-in" data-act="in" data-id="' + s.id + '">출근 기록</button>' +
-      '<button type="button" class="stf-btn-out" data-act="out" data-id="' + s.id + '">퇴근 기록</button>' +
-      '</div>' +
-      '<div class="stf-today">오늘(' + shiftLabel(shift) + ') <b>출근 ' + (rec.inTime||'-') + ' · 퇴근 ' + (rec.outTime||'-') + '</b></div>';
-  }
-  html += '</div>';
-  return html;
 }
 function renderStaffList(mode) {
-  var arr = mode === 'resigned' ? (S.staffResigned||[]) : (S.staffActive||[]);
+  var arr = mode === 'resigned' ? (S.staffResigned || []) : (S.staffActive || []);
   if (!arr.length) {
     return '<div class="stf-empty">' +
       (mode === 'resigned' ? '퇴사한 알바생이 없습니다.' : '등록된 알바생이 없습니다. 상단의 + 알바생 버튼으로 추가하세요.') +
@@ -242,62 +281,162 @@ function renderStaffList(mode) {
   }
   return arr.map(function(s) { return staffCardHtml(s, mode); }).join('');
 }
-function renderStaffLogs() {
-  var logs = (S.staffLogs||[]).slice(0, 100);
-  if (!logs.length) return '<div class="stf-empty">출퇴근 기록이 없습니다.</div>';
-  return logs.map(function(l) {
-    var timeOfDay = new Date(l.ts).toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
-    return '<div class="stf-log-row"><span>' + esc(l.text) + '</span>' +
-      '<span class="stf-log-time">' + esc(l.date) + ' ' + timeOfDay + '</span></div>';
-  }).join('');
-}
-function renderStaffTab() {
-  if (!staffUnlocked) return;
-  if (!S.staffActive)   S.staffActive   = [];
-  if (!S.staffResigned) S.staffResigned = [];
-  if (!S.staffLogs)     S.staffLogs     = [];
-  document.querySelectorAll('.staff-subtab').forEach(function(btn) {
-    btn.classList.toggle('on', btn.getAttribute('data-sub') === staffSubTab);
-  });
-  var body = document.getElementById('staff-body');
-  if (!body) return;
-  if (staffSubTab === 'logs') {
-    body.innerHTML = renderStaffLogs();
-    return;
-  }
-  body.innerHTML = renderStaffList(staffSubTab);
-  bindStaffCardEvents();
-}
 function bindStaffCardEvents() {
   var body = document.getElementById('staff-body');
-  body.querySelectorAll('[data-act="shift"]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var id = btn.getAttribute('data-id');
-      staffShiftSel[id] = btn.getAttribute('data-shift');
-      delete staffTimeSel[id];
-      renderStaffTab();
-    });
-  });
-  body.querySelectorAll('[data-act="time"]').forEach(function(sel) {
-    sel.addEventListener('change', function() {
-      staffTimeSel[sel.getAttribute('data-id')] = +sel.value;
-    });
-  });
-  body.querySelectorAll('[data-act="in"],[data-act="out"]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var id = btn.getAttribute('data-id');
-      var s = (S.staffActive||[]).filter(function(x) { return x.id === id; })[0];
-      if (!s) return;
-      var shift = staffShiftSel[id] || 'lunch';
-      var minutes = staffTimeSel[id] != null ? staffTimeSel[id] : nearestQuarterInRange(shift);
-      recordAttendance(s, shift, btn.getAttribute('data-act'), minutes);
-    });
-  });
   body.querySelectorAll('[data-act="menu"]').forEach(function(btn) {
     btn.addEventListener('click', function() {
       openStaffMenu(btn.getAttribute('data-id'), staffSubTab);
     });
   });
+}
+
+// ── 렌더링: 출퇴근 기록 탭 (기록 입력 + 목록) ──
+function renderFavChipsHtml() {
+  var favs = (S.staffFavTimes || []).slice().sort();
+  if (!favs.length) return '<div class="stf-fav-empty">즐겨찾는 시간이 없습니다. 시간을 선택한 뒤 "현재 값 즐겨찾기"로 추가하세요.</div>';
+  return favs.map(function(t) {
+    return '<span class="stf-fav-chip"><span data-act="fav-pick" data-t="' + t + '">' + esc(t) + '</span>' +
+      '<button type="button" data-act="fav-del" data-t="' + t + '">✕</button></span>';
+  }).join('');
+}
+function renderRecListHtml() {
+  var recs = (S.staffRecords || []).slice().sort(function(a, b) {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return (a.staffName || '').localeCompare(b.staffName || '', 'ko');
+  });
+  if (!recs.length) return '<div class="stf-empty">출퇴근 기록이 없습니다.</div>';
+  var html = '', lastDate = '';
+  recs.forEach(function(r) {
+    if (r.date !== lastDate) {
+      html += '<div class="stf-rec-date-hd">' + esc(fmtDateShort(r.date)) + '</div>';
+      lastDate = r.date;
+    }
+    var hrs = calcWorkedHours(r.inTime, r.outTime);
+    html += '<div class="stf-rec-row' + (recEditId === r.id ? ' editing' : '') + '" data-id="' + r.id + '">' +
+      '<div class="stf-rec-main">' +
+      '<span class="stf-rec-name">' + esc(r.staffName || '-') + '</span>' +
+      '<span class="stf-rec-time">출근 ' + esc(r.inTime || '-') + ' · 퇴근 ' + esc(r.outTime || '-') + '</span>' +
+      (hrs ? '<span class="stf-rec-hours">' + hrs + ' 근무</span>' : '') +
+      '</div>' +
+      '<div class="stf-rec-actions">' +
+      '<button type="button" data-act="rec-edit" data-id="' + r.id + '">✏</button>' +
+      '<button type="button" data-act="rec-del" data-id="' + r.id + '">✕</button>' +
+      '</div>' +
+      '</div>';
+  });
+  return html;
+}
+function renderAttendanceTab() {
+  var editRec = recEditId ? (S.staffRecords || []).filter(function(r) { return r.id === recEditId; })[0] : null;
+  if (!editRec) recEditId = null;
+
+  var activeIds = {};
+  (S.staffActive || []).forEach(function(s) { activeIds[s.id] = true; });
+  var staffList = (S.staffActive || []).slice();
+  if (editRec && !activeIds[editRec.staffId]) {
+    staffList.push({id: editRec.staffId, name: (editRec.staffName || '알 수 없음') + ' (퇴사/삭제됨)'});
+  }
+  var staffOpts = staffList.map(function(s) {
+    return '<option value="' + esc(s.id) + '"' + (editRec && editRec.staffId === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>';
+  }).join('');
+  if (!staffOpts) staffOpts = '<option value="">등록된 알바생 없음</option>';
+
+  var dateVal = editRec ? editRec.date : today();
+  var inVal   = editRec ? (editRec.inTime || '')  : '';
+  var outVal  = editRec ? (editRec.outTime || '') : '';
+
+  return ''
+    + '<div class="stf-rec-form">'
+    + (editRec ? '<div class="stf-rec-editnote">✏ 기록 수정 중 <button type="button" id="rec-edit-cancel">취소</button></div>' : '')
+    + '<div class="fg"><label class="fl">알바생</label><select class="fi" id="rec-staff">' + staffOpts + '</select></div>'
+    + '<div class="fg"><label class="fl">날짜</label><input class="fi" type="date" id="rec-date" value="' + esc(dateVal) + '"></div>'
+    + '<div class="g2">'
+    +   '<div class="fg"><label class="fl">출근 시간</label><input class="fi' + (recActiveField === 'rec-in' ? ' rec-active' : '') + '" type="time" id="rec-in" value="' + esc(inVal) + '"></div>'
+    +   '<div class="fg"><label class="fl">퇴근 시간</label><input class="fi' + (recActiveField === 'rec-out' ? ' rec-active' : '') + '" type="time" id="rec-out" value="' + esc(outVal) + '"></div>'
+    + '</div>'
+    + '<div class="stf-fav-lbl">⭐ 즐겨찾는 시간 <span>(탭하면 선택된 입력칸에 채워집니다)</span></div>'
+    + '<div class="stf-fav-row">' + renderFavChipsHtml() + '</div>'
+    + '<div class="stf-rec-btns">'
+    +   '<button type="button" class="bg" id="rec-fav-add">☆ 현재 값 즐겨찾기</button>'
+    +   '<button type="button" class="bp" id="rec-save">' + (editRec ? '수정 저장' : '저장') + '</button>'
+    + '</div>'
+    + '</div>'
+    + '<div class="stf-rec-list-hd">출퇴근 기록</div>'
+    + '<div id="rec-list">' + renderRecListHtml() + '</div>';
+}
+function bindAttendanceEvents() {
+  var body = document.getElementById('staff-body');
+  var inEl = document.getElementById('rec-in');
+  var outEl = document.getElementById('rec-out');
+  if (inEl) inEl.addEventListener('focus', function() {
+    recActiveField = 'rec-in';
+    inEl.classList.add('rec-active');
+    if (outEl) outEl.classList.remove('rec-active');
+  });
+  if (outEl) outEl.addEventListener('focus', function() {
+    recActiveField = 'rec-out';
+    outEl.classList.add('rec-active');
+    if (inEl) inEl.classList.remove('rec-active');
+  });
+
+  var favAddBtn = document.getElementById('rec-fav-add');
+  if (favAddBtn) favAddBtn.addEventListener('click', function() {
+    var el = document.getElementById(recActiveField);
+    var v = el ? el.value : '';
+    if (!v) { showToast('즐겨찾기로 저장할 시간을 먼저 선택하세요'); return; }
+    addFavTime(v);
+  });
+
+  var saveBtn = document.getElementById('rec-save');
+  if (saveBtn) saveBtn.addEventListener('click', function() {
+    var staffSel = document.getElementById('rec-staff');
+    var staffId = staffSel ? staffSel.value : '';
+    if (!staffId) { showToast('알바생을 선택하세요'); return; }
+    var date = (document.getElementById('rec-date') || {}).value || today();
+    var inTime = (document.getElementById('rec-in') || {}).value || '';
+    var outTime = (document.getElementById('rec-out') || {}).value || '';
+    if (!inTime && !outTime) { showToast('출근 또는 퇴근 시간을 입력하세요'); return; }
+    var staff = (S.staffActive || []).filter(function(x) { return x.id === staffId; })[0];
+    var staffName = staff ? staff.name : (staffSel.options[staffSel.selectedIndex].textContent || '').replace(/\s*\(퇴사\/삭제됨\)\s*$/, '');
+    upsertStaffRecord(recEditId, staffId, staffName, date, inTime, outTime);
+    recEditId = null;
+    showToast('출퇴근 기록이 저장되었습니다');
+    renderStaffTab();
+  });
+
+  var cancelBtn = document.getElementById('rec-edit-cancel');
+  if (cancelBtn) cancelBtn.addEventListener('click', function() { recEditId = null; renderStaffTab(); });
+
+  bindFavChipEvents(body);
+  body.querySelectorAll('[data-act="rec-edit"]').forEach(function(btn) {
+    btn.addEventListener('click', function() { startEditRecord(btn.getAttribute('data-id')); });
+  });
+  body.querySelectorAll('[data-act="rec-del"]').forEach(function(btn) {
+    btn.addEventListener('click', function() { deleteStaffRecord(btn.getAttribute('data-id')); });
+  });
+}
+
+// ── 탭 렌더 ──
+function renderStaffTab() {
+  if (!staffUnlocked) return;
+  if (!S.staffActive)   S.staffActive   = [];
+  if (!S.staffResigned) S.staffResigned = [];
+  if (!S.staffRecords)  S.staffRecords  = [];
+  if (!S.staffFavTimes) S.staffFavTimes = [];
+  document.querySelectorAll('.staff-subtab').forEach(function(btn) {
+    btn.classList.toggle('on', btn.getAttribute('data-sub') === staffSubTab);
+  });
+  var addBtn = document.getElementById('staff-btn-add');
+  if (addBtn) addBtn.style.display = (staffSubTab === 'logs') ? 'none' : '';
+  var body = document.getElementById('staff-body');
+  if (!body) return;
+  if (staffSubTab === 'logs') {
+    body.innerHTML = renderAttendanceTab();
+    bindAttendanceEvents();
+    return;
+  }
+  body.innerHTML = renderStaffList(staffSubTab);
+  bindStaffCardEvents();
 }
 
 // ── 바인딩 ──
@@ -310,5 +449,6 @@ document.getElementById('staff-subtabs').addEventListener('click', function(e) {
   var btn = e.target.closest ? e.target.closest('.staff-subtab') : null;
   if (!btn) return;
   staffSubTab = btn.getAttribute('data-sub');
+  recEditId = null;
   renderStaffTab();
 });

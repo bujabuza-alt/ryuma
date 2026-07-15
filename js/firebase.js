@@ -18,6 +18,9 @@ function loadData() {
     if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
     if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
     if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
+    if (Array.isArray(d.staffRecords)) S.staffRecords = d.staffRecords;
+    if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
+    if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
     S.staffPw = d.staffPw || DEFAULT_STAFF_PW;
     S.tags = (d.tags && d.tags.length) ? d.tags : DEFAULT_TAGS.slice();
     if (!S.stockCats.length) S.stockCats = DEFAULT_STOCK_CATS.slice();
@@ -27,6 +30,8 @@ function loadData() {
     if (!S.staffActive) S.staffActive = [];
     if (!S.staffResigned) S.staffResigned = [];
     if (!S.staffLogs) S.staffLogs = [];
+    if (!S.staffRecords) S.staffRecords = [];
+    if (!S.staffFavTimes) S.staffFavTimes = [];
   } catch(e) { S.tags = DEFAULT_TAGS.slice(); S.staffPw = S.staffPw || DEFAULT_STAFF_PW; }
 }
 function saveData() {
@@ -59,8 +64,11 @@ function saveData() {
       staffActive: S.staffActive || [],
       staffResigned: S.staffResigned || [],
       staffLogs: S.staffLogs || [],
+      staffRecords: S.staffRecords || [],
+      staffFavTimes: S.staffFavTimes || [],
       _ts: ts
     };
+    if (S._staffLogsMigrated) p._staffLogsMigrated = S._staffLogsMigrated;
     if (hasConfirmItems) p.confirmItems = ci;
 
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch(e) {}
@@ -123,6 +131,9 @@ function startFb() {
     if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
     if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
     if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
+    if (Array.isArray(d.staffRecords)) S.staffRecords = d.staffRecords;
+    if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
+    if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
     if (d.staffPw) S.staffPw = d.staffPw;
     if (d.confirmItems && d.confirmItems.cats && d.confirmItems.cats.length) {
       try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(d.confirmItems)); } catch(e) {}

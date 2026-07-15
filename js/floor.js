@@ -120,12 +120,19 @@ function getAllCustomers() {
     if (!map[c.phone]) map[c.phone] = {name:c.name||'', phone:c.phone, latestDate:'', visitDates:[], memo:''};
     map[c.phone].memo = c.memo||'';
     if (!map[c.phone].name) map[c.phone].name = c.name||'';
+    if (c.visitDate) map[c.phone].visitDates.push(c.visitDate);
+    if (c.impFirst) map[c.phone].manualFirst = c.impFirst;
+    if (c.impLast)  map[c.phone].manualLast  = c.impLast;
+    if (c.impCount) map[c.phone].manualCount = c.impCount;
   });
   return Object.keys(map).map(function(phone) {
     var c = map[phone]; c.visitDates.sort();
-    c.total = c.visitDates.length;
-    c.first = c.visitDates.length ? c.visitDates[0] : null;
-    c.last  = c.visitDates.length ? c.visitDates[c.visitDates.length-1] : null;
+    var repoFirst = c.visitDates.length ? c.visitDates[0] : null;
+    var repoLast  = c.visitDates.length ? c.visitDates[c.visitDates.length-1] : null;
+    var repoCount = c.visitDates.length;
+    c.first = (c.manualFirst && (!repoFirst || c.manualFirst < repoFirst)) ? c.manualFirst : repoFirst;
+    c.last  = (c.manualLast  && (!repoLast  || c.manualLast  > repoLast))  ? c.manualLast  : repoLast;
+    c.total = Math.max(repoCount, c.manualCount||0);
     return c;
   });
 }
@@ -138,22 +145,45 @@ function deleteCustomer(phone) {
   renderCustTab();
 }
 // ── 손님 정보 불러오기 (CSV / XLSX / JSON / Notion API) ──
-// 필수 필드 검증: 이름, 전화번호, 방문 날짜
+// 필수 필드 검증: 이름, 전화번호, (방문 날짜 또는 첫 방문 중 하나)
 function _custImportValidate(item) {
   var errs = [];
   if (!item.name || !item.name.trim()) errs.push('이름 누락');
   if (!item.phone || !item.phone.trim()) errs.push('전화번호 누락');
-  if (!item.visitDate || !item.visitDate.trim()) errs.push('방문 날짜 누락');
+  if (!(item.visitDate && item.visitDate.trim()) && !(item.firstVisit && item.firstVisit.trim())) errs.push('방문 날짜(또는 첫 방문) 누락');
   return errs;
+}
+
+// CSV 한 줄 파싱 (쉼표·따옴표로 감싼 필드, 이스케이프된 "" 지원)
+function _parseCsvLine(line) {
+  var out = [], cur = '', inQuotes = false;
+  for (var i = 0; i < line.length; i++) {
+    var ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (line[i+1] === '"') { cur += '"'; i++; }
+        else inQuotes = false;
+      } else cur += ch;
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') { out.push(cur); cur = ''; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
 }
 
 // CSV/XLSX/JSON 행 → 고객 객체 정규화
 function _normalizeRow(row) {
   return {
-    name:      (row['이름'] || row['name'] || row['성명'] || '').trim(),
-    phone:     (row['전화번호'] || row['phone'] || row['연락처'] || row['휴대폰'] || '').trim(),
-    visitDate: (row['방문 날짜'] || row['방문날짜'] || row['visit_date'] || row['visitDate'] || row['날짜'] || '').trim(),
-    memo:      (row['메모'] || row['memo'] || row['특이사항'] || '').trim()
+    name:       (row['이름'] || row['name'] || row['성명'] || '').trim(),
+    phone:      (row['전화번호'] || row['phone'] || row['연락처'] || row['휴대폰'] || '').trim(),
+    visitDate:  (row['방문 날짜'] || row['방문날짜'] || row['visit_date'] || row['visitDate'] || row['날짜'] || '').trim(),
+    firstVisit: (row['첫 방문'] || row['첫방문'] || row['first_visit'] || row['firstVisit'] || '').trim(),
+    lastVisit:  (row['마지막 방문'] || row['마지막방문'] || row['last_visit'] || row['lastVisit'] || '').trim(),
+    visitCount: (row['방문 횟수'] || row['방문횟수'] || row['visit_count'] || row['visitCount'] || '').trim(),
+    memo:       (row['메모'] || row['memo'] || row['특이사항'] || '').trim()
   };
 }
 
@@ -166,7 +196,7 @@ function _applyImportedCustomers(imported, statusEl) {
     valid.push(item);
   });
   if (!valid.length) {
-    statusEl.textContent = '유효한 데이터가 없습니다. 이름·전화번호·방문 날짜를 확인하세요. (건너뜀: ' + skipped + '건)';
+    statusEl.textContent = '유효한 데이터가 없습니다. 이름·전화번호·방문 날짜(또는 첫 방문)를 확인하세요. (건너뜀: ' + skipped + '건)';
     return;
   }
   if (!S.customers) S.customers = [];
@@ -175,7 +205,12 @@ function _applyImportedCustomers(imported, statusEl) {
   var added = 0;
   valid.forEach(function(item) {
     if (!existingPhones[item.phone]) {
-      S.customers.push(item);
+      S.customers.push({
+        phone: item.phone, name: item.name, memo: item.memo,
+        visitDate: item.visitDate,
+        impFirst: item.firstVisit, impLast: item.lastVisit,
+        impCount: item.visitCount ? (parseInt(item.visitCount, 10) || 0) : 0
+      });
       existingPhones[item.phone] = true;
       added++;
     }
@@ -188,6 +223,23 @@ function _applyImportedCustomers(imported, statusEl) {
   alert(msg);
 }
 
+// 손님 불러오기 예시 CSV 다운로드 (엑셀에서 열어 형식 확인 후 채워서 재업로드)
+function downloadCustImportSample() {
+  var BOM = '\uFEFF';
+  var header = '이름,전화번호,첫 방문,마지막 방문,방문 횟수,메모\n';
+  var rows = [
+    ['홍길동', '010-1234-5678', '2024-01-15', '2024-06-20', '5', '창가 자리 선호'],
+    ['김영희', '010-9876-5432', '2024-03-02', '2024-03-02', '1', '']
+  ].map(function(r) {
+    return r.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',');
+  }).join('\n');
+  var blob = new Blob([BOM + header + rows], {type: 'text/csv;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = '손님_불러오기_예시.csv'; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
 function openCustImport() {
   var notionToken = (typeof getNotionToken === 'function') ? getNotionToken() : (localStorage.getItem('ryuma_notion_token') || '');
   showModal(
@@ -195,9 +247,30 @@ function openCustImport() {
     +'<div class="mb">'
     +'<div style="font-size:12px;color:var(--text2);line-height:1.6;background:var(--surf2);border-radius:8px;padding:9px 11px;margin-bottom:10px">'
     +'<b>지원 형식:</b> CSV · XLSX · JSON<br>'
-    +'<b>필수 열:</b> 이름, 전화번호, 방문 날짜<br>'
-    +'CSV/XLSX 헤더 예: 이름, 전화번호, 방문 날짜, 메모'
+    +'<b>필수 열:</b> 이름, 전화번호 (+ 첫 방문 또는 방문 날짜 중 하나)<br>'
+    +'<b>선택 열:</b> 마지막 방문, 방문 횟수, 메모'
+    +'<div style="overflow-x:auto;margin-top:8px;border-radius:6px;border:1px solid var(--border)">'
+      +'<table style="border-collapse:collapse;width:100%;font-size:10.5px;white-space:nowrap">'
+        +'<tr style="background:var(--surf3)">'
+          +'<th style="padding:4px 7px;text-align:left">이름</th>'
+          +'<th style="padding:4px 7px;text-align:left">전화번호</th>'
+          +'<th style="padding:4px 7px;text-align:left">첫 방문</th>'
+          +'<th style="padding:4px 7px;text-align:left">마지막 방문</th>'
+          +'<th style="padding:4px 7px;text-align:left">방문 횟수</th>'
+          +'<th style="padding:4px 7px;text-align:left">메모</th>'
+        +'</tr>'
+        +'<tr>'
+          +'<td style="padding:4px 7px">홍길동</td>'
+          +'<td style="padding:4px 7px">010-1234-5678</td>'
+          +'<td style="padding:4px 7px">2024-01-15</td>'
+          +'<td style="padding:4px 7px">2024-06-20</td>'
+          +'<td style="padding:4px 7px">5</td>'
+          +'<td style="padding:4px 7px">창가 자리 선호</td>'
+        +'</tr>'
+      +'</table>'
     +'</div>'
+    +'</div>'
+    +'<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-bottom:8px" id="cust-import-sample-btn">📄 예시 엑셀(CSV) 다운로드</button>'
     +'<input type="file" id="cust-import-file" accept=".csv,.xlsx,.xls,.json,.txt" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:8px;background:var(--surf2);color:var(--text);font-family:inherit;font-size:12px;cursor:pointer;margin-bottom:6px">'
     +'<div id="cust-import-status" style="font-size:11px;color:var(--red);min-height:16px;text-align:center;margin-bottom:6px"></div>'
     +'<button class="ab" style="background:var(--blue);width:100%;margin-bottom:8px" id="cust-import-btn">파일 불러오기</button>'
@@ -210,6 +283,8 @@ function openCustImport() {
   );
 
   // ── 파일 불러오기 (CSV / XLSX / JSON) ──
+  document.getElementById('cust-import-sample-btn').addEventListener('click', downloadCustImportSample);
+
   document.getElementById('cust-import-btn').addEventListener('click', function() {
     var fileInput = document.getElementById('cust-import-file');
     var statusEl  = document.getElementById('cust-import-status');
@@ -237,7 +312,7 @@ function openCustImport() {
     // ── CSV / JSON ──
     var reader = new FileReader();
     reader.onload = function(e) {
-      var text = e.target.result;
+      var text = e.target.result.replace(/^﻿/, '');
       var imported = [];
       try {
         if (fname.endsWith('.json')) {
@@ -245,13 +320,13 @@ function openCustImport() {
           if (!Array.isArray(data)) throw new Error('JSON 배열 형식이 아닙니다');
           imported = data.map(_normalizeRow);
         } else {
-          // CSV: 첫 줄을 헤더로 파싱
+          // CSV: 첫 줄을 헤더로 파싱 (따옴표로 감싼 필드 지원)
           var lines = text.split(/\r?\n/);
           if (!lines.length) { statusEl.textContent = '빈 파일입니다'; return; }
-          var headers = lines[0].split(',').map(function(h){ return h.trim(); });
+          var headers = _parseCsvLine(lines[0]).map(function(h){ return h.trim(); });
           for (var i = 1; i < lines.length; i++) {
             if (!lines[i].trim()) continue;
-            var parts = lines[i].split(',');
+            var parts = _parseCsvLine(lines[i]);
             var row = {};
             headers.forEach(function(h, idx){ row[h] = (parts[idx]||'').trim(); });
             imported.push(_normalizeRow(row));
