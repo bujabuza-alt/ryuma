@@ -14,12 +14,12 @@ function doEnter(store) {
   lastSavedTs = 0;  // 매장 전환 시 반드시 초기화
   clearTimeout(fbReconnectTimer); fbReconnectTimer = null;
   fbRef = fbDb.ref('tableApp/' + store);
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[]};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[]};
   cardCache = {};
   stockTab = '전체'; stockChip = 'all'; stockSearch = ''; stockSort = 'name';
   stockOrderMode = false; stockSelectedIds = [];
   imgSearch = '';
-  staffUnlocked = false; staffSubTab = 'active'; staffShiftSel = {}; staffTimeSel = {};
+  staffUnlocked = false; staffSubTab = 'logs';
   document.getElementById('cvi').innerHTML = '';
   editMode = false;
   floorDate = today();
@@ -66,6 +66,9 @@ function doEnter(store) {
       if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
       if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
       if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
+      if (Array.isArray(d.staffRecords)) S.staffRecords = d.staffRecords;
+      if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
+      if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
     }
 
     function boot() {
@@ -130,10 +133,10 @@ function doEnter(store) {
 function logout() {
   if (fbRef) { fbRef.off(); fbRef = null; }
   currentStore = null;
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[]};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[]};
   cardCache = {};
   editMode = false;
-  staffUnlocked = false; staffSubTab = 'active'; staffShiftSel = {}; staffTimeSel = {};
+  staffUnlocked = false; staffSubTab = 'logs';
   try { localStorage.removeItem('ryuma_auth'); } catch(e) {}
   document.getElementById('cvi').innerHTML = '';
   document.getElementById('wrap').style.display = 'none';

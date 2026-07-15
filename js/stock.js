@@ -701,7 +701,9 @@ function openStockListMgr() {
 
 function renderStockListMgrModal() {
   var catsHtml = S.stockCats.map(function(c,i){
-    return '<div class="list-mgr-row"><span class="list-mgr-name">'+esc(c)+'</span><button class="list-mgr-del" onclick="removeStockCat('+i+')">✕</button></div>';
+    return '<div class="list-mgr-row"><span class="list-mgr-name">'+esc(c)+'</span>'
+      +'<button class="list-mgr-edit" onclick="renameStockCat('+i+')">✏</button>'
+      +'<button class="list-mgr-del" onclick="removeStockCat('+i+')">✕</button></div>';
   }).join('') || '<div style="padding:6px;font-size:11px;color:var(--text3)">없음</div>';
   var unitsHtml = S.stockUnits.map(function(u,i){
     return '<div class="list-mgr-row"><span class="list-mgr-name">'+esc(u)+'</span><button class="list-mgr-del" onclick="removeStockUnit('+i+')">✕</button></div>';
@@ -739,11 +741,35 @@ function addStockCat() {
   saveData();
   renderStockListMgrModal();
 }
-function removeStockCat(idx) {
+function renameStockCat(idx) {
   if (!S.stockCats) return;
-  S.stockCats.splice(idx, 1);
+  var oldName = S.stockCats[idx];
+  var v = prompt('카테고리 이름 수정', oldName);
+  if (v === null) return;
+  v = v.trim();
+  if (!v || v === oldName) return;
+  if (S.stockCats.indexOf(v) >= 0) { showToast('이미 있는 카테고리입니다'); return; }
+  S.stockCats[idx] = v;
+  (S.inventory||[]).forEach(function(i){ if (i.cat === oldName) i.cat = v; });
+  if (stockTab === oldName) stockTab = v;
   saveData();
   renderStockListMgrModal();
+  renderStock();
+  showToast('카테고리 이름이 수정되었습니다');
+}
+function removeStockCat(idx) {
+  if (!S.stockCats) return;
+  var name = S.stockCats[idx];
+  var cnt = (S.inventory||[]).filter(function(i){ return i.cat === name; }).length;
+  var msg = cnt > 0
+    ? '"'+name+'" 카테고리를 삭제할까요?\n이 카테고리를 사용 중인 품목 '+cnt+'개는 "기타"로 표시됩니다.'
+    : '"'+name+'" 카테고리를 삭제할까요?';
+  if (!confirm(msg)) return;
+  S.stockCats.splice(idx, 1);
+  if (stockTab === name) stockTab = '전체';
+  saveData();
+  renderStockListMgrModal();
+  renderStock();
 }
 function addStockUnit() {
   var inp = document.getElementById('new-unit-inp');
