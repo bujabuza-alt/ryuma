@@ -1416,6 +1416,16 @@ function syncToday(){
     renderAll();
   }
 }
+// 예약 현황 표의 "테이블" 셀: 배정 테이블명 + 지정 방식(가게/손님) 배지
+function rvTblCellHtml(r) {
+  var tblIds = getRvTableIds(r);
+  var tbls = tblIds.map(function(tid){ return S.tables.filter(function(t){return t.id===tid;})[0]; }).filter(Boolean);
+  var tblLabel = tbls.length ? tbls.map(function(t){return esc(t.n);}).join('+') : '미배정';
+  var srcBadge = (tbls.length && r.tableAssignBy)
+    ? '<span class="rvtbl-src rvtbl-src-'+esc(r.tableAssignBy)+'">'+(r.tableAssignBy==='guest'?'손님':'가게')+'</span>'
+    : '';
+  return '<span class="rvtbl-td-tbl'+(tbls.length?'':' unassigned')+'"><span class="rvtbl-td-tbl-txt">'+esc(tblLabel)+'</span>'+srcBadge+'</span>';
+}
 // ── 오늘 예약 현황 렌더 ──
 function renderTodayRvList() {
   var listEl = document.getElementById('today-rv-list');
@@ -1434,14 +1444,11 @@ function renderTodayRvList() {
   }
   var html = '';
   todayRvs.forEach(function(r) {
-    var tblIds = getRvTableIds(r);
-    var tbls = tblIds.map(function(tid){ return S.tables.filter(function(t){return t.id===tid;})[0]; }).filter(Boolean);
-    var tblLabel = tbls.length ? tbls.map(function(t){return esc(t.n);}).join('+') : '미배정';
     html += '<div class="rvtbl-row" data-rid="'+esc(String(r.id))+'">'
       + '<span class="rvtbl-td-time">'+esc(r.time||'–')+'</span>'
       + '<span class="rvtbl-td-name">'+esc(r.nm||'·')+'</span>'
       + '<span class="rvtbl-td-g">'+esc(String(r.g))+'명</span>'
-      + '<span class="rvtbl-td-tbl'+(tbls.length?'':' unassigned')+'">'+esc(tblLabel)+'</span>'
+      + rvTblCellHtml(r)
       + '<span class="rvtbl-td-tags">'+(r.tags&&r.tags.length?r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join(''):'')+'</span>'
       + '</div>';
   });
@@ -1480,14 +1487,11 @@ function buildInlinePanelHTML(date) {
       + '<span class="rvtbl-th">태그</span>'
       + '</div>';
     rvs.forEach(function(r) {
-      var tblIds = getRvTableIds(r);
-      var tbls = tblIds.map(function(tid){ return S.tables.filter(function(t){return t.id===tid;})[0]; }).filter(Boolean);
-      var tblLabel = tbls.length ? tbls.map(function(t){return esc(t.n);}).join('+') : '미배정';
       html += '<div class="rvtbl-row" data-rid="'+esc(String(r.id))+'">'
         + '<span class="rvtbl-td-time">'+esc(r.time||'–')+'</span>'
         + '<span class="rvtbl-td-name">'+esc(r.nm||'·')+'</span>'
         + '<span class="rvtbl-td-g">'+esc(String(r.g))+'명</span>'
-        + '<span class="rvtbl-td-tbl'+(tbls.length?'':' unassigned')+'">'+esc(tblLabel)+'</span>'
+        + rvTblCellHtml(r)
         + '<span class="rvtbl-td-tags">'+(r.tags&&r.tags.length?r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join(''):'')+'</span>'
         + '</div>';
     });
