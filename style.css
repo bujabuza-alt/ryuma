@@ -728,7 +728,7 @@ body.light .schrv-tag-call { color: #c03060; }
 /* ── 오늘 예약 현황 표 (시간|이름|인원|테이블|태그) ── */
 .rvtbl-row {
   display: grid;
-  grid-template-columns: 44px minmax(52px,120px) 34px 58px minmax(84px,1fr);
+  grid-template-columns: 44px minmax(48px,84px) 34px 58px minmax(84px,1fr);
   align-items: center;
   column-gap: 6px;
   padding: 10px 13px;
@@ -846,13 +846,15 @@ body.light .schrv-tag-call { color: #c03060; }
   overflow: hidden;
   max-height: 0;
   opacity: 0;
-  transition: max-height 0.32s ease, opacity 0.24s ease, margin 0.32s ease;
-  margin: 0;
+  /* #schcal의 12px 패딩을 상쇄해 오늘 예약 현황 표와 폭을 맞춤 */
+  margin: 0 -12px;
+  transition: max-height 0.32s ease, opacity 0.24s ease, margin-top 0.32s ease, margin-bottom 0.32s ease;
 }
 .schcal-inline-panel.open {
   max-height: 400px;
   opacity: 1;
-  margin: 6px 0 4px;
+  margin-top: 6px;
+  margin-bottom: 4px;
 }
 .schcal-inline-panel-inner {
   background: var(--surf2);
