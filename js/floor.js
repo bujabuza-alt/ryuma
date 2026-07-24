@@ -1440,8 +1440,11 @@ function renderTodayRvList() {
     html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
       + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
       + '<div class="schrv-body">'
-      + '<div class="schrv-line"><span class="schrv-name">'+esc(r.nm||'·')+'</span>'
-      + '<span class="schrv-info">'+esc(String(r.g))+'명 · <span style="color:var(--blue)">'+esc(tblLabel)+'</span></span></div>'
+      + '<div class="schrv-line">'
+      + '<span class="schrv-name">'+esc(r.nm||'·')+'</span>'
+      + '<span class="schrv-badge schrv-badge-g">'+esc(String(r.g))+'명</span>'
+      + '<span class="schrv-badge schrv-badge-tbl'+(tbls.length?'':' unassigned')+'">🪑 '+esc(tblLabel)+'</span>'
+      + '</div>'
       + (r.tags&&r.tags.length?'<div class="schrv-tags">'+r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join('')+'</div>':'')
       + '</div>'
       + '</div>';
@@ -1480,8 +1483,11 @@ function buildInlinePanelHTML(date) {
       html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
         + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
         + '<div class="schrv-body">'
-        + '<div class="schrv-line"><span class="schrv-name">'+esc(r.nm||'·')+'</span>'
-        + '<span class="schrv-info">'+esc(String(r.g))+'명 · <span style="color:var(--blue)">'+esc(tblLabel)+'</span></span></div>'
+        + '<div class="schrv-line">'
+        + '<span class="schrv-name">'+esc(r.nm||'·')+'</span>'
+        + '<span class="schrv-badge schrv-badge-g">'+esc(String(r.g))+'명</span>'
+        + '<span class="schrv-badge schrv-badge-tbl'+(tbls.length?'':' unassigned')+'">🪑 '+esc(tblLabel)+'</span>'
+        + '</div>'
         + (r.tags&&r.tags.length?'<div class="schrv-tags">'+r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join('')+'</div>':'')
         + '</div>'
         + '</div>';
