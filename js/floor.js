@@ -1437,20 +1437,16 @@ function renderTodayRvList() {
     var tblIds = getRvTableIds(r);
     var tbls = tblIds.map(function(tid){ return S.tables.filter(function(t){return t.id===tid;})[0]; }).filter(Boolean);
     var tblLabel = tbls.length ? tbls.map(function(t){return esc(t.n);}).join('+') : '미배정';
-    html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
-      + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
-      + '<div class="schrv-body">'
-      + '<div class="schrv-line">'
-      + '<span class="schrv-name">'+esc(r.nm||'·')+'</span>'
-      + '<span class="schrv-badge schrv-badge-g">'+esc(String(r.g))+'명</span>'
-      + '<span class="schrv-badge schrv-badge-tbl'+(tbls.length?'':' unassigned')+'">🪑 '+esc(tblLabel)+'</span>'
-      + '</div>'
-      + (r.tags&&r.tags.length?'<div class="schrv-tags">'+r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join('')+'</div>':'')
-      + '</div>'
+    html += '<div class="rvtbl-row" data-rid="'+esc(String(r.id))+'">'
+      + '<span class="rvtbl-td-time">'+esc(r.time||'–')+'</span>'
+      + '<span class="rvtbl-td-name">'+esc(r.nm||'·')+'</span>'
+      + '<span class="rvtbl-td-g">'+esc(String(r.g))+'명</span>'
+      + '<span class="rvtbl-td-tbl'+(tbls.length?'':' unassigned')+'">'+esc(tblLabel)+'</span>'
+      + '<span class="rvtbl-td-tags">'+(r.tags&&r.tags.length?r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join(''):'')+'</span>'
       + '</div>';
   });
   listEl.innerHTML = html;
-  listEl.querySelectorAll('.schrv-item').forEach(function(el) {
+  listEl.querySelectorAll('.rvtbl-row').forEach(function(el) {
     el.addEventListener('click', function() { openRvDetail(this.getAttribute('data-rid')); });
   });
 }
