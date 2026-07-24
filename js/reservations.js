@@ -41,7 +41,9 @@ function rvItemHtml(r,isPast){
     +'<div class="rvi-n">'+esc(r.nm)+'</div>'
     +'<div class="rvi-s">'+(r.date?dlabel(r.date)+' ':'')+r.g+'명</div>'
     +(r.phone?'<div class="rvi-ph">'+esc(r.phone)+'</div>':'')
-    +(tbls.length?'<div class="rvi-tbl">🪑 '+tbls.map(function(t){return esc(t.n);}).join(' + ')+'</div>':'')
+    +(tbls.length?'<div class="rvi-tbl">🪑 '+tbls.map(function(t){return esc(t.n);}).join(' + ')
+      +(r.tableAssignBy?' <span class="rvi-src rvi-src-'+esc(r.tableAssignBy)+'">'+(r.tableAssignBy==='guest'?'손님':'가게')+'</span>':'')
+      +'</div>':'')
     +(r.tags&&r.tags.length?'<div class="rvi-tags">'+r.tags.map(function(t){return'<span class="rvi-tag">'+esc(t)+'</span>';}).join('')+'</div>':'')
     +(r.memo?'<div class="rvi-m">📝'+esc(r.memo)+'</div>':'')
     +'</div>'
@@ -295,11 +297,15 @@ function openAssignTable(rid) {
 
   var currentDate = floorDate || today();
   var et = S.tables.filter(function(t){ return !isSlaveTbl(t.id); });
+  // 항상 1~6번 → 바1~3번 순서 고정 (배정 상태와 무관하게 이름의 접두어+번호 기준 정렬)
+  function tableSortKey(t){
+    var m = String(t.n).match(/^(\D*)(\d+)/);
+    return m ? [m[1], parseInt(m[2], 10)] : [String(t.n), 0];
+  }
   et.sort(function(a, b){
-    var av = a.st === 'empty' ? 0 : 1;
-    var bv = b.st === 'empty' ? 0 : 1;
-    if (av !== bv) return av - bv;
-    return String(a.n).localeCompare(String(b.n), 'ko');
+    var ka = tableSortKey(a), kb = tableSortKey(b);
+    if (ka[0] !== kb[0]) return ka[0] < kb[0] ? -1 : 1;
+    return ka[1] - kb[1];
   });
 
   // 마스터 테이블의 수용인원 = 마스터 자신 + 병합된 슬레이브 테이블의 합산
@@ -317,10 +323,17 @@ function openAssignTable(rid) {
   // selTids는 String 타입으로 통일하여 숫자/문자열 ID 혼재 시 indexOf 오류 방지
   var selTids = getRvTableIds(r).map(String);
 
+  var assignSrc = r.tableAssignBy === 'guest' ? 'guest' : 'store';
+
   var html = '<div class="md-hd"><span class="md-title">' + esc(r.nm) + ' — 테이블 배정</span><button class="md-x" id="mxbtn">×</button></div>';
   if (!et.length) html += '<p style="font-size:13px;color:var(--text3);text-align:center;padding:16px 0">배정 가능한 테이블 없음</p>';
   else html += '<p style="font-size:13px;color:var(--text2);margin-bottom:6px">테이블을 선택하세요 (복수 선택 가능)</p>'
     + '<div id="assign-info" style="font-size:11px;color:var(--text3);margin-bottom:8px">미배정</div>'
+    + '<div class="fg" style="margin-bottom:8px"><label class="fl">지정 방식</label>'
+    + '<div class="tag-picker" id="assign-src-picker">'
+    + '<button type="button" class="tag-pill' + (assignSrc === 'store' ? ' on' : '') + '" data-src="store">가게 지정</button>'
+    + '<button type="button" class="tag-pill' + (assignSrc === 'guest' ? ' on' : '') + '" data-src="guest">손님 지정</button>'
+    + '</div></div>'
     + '<div style="display:flex;flex-direction:column;gap:6px">'
     + et.map(function(t){
       var assignedCount = S.ress.filter(function(x){
@@ -364,6 +377,14 @@ function openAssignTable(rid) {
     });
   });
 
+  var srcPicker = document.getElementById('assign-src-picker');
+  if (srcPicker) srcPicker.querySelectorAll('.tag-pill').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      assignSrc = this.getAttribute('data-src');
+      srcPicker.querySelectorAll('.tag-pill').forEach(function(b){ b.classList.toggle('on', b===btn); });
+    });
+  });
+
   var bOk = document.getElementById('bassign-ok');
   if(bOk) bOk.addEventListener('click', function(){
     // 수용인원 초과 시 확인 다이얼로그
@@ -390,7 +411,7 @@ function openAssignTable(rid) {
     var savedIds = selTids.map(function(s){ var n = +s; return isNaN(n) ? s : n; });
     var tableId = savedIds[0] != null ? savedIds[0] : null;
     S.ress = S.ress.map(function(x){
-      return x.id==rid ? Object.assign({},x,{tableId:tableId, tableIds:savedIds.slice()}) : x;
+      return x.id==rid ? Object.assign({},x,{tableId:tableId, tableIds:savedIds.slice(), tableAssignBy: savedIds.length ? assignSrc : null}) : x;
     });
 
     if(selTids.length && r.date===currentDate){
