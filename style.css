@@ -658,31 +658,31 @@ textarea.fi{resize:none;min-height:60px;}
 .schrv-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 5px;
+  margin-top: 5px;
 }
 .schrv-tag-confirm {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   border-radius: 5px;
-  padding: 2px 7px;
+  padding: 3px 9px;
   background: rgba(42,154,90,.15);
   color: var(--green);
 }
 .schrv-tag-call {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   border-radius: 5px;
-  padding: 2px 7px;
+  padding: 3px 9px;
   background: rgba(220,60,100,.1);
   color: #d04070;
 }
 body.light .schrv-tag-call { color: #c03060; }
 .schrv-tag-pending {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   border-radius: 5px;
-  padding: 2px 7px;
+  padding: 3px 9px;
   background: rgba(200,146,42,.15);
   color: var(--amber);
 }
@@ -695,11 +695,11 @@ body.light .schrv-tag-call { color: #c03060; }
 
 /* ── Improved reservation item visibility ── */
 .schrv-item {
-  padding: 12px 13px;
+  padding: 14px 13px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 11px;
   cursor: pointer;
   transition: background .14s;
 }
@@ -712,23 +712,23 @@ body.light .schrv-tag-call { color: #c03060; }
   background: rgba(196,18,48,.12);
   color: var(--red2);
   border-radius: 6px;
-  padding: 5px 8px;
-  font-size: 13px;
+  padding: 6px 10px;
+  font-size: 16px;
   font-weight: 800;
   flex-shrink: 0;
-  min-width: 50px;
+  min-width: 58px;
   text-align: center;
 }
 .schrv-name {
   font-weight: 800;
-  font-size: 15px;
+  font-size: 18px;
   color: var(--text);
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 .schrv-info {
-  font-size: 12px;
+  font-size: 15px;
   color: var(--text2);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 /* ── Inline calendar accordion panel ── */
