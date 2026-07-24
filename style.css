@@ -724,6 +724,70 @@ body.light .schrv-tag-call { color: #c03060; }
   font-size: 12px;
 }
 
+/* ── 오늘 예약 현황 표 (시간|이름|인원|테이블|태그) ── */
+.rvtbl-row {
+  display: grid;
+  grid-template-columns: 42px 1fr 34px 56px 1fr;
+  align-items: center;
+  column-gap: 6px;
+  padding: 10px 13px;
+  border-bottom: 1px solid var(--border);
+}
+.rvtbl-row:last-child { border-bottom: none; }
+.rvtbl-row[data-rid] { cursor: pointer; transition: background .14s; }
+.rvtbl-row[data-rid]:active { background: var(--surf2); }
+@media (hover:hover) and (pointer:fine) {
+  .rvtbl-row[data-rid]:hover { background: var(--surf2); }
+}
+.rvtbl-head {
+  padding: 7px 13px;
+  background: var(--surf2);
+  border-bottom: 1px solid var(--border);
+}
+.rvtbl-th {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text3);
+  letter-spacing: .03em;
+}
+.rvtbl-th-c { text-align: center; }
+.rvtbl-td-time {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--red2);
+}
+.rvtbl-td-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.rvtbl-td-g {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  text-align: center;
+}
+.rvtbl-td-tbl {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--blue);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rvtbl-td-tbl.unassigned { color: var(--amber); }
+.rvtbl-td-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
 /* ── Improved reservation item visibility ── */
 .schrv-item {
   padding: 14px 13px;

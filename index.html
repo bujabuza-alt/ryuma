@@ -103,6 +103,13 @@
             <span class="schrv-title">오늘 예약 현황</span>
             <span class="schrv-cnt" id="today-rv-cnt"></span>
           </div>
+          <div class="rvtbl-row rvtbl-head">
+            <span class="rvtbl-th">시간</span>
+            <span class="rvtbl-th">이름</span>
+            <span class="rvtbl-th rvtbl-th-c">인원</span>
+            <span class="rvtbl-th rvtbl-th-c">테이블</span>
+            <span class="rvtbl-th">태그</span>
+          </div>
           <div id="today-rv-list"></div>
         </div>
         <!-- 확인 사항 섹션 (주의사항 + 체크리스트 통합, 카테고리 동적 관리) -->
@@ -285,14 +292,19 @@ if ('serviceWorker' in navigator) {
       document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'visible') reg.update();
       });
+      // iOS 홈 화면 앱은 오래 열어두면 페이지가 잠들었다 깨어날 때도 확인
+      window.addEventListener('pageshow', function() { reg.update(); });
     }).catch(function(){});
   });
   // 새 서비스워커가 활성화되어 페이지를 넘겨받으면 자동으로 새로고침해서 최신 화면 반영
+  // iOS 홈 화면 앱(WKWebView)은 location.reload()가 내부 캐시를 우회하지 못하는 경우가 있어
+  // 캐시버스팅 쿼리스트링을 붙인 완전히 새로운 내비게이션으로 강제 전환
   var swRefreshed = false;
   navigator.serviceWorker.addEventListener('controllerchange', function() {
     if (swRefreshed) return;
     swRefreshed = true;
-    window.location.reload();
+    var base = window.location.href.split('#')[0].split('?')[0];
+    window.location.replace(base + '?_r=' + Date.now());
   });
 }
 </script>
