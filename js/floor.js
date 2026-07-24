@@ -1472,20 +1472,23 @@ function buildInlinePanelHTML(date) {
   if (!rvs.length) {
     html += '<div class="schrv-empty">예약이 없습니다</div>';
   } else {
+    html += '<div class="rvtbl-row rvtbl-head">'
+      + '<span class="rvtbl-th">시간</span>'
+      + '<span class="rvtbl-th">이름</span>'
+      + '<span class="rvtbl-th rvtbl-th-c">인원</span>'
+      + '<span class="rvtbl-th rvtbl-th-c">테이블</span>'
+      + '<span class="rvtbl-th">태그</span>'
+      + '</div>';
     rvs.forEach(function(r) {
       var tblIds = getRvTableIds(r);
       var tbls = tblIds.map(function(tid){ return S.tables.filter(function(t){return t.id===tid;})[0]; }).filter(Boolean);
       var tblLabel = tbls.length ? tbls.map(function(t){return esc(t.n);}).join('+') : '미배정';
-      html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
-        + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
-        + '<div class="schrv-body">'
-        + '<div class="schrv-line">'
-        + '<span class="schrv-name">'+esc(r.nm||'·')+'</span>'
-        + '<span class="schrv-badge schrv-badge-g">'+esc(String(r.g))+'명</span>'
-        + '<span class="schrv-badge schrv-badge-tbl'+(tbls.length?'':' unassigned')+'">🪑 '+esc(tblLabel)+'</span>'
-        + '</div>'
-        + (r.tags&&r.tags.length?'<div class="schrv-tags">'+r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join('')+'</div>':'')
-        + '</div>'
+      html += '<div class="rvtbl-row" data-rid="'+esc(String(r.id))+'">'
+        + '<span class="rvtbl-td-time">'+esc(r.time||'–')+'</span>'
+        + '<span class="rvtbl-td-name">'+esc(r.nm||'·')+'</span>'
+        + '<span class="rvtbl-td-g">'+esc(String(r.g))+'명</span>'
+        + '<span class="rvtbl-td-tbl'+(tbls.length?'':' unassigned')+'">'+esc(tblLabel)+'</span>'
+        + '<span class="rvtbl-td-tags">'+(r.tags&&r.tags.length?r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join(''):'')+'</span>'
         + '</div>';
     });
   }
@@ -1635,7 +1638,7 @@ function renderSchedView() {
   });
 
   // 인라인 패널 예약 항목 터치 → 상세 보기
-  gEl.querySelectorAll('.schcal-inline-list .schrv-item').forEach(function(el) {
+  gEl.querySelectorAll('.schcal-inline-list .rvtbl-row[data-rid]').forEach(function(el) {
     el.addEventListener('click', function(e) {
       e.stopPropagation();
       openRvDetail(this.getAttribute('data-rid'));
