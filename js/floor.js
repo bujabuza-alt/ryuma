@@ -1440,8 +1440,8 @@ function renderTodayRvList() {
     html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
       + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
       + '<div class="schrv-body">'
-      + '<div class="schrv-name">'+esc(r.nm||'·')+'</div>'
-      + '<div class="schrv-info">'+esc(String(r.g))+'명 · <span style="color:var(--blue)">'+esc(tblLabel)+'</span></div>'
+      + '<div class="schrv-line"><span class="schrv-name">'+esc(r.nm||'·')+'</span>'
+      + '<span class="schrv-info">'+esc(String(r.g))+'명 · <span style="color:var(--blue)">'+esc(tblLabel)+'</span></span></div>'
       + (r.tags&&r.tags.length?'<div class="schrv-tags">'+r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join('')+'</div>':'')
       + '</div>'
       + '</div>';
@@ -1480,8 +1480,8 @@ function buildInlinePanelHTML(date) {
       html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
         + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
         + '<div class="schrv-body">'
-        + '<div class="schrv-name">'+esc(r.nm||'·')+'</div>'
-        + '<div class="schrv-info">'+esc(String(r.g))+'명 · <span style="color:var(--blue)">'+esc(tblLabel)+'</span></div>'
+        + '<div class="schrv-line"><span class="schrv-name">'+esc(r.nm||'·')+'</span>'
+        + '<span class="schrv-info">'+esc(String(r.g))+'명 · <span style="color:var(--blue)">'+esc(tblLabel)+'</span></span></div>'
         + (r.tags&&r.tags.length?'<div class="schrv-tags">'+r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join('')+'</div>':'')
         + '</div>'
         + '</div>';
@@ -1670,8 +1670,8 @@ function renderSchedRvList(filterDate) {
     html += '<div class="schrv-item" data-rid="'+esc(String(r.id))+'">'
       + '<div class="schrv-time">'+esc(r.time||'–')+'</div>'
       + '<div class="schrv-body">'
-      + '<div class="schrv-name">'+(r.nm ? esc(r.nm) : '<span style="color:var(--text3)">·</span>')+'</div>'
-      + '<div class="schrv-info">'+esc(dateLabel)+' '+esc(String(r.g))+'명'+(r.phone?' · '+esc(r.phone):'')+'</div>'
+      + '<div class="schrv-line"><span class="schrv-name">'+(r.nm ? esc(r.nm) : '<span style="color:var(--text3)">·</span>')+'</span>'
+      + '<span class="schrv-info">'+esc(dateLabel)+' '+esc(String(r.g))+'명'+(r.phone?' · '+esc(r.phone):'')+'</span></div>'
       + '<div class="schrv-tags">'
       + '<span class="schrv-tag-call">전화</span>'
       + '</div>'
