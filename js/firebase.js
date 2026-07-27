@@ -1,5 +1,55 @@
 // ── Firebase ──
 var isSyncingFromRemote = false; // prevent listener→syncToday→saveData feedback loop
+var saveErrorModalOpen = false;
+
+// ── 저장 실패 팝업 ──
+function getSaveErrorInfo(code, message) {
+  if (code === 'PERMISSION_DENIED') {
+    return {
+      reason: '이 매장 계정에 저장 권한이 없습니다 (Firebase 보안 규칙에 의해 차단됨).',
+      fix: '① 로그아웃 후 다시 로그인해보세요.<br>② 계속되면 관리자에게 문의해 계정 권한 또는 Firebase 보안 규칙을 확인해달라고 요청하세요.'
+    };
+  }
+  if (code === 'TIMEOUT' || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+    return {
+      reason: '인터넷 연결이 원활하지 않아 서버 저장이 30초 넘게 응답하지 않았습니다.',
+      fix: 'Wi-Fi 또는 데이터 연결 상태를 확인한 뒤 "다시 시도"를 눌러주세요.'
+    };
+  }
+  return {
+    reason: '알 수 없는 오류로 저장에 실패했습니다.' + (message ? ' (' + esc(message) + ')' : ''),
+    fix: '잠시 후 "다시 시도"를 눌러주세요. 계속 실패하면 앱을 새로고침하거나 관리자에게 문의하세요.'
+  };
+}
+function showSaveErrorModal(code, message) {
+  if (saveErrorModalOpen) return;
+  var mo2 = document.getElementById('mo2'), mdc2 = document.getElementById('mdc2');
+  if (!mo2 || !mdc2) return;
+  var info = getSaveErrorInfo(code, message);
+  saveErrorModalOpen = true;
+  mdc2.innerHTML =
+    '<div class="md-hd"><span class="md-title">⚠ 저장 실패</span><button class="md-x" id="se-x">×</button></div>' +
+    '<div class="mb">' +
+    '<div style="font-size:13px;color:var(--text);line-height:1.6"><b>원인</b><br>' + esc(info.reason) + '</div>' +
+    '<div style="font-size:13px;color:var(--text);line-height:1.6"><b>해결 방법</b><br>' + info.fix + '</div>' +
+    '<div style="font-size:12px;color:var(--text2);background:var(--surf3);border-radius:8px;padding:8px 10px;line-height:1.5">💾 입력하신 내용은 이 기기에 임시 저장되어 사라지지 않습니다. 저장에 성공하면 자동으로 동기화됩니다.</div>' +
+    '<div style="display:flex;gap:7px">' +
+    '<button class="ab" style="background:var(--surf3);color:var(--text2);flex:1" id="se-close">닫기</button>' +
+    '<button class="ab" style="background:var(--indigo);flex:1" id="se-retry">다시 시도</button>' +
+    '</div>' +
+    '</div>';
+  mo2.classList.add('on');
+  document.getElementById('se-x').addEventListener('click', closeSaveErrorModal);
+  document.getElementById('se-close').addEventListener('click', closeSaveErrorModal);
+  document.getElementById('se-retry').addEventListener('click', function() { closeSaveErrorModal(); saveData(); });
+}
+function closeSaveErrorModal() {
+  if (!saveErrorModalOpen) return;
+  var mo2 = document.getElementById('mo2'), mdc2 = document.getElementById('mdc2');
+  if (mo2) mo2.classList.remove('on');
+  if (mdc2) mdc2.innerHTML = '';
+  saveErrorModalOpen = false;
+}
 function loadData() {
   try {
     var d = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -79,12 +129,12 @@ function saveData() {
       return;
     }
     var retries = 0;
-    var fbSaveTimeout = setTimeout(function() { showBadge('err'); setTimeout(function(){ showBadge(''); }, 8000); }, 30000);
+    var fbSaveTimeout = setTimeout(function() { showBadge('err'); setTimeout(function(){ showBadge(''); }, 8000); showSaveErrorModal('TIMEOUT', null); }, 30000);
     function tryWrite() {
       // set() 대신 update()를 사용해, 이번 저장에 포함되지 않은 필드(예: 위에서 제외한
       // confirmItems)는 원격에 남아있는 값을 그대로 보존한다.
       fbRef.update(p)
-        .then(function() { clearTimeout(fbSaveTimeout); showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000); })
+        .then(function() { clearTimeout(fbSaveTimeout); showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000); closeSaveErrorModal(); })
         .catch(function(err) {
           var code = (err && err.code) || '';
           // PERMISSION_DENIED는 재시도해도 해결되지 않음
@@ -96,6 +146,7 @@ function saveData() {
             if (code === 'PERMISSION_DENIED') {
               console.warn('Firebase 보안 규칙을 확인하세요 — Firebase 콘솔 > Realtime Database > 규칙');
             }
+            showSaveErrorModal(code, err && err.message);
           } else {
             retries++;
             setTimeout(tryWrite, retries * 3000);
