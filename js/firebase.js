@@ -104,10 +104,28 @@ function loadData() {
     if (!S.staffFavTimes) S.staffFavTimes = [];
   } catch(e) { S.tags = DEFAULT_TAGS.slice(); S.staffPw = S.staffPw || DEFAULT_STAFF_PW; }
 }
+var saveDirty = false; // saveData() 예약(디바운스 대기) 중이면 true — flushPendingSave가 참조
 function saveData() {
+  saveDirty = true;
   clearTimeout(saveTimer);
   showBadge('saving');
-  saveTimer = setTimeout(function() {
+  saveTimer = setTimeout(doActualSave, 400);
+}
+// 탭/앱이 백그라운드로 전환되기 직전에 즉시 호출해, 아직 실행되지 않은 디바운스 저장을
+// 그대로 날려버리지 않고 바로 실행한다. 모바일에서는 화면이 꺼지거나 다른 앱으로
+// 전환되면 400ms 타이머가 지연되거나 아예 실행되지 않을 수 있어(백그라운드 탭 스로틀링),
+// "편집 직후 바로 앱을 전환/종료"하는 흔한 사용 패턴에서 조용히 저장이 누락되는 원인이 된다.
+function flushPendingSave() {
+  if (!saveDirty) return;
+  clearTimeout(saveTimer);
+  doActualSave();
+}
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') flushPendingSave();
+});
+window.addEventListener('pagehide', flushPendingSave);
+function doActualSave() {
+    saveDirty = false;
     var ts = Date.now(); lastSavedTs = ts;
 
     // 이 기기에 아직 로컬로 내려받은 확인사항이 없으면(신규 기기, 캐시 삭제 직후 등)
@@ -183,7 +201,6 @@ function saveData() {
         });
     }
     tryWrite();
-  }, 400);
 }
 var fbReconnectTimer = null;
 function startFb() {
