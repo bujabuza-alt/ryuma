@@ -1,6 +1,26 @@
 // ── Firebase ──
 var isSyncingFromRemote = false; // prevent listener→syncToday→saveData feedback loop
 var saveErrorModalOpen = false;
+var pendingSaveAfterReconnect = false;
+
+// ── Firebase 실시간 연결 상태 추적 ──
+// navigator.onLine은 OS 네트워크 인터페이스 상태만 알려줄 뿐, 와이파이는 켜져 있는데
+// 화면 꺼짐/절전모드/네트워크 전환 등으로 Firebase 웹소켓만 조용히 끊기는 경우를 잡지 못한다.
+// 공식 특수 경로(.info/connected)를 구독해 "진짜" 연결 상태를 추적한다.
+var fbConnected = true;
+(function startFbConnMonitor() {
+  if (typeof fbDb === 'undefined' || !fbDb) return;
+  fbDb.ref('.info/connected').on('value', function(snap) {
+    var was = fbConnected;
+    fbConnected = snap.val() === true;
+    // 끊겼다가 복구된 순간, 직전 저장이 실패해 대기 중이었다면 자동으로 재시도
+    if (!was && fbConnected && (saveErrorModalOpen || pendingSaveAfterReconnect)) {
+      pendingSaveAfterReconnect = false;
+      closeSaveErrorModal();
+      saveData();
+    }
+  });
+})();
 
 // ── 저장 실패 팝업 ──
 function getSaveErrorInfo(code, message) {
@@ -10,10 +30,10 @@ function getSaveErrorInfo(code, message) {
       fix: '① 로그아웃 후 다시 로그인해보세요.<br>② 계속되면 관리자에게 문의해 계정 권한 또는 Firebase 보안 규칙을 확인해달라고 요청하세요.'
     };
   }
-  if (code === 'TIMEOUT' || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+  if (code === 'OFFLINE' || code === 'TIMEOUT' || !fbConnected) {
     return {
-      reason: '인터넷 연결이 원활하지 않아 서버 저장이 30초 넘게 응답하지 않았습니다.',
-      fix: 'Wi-Fi 또는 데이터 연결 상태를 확인한 뒤 "다시 시도"를 눌러주세요.'
+      reason: '서버와의 실시간 연결이 끊긴 상태입니다. Wi-Fi가 켜져 있어도 화면 꺼짐·절전모드·네트워크 전환 등으로 끊길 수 있습니다.',
+      fix: '연결이 복구되면 자동으로 다시 저장을 시도합니다. 계속되면 Wi-Fi를 껐다 켜거나 앱을 새로고침해주세요.'
     };
   }
   return {
@@ -126,6 +146,15 @@ function saveData() {
     if (!fbRef) {
       showBadge('saved');
       setTimeout(function(){ showBadge(''); }, 2000);
+      return;
+    }
+    // 실시간 연결이 이미 끊긴 게 확인된 상태면, 30초를 기다리지 않고 바로 안내하고
+    // 연결이 복구되는 순간 자동으로 재시도한다 (startFbConnMonitor 참고).
+    if (!fbConnected) {
+      showBadge('err');
+      setTimeout(function(){ showBadge(''); }, 8000);
+      pendingSaveAfterReconnect = true;
+      showSaveErrorModal('OFFLINE', null);
       return;
     }
     var retries = 0;

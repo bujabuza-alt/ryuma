@@ -7,6 +7,11 @@ function showStore() {
   document.getElementById('pw-err').textContent = '';
 }
 function doEnter(store) {
+  // 이전 매장에서 예약돼있던 저장(400ms 디바운스)이 매장 전환 후에 실행되면
+  // 아직 로딩되지 않은(비어있는) 새 매장 데이터로 원격을 덮어써버릴 수 있어 반드시 취소한다.
+  clearTimeout(saveTimer);
+  pendingSaveAfterReconnect = false;
+  closeSaveErrorModal();
   currentStore = store;
   STORAGE_KEY  = 'tv5_' + store;
   if (fbRef) fbRef.off();
@@ -131,6 +136,9 @@ function doEnter(store) {
   });
 }
 function logout() {
+  clearTimeout(saveTimer);
+  pendingSaveAfterReconnect = false;
+  closeSaveErrorModal();
   if (fbRef) { fbRef.off(); fbRef = null; }
   currentStore = null;
   S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[]};
