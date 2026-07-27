@@ -166,17 +166,16 @@ function doActualSave() {
       setTimeout(function(){ showBadge(''); }, 2000);
       return;
     }
-    // 실시간 연결이 이미 끊긴 게 확인된 상태면, 30초를 기다리지 않고 바로 안내하고
-    // 연결이 복구되는 순간 자동으로 재시도한다 (startFbConnMonitor 참고).
-    if (!fbConnected) {
-      showBadge('err');
-      setTimeout(function(){ showBadge(''); }, 8000);
-      pendingSaveAfterReconnect = true;
-      showSaveErrorModal('OFFLINE', null);
-      return;
-    }
+    // 주의: fbConnected(.info/connected)는 매장 네트워크(웹소켓 불안정 등) 상황에 따라
+    // 실제로는 쓰기가 가능한데도 false로 잘못 보고될 수 있다. 그래서 이 값만으로 저장을
+    // 사전에 차단하지 않고, 항상 실제 쓰기를 시도한 뒤 그 결과(성공/실패/타임아웃)로
+    // 판단한다. fbConnected는 재연결 시 자동 재시도(startFbConnMonitor) 용도로만 쓴다.
     var retries = 0;
-    var fbSaveTimeout = setTimeout(function() { showBadge('err'); setTimeout(function(){ showBadge(''); }, 8000); showSaveErrorModal('TIMEOUT', null); }, 30000);
+    var fbSaveTimeout = setTimeout(function() {
+      showBadge('err'); setTimeout(function(){ showBadge(''); }, 8000);
+      pendingSaveAfterReconnect = true;
+      showSaveErrorModal('TIMEOUT', null);
+    }, 30000);
     function tryWrite() {
       // set() 대신 update()를 사용해, 이번 저장에 포함되지 않은 필드(예: 위에서 제외한
       // confirmItems)는 원격에 남아있는 값을 그대로 보존한다.
@@ -192,6 +191,8 @@ function doActualSave() {
             console.error('Firebase save failed [' + code + ']:', err && err.message);
             if (code === 'PERMISSION_DENIED') {
               console.warn('Firebase 보안 규칙을 확인하세요 — Firebase 콘솔 > Realtime Database > 규칙');
+            } else {
+              pendingSaveAfterReconnect = true;
             }
             showSaveErrorModal(code, err && err.message);
           } else {
