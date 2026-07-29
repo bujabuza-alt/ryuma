@@ -22,6 +22,26 @@ var fbConnected = true;
   });
 })();
 
+// ── REST API 폴백 저장 ──
+// Firebase JS SDK는 지속적인 웹소켓 연결이 있어야 저장이 성공한다. 매장 네트워크(공유기/
+// 방화벽)가 일반 HTTPS 요청은 허용하면서 이런 장시간 연결만 막거나 불안정하게 만드는
+// 경우가 흔한데, 이때는 페이지·이미지 등은 정상적으로 로딩되면서 저장(웹소켓 필요)만
+// 계속 실패하는 것처럼 보인다. 이 앱은 Firebase Auth를 쓰지 않으므로(보안 규칙이 인증
+// 없이 열려 있음), 단순 HTTPS PATCH 요청인 REST API로도 SDK와 동일하게 저장할 수 있다.
+function restSaveFallback(payload) {
+  var base = (fbApp && fbApp.options && fbApp.options.databaseURL) || '';
+  if (!base || !currentStore) return Promise.reject(new Error('REST fallback: no db url/store'));
+  var url = base + '/tableApp/' + currentStore + '.json';
+  return fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(function(res) {
+    if (!res.ok) throw new Error('REST PATCH failed: ' + res.status);
+    return res.json();
+  });
+}
+
 // ── 저장 실패 팝업 ──
 function getSaveErrorInfo(code, message) {
   if (code === 'PERMISSION_DENIED') {
@@ -171,30 +191,51 @@ function doActualSave() {
     // 사전에 차단하지 않고, 항상 실제 쓰기를 시도한 뒤 그 결과(성공/실패/타임아웃)로
     // 판단한다. fbConnected는 재연결 시 자동 재시도(startFbConnMonitor) 용도로만 쓴다.
     var retries = 0;
+    var settled = false; // SDK 성공/REST 폴백 성공/최종 실패 중 하나로 이미 마무리됐는지
+    function onSaveSucceeded() {
+      if (settled) return;
+      settled = true;
+      clearTimeout(fbSaveTimeout);
+      showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000);
+      closeSaveErrorModal();
+    }
+    function onSaveFailed(code, message) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(fbSaveTimeout);
+      showBadge('err');
+      setTimeout(function(){ showBadge(''); }, 8000);
+      if (code !== 'PERMISSION_DENIED') pendingSaveAfterReconnect = true;
+      showSaveErrorModal(code, message);
+    }
+    // SDK 쓰기가 30초 넘도록 응답이 없을 때(웹소켓이 조용히 막혀 있는 매장 네트워크 등):
+    // 포기하기 전에 일반 HTTPS REST 방식으로 한 번 더 시도해본다.
     var fbSaveTimeout = setTimeout(function() {
-      showBadge('err'); setTimeout(function(){ showBadge(''); }, 8000);
-      pendingSaveAfterReconnect = true;
-      showSaveErrorModal('TIMEOUT', null);
+      restSaveFallback(p).then(onSaveSucceeded).catch(function(restErr) {
+        console.error('Firebase REST save fallback failed:', restErr);
+        onSaveFailed('TIMEOUT', null);
+      });
     }, 30000);
     function tryWrite() {
       // set() 대신 update()를 사용해, 이번 저장에 포함되지 않은 필드(예: 위에서 제외한
       // confirmItems)는 원격에 남아있는 값을 그대로 보존한다.
       fbRef.update(p)
-        .then(function() { clearTimeout(fbSaveTimeout); showBadge('saved'); setTimeout(function(){ showBadge(''); }, 2000); closeSaveErrorModal(); })
+        .then(onSaveSucceeded)
         .catch(function(err) {
           var code = (err && err.code) || '';
           // PERMISSION_DENIED는 재시도해도 해결되지 않음
-          if (code === 'PERMISSION_DENIED' || retries >= 2) {
-            clearTimeout(fbSaveTimeout);
-            showBadge('err');
-            setTimeout(function(){ showBadge(''); }, 8000);
+          if (code === 'PERMISSION_DENIED') {
             console.error('Firebase save failed [' + code + ']:', err && err.message);
-            if (code === 'PERMISSION_DENIED') {
-              console.warn('Firebase 보안 규칙을 확인하세요 — Firebase 콘솔 > Realtime Database > 규칙');
-            } else {
-              pendingSaveAfterReconnect = true;
-            }
-            showSaveErrorModal(code, err && err.message);
+            console.warn('Firebase 보안 규칙을 확인하세요 — Firebase 콘솔 > Realtime Database > 규칙');
+            onSaveFailed(code, err && err.message);
+          } else if (retries >= 2) {
+            // SDK(웹소켓) 경로가 계속 실패 — 매장 네트워크가 웹소켓만 막고 일반 HTTPS는
+            // 허용하는 경우일 수 있으므로 REST API로 마지막 시도
+            console.error('Firebase SDK save failed [' + code + '], REST 폴백 시도:', err && err.message);
+            restSaveFallback(p).then(onSaveSucceeded).catch(function(restErr) {
+              console.error('Firebase REST save fallback also failed:', restErr);
+              onSaveFailed(code, err && err.message);
+            });
           } else {
             retries++;
             setTimeout(tryWrite, retries * 3000);
