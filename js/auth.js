@@ -83,7 +83,9 @@ function doEnter(store) {
         if (oldLocal && oldLocal.tables && oldLocal.tables.length && !S.tables.length) {
           // localStorage 구버전 데이터 발견 → 적용 후 Firebase에 저장
           applyData(oldLocal);
-          fbRef.set({
+          // set() 대신 update()를 사용: 여기 payload에 없는 필드(customers, images,
+          // staffLogs, confirmItems 등)까지 set()이 통째로 지워버리는 유실 버그가 있었다.
+          fbRef.update({
             tables: S.tables, waits: S.waits, ress: S.ress,
             tags: S.tags, daily: S.daily, _ts: Date.now()
           }).then(function() {
@@ -115,7 +117,9 @@ function doEnter(store) {
         // 구버전은 tables 배열이 tableApp 바로 아래에 있음
         if (oldFb && oldFb.tables && oldFb.tables.length) {
           applyData(oldFb);
-          fbRef.set({
+          // set() 대신 update()를 사용: 여기 payload에 없는 필드(customers, images,
+          // staffLogs, confirmItems 등)까지 set()이 통째로 지워버리는 유실 버그가 있었다.
+          fbRef.update({
             tables: S.tables, waits: S.waits, ress: S.ress,
             tags: S.tags, daily: S.daily, _ts: Date.now()
           }).then(function() {
