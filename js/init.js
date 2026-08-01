@@ -81,7 +81,11 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
         return { text: (it && typeof it === 'object') ? it.text : it };
       });
     });
-    save(data);
+    // save()가 아닌 로컬 저장만 수행한다: migrate()는 "아직 아무 데이터도 없어 기본값을
+    // 만드는" 로드 경로일 뿐 사용자가 실제로 편집한 게 아니므로, 여기서 Firebase까지
+    // 동기화(saveData())해버리면 아직 원격의 진짜 데이터를 받아오지 못한 시점에 빈 기본값으로
+    // 덮어써버릴 위험이 있다(다른 기기에서 열자마자 메모가 사라지는 버그의 원인이었음).
+    try { localStorage.setItem(storeKey(), JSON.stringify(data)); } catch(e) {}
     return data;
   }
 

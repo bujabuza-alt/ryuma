@@ -74,6 +74,13 @@ function doEnter(store) {
       if (Array.isArray(d.staffRecords)) S.staffRecords = d.staffRecords;
       if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
       if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
+      // 확인 사항(홀현황 메모/체크리스트)은 S가 아닌 별도 localStorage 키에 보관되므로
+      // 여기서 함께 복원해두지 않으면, boot()가 startFb() 리스너를 붙이기 전에
+      // switchTab('floor')가 먼저 렌더링을 시도해 로컬에 데이터가 없는 것으로 오인하고
+      // 빈 기본값을 만들어 원격 데이터를 덮어써버리는 경쟁 조건이 발생한다.
+      if (d.confirmItems && d.confirmItems.cats && d.confirmItems.cats.length) {
+        try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(d.confirmItems)); } catch(e) {}
+      }
     }
 
     function boot() {
