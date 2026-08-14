@@ -166,7 +166,7 @@ function openCfg() {
     '<button class="ab" style="background:var(--amber);width:100%" id="btn-staff-pw">🔑 비밀번호 변경</button>' +
     '<div class="divider"></div>' +
     '<div class="ss-label">데이터 백업</div>' +
-    '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">예약·손님·재고·확인 사항 등 매장의 모든 정보를 파일로 저장하거나, 저장해둔 파일에서 복원합니다</div>' +
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">예약·손님·재고·확인 사항 등 매장의 정보를 파일로 저장하거나, 저장해둔 파일에서 복원합니다 (용량이 큰 이미지는 제외)</div>' +
     '<div style="display:flex;gap:7px">' +
     '<button class="ab" style="background:var(--green);flex:1" id="btn-data-export">📁 파일로 저장</button>' +
     '<button class="ab" style="background:var(--indigo);flex:1" id="btn-data-import">📂 파일 불러오기</button>' +

@@ -149,7 +149,6 @@ function exportBackupToFile() {
     inventory: S.inventory || [],
     stockCats: S.stockCats || [],
     stockUnits: S.stockUnits || [],
-    images: S.images || [],
     staffPw: S.staffPw || DEFAULT_STAFF_PW,
     staffActive: S.staffActive || [],
     staffResigned: S.staffResigned || [],
@@ -193,7 +192,7 @@ function importBackupFromFile(file) {
     if (Array.isArray(data.inventory)) S.inventory = data.inventory;
     if (Array.isArray(data.stockCats) && data.stockCats.length) S.stockCats = data.stockCats;
     if (Array.isArray(data.stockUnits) && data.stockUnits.length) S.stockUnits = data.stockUnits;
-    if (Array.isArray(data.images)) S.images = data.images;
+    // 백업 파일에는 용량이 큰 이미지가 포함되지 않으므로, 불러오기 시에도 현재 이미지는 그대로 둔다.
     if (data.staffPw) S.staffPw = data.staffPw;
     if (Array.isArray(data.staffActive)) S.staffActive = data.staffActive;
     if (Array.isArray(data.staffResigned)) S.staffResigned = data.staffResigned;
