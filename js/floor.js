@@ -1,4 +1,4 @@
-// ── 홀 현황 (Floor View) ──
+// ── 홈 (Floor View) ──
 var custFilterMode = 'active'; // 'active' | 'cancel'
 var hallViewMode = 'monthly';  // 'monthly' | 'weekly' | 'hall'
 var schedCalYear  = new Date().getFullYear();
@@ -7,9 +7,6 @@ var schedSelDate  = null; // currently selected date in schedule calendar
 // ── 헤더/통계 ──
 function renderHeader() {
   document.getElementById('hdate').textContent = new Date().toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
-  var rsv = S.tables.filter(function(t){ return t.st==='reserved'; }).length;
-  var c2 = document.getElementById('c2'); if(c2) c2.textContent = '남은 예약 '+rsv;
-  var c3 = document.getElementById('c3'); if(c3) c3.textContent = '완료 '+doneCnt();
 }
 function renderStats() {
   var guests = S.tables.reduce(function(a,t){ return a+(t.st==='occupied'?t.g:0); }, 0);
@@ -70,15 +67,12 @@ function renderSidebar() {
 function switchTab(t) {
   currentTab = t;
   document.getElementById('t1').className = 'tab' + (t==='floor'?' on':'');
-  document.getElementById('t2').className = 'tab' + (t==='reserve'?' on':'');
   document.getElementById('t3').className = 'tab' + (t==='cust'?' on':'');
   document.getElementById('t4').className = 'tab' + (t==='stock'?' on':'');
   document.getElementById('t5').className = 'tab' + (t==='images'?' on':'');
   document.getElementById('t6').className = 'tab' + (t==='staff'?' on':'');
   document.getElementById('sb').style.display   = t==='floor'?'flex':'none';
   document.getElementById('main').style.display = t==='floor'?'flex':'none';
-  if (t==='reserve') document.getElementById('rv').classList.add('on');
-  else document.getElementById('rv').classList.remove('on');
   if (t==='cust') document.getElementById('cust').classList.add('on');
   else document.getElementById('cust').classList.remove('on');
   if (t==='stock') document.getElementById('stock').classList.add('on');
@@ -94,7 +88,6 @@ function switchTab(t) {
   document.getElementById('bedit').style.display = (t==='floor' && hallViewMode==='hall') ? '' : 'none';
   document.getElementById('btn-view').style.display = (t==='floor' && hallViewMode==='hall') ? '' : 'none';
   if (t==='floor') renderAll();
-  else if (t==='reserve') renderReservations();
   else if (t==='cust') renderCustTab();
   else if (t==='stock') renderStock();
   else if (t==='images') renderImagesTab();
@@ -1426,38 +1419,6 @@ function rvTblCellHtml(r) {
     : '';
   return '<span class="rvtbl-td-tbl'+(tbls.length?'':' unassigned')+'"><span class="rvtbl-td-tbl-txt">'+esc(tblLabel)+'</span>'+srcBadge+'</span>';
 }
-// ── 오늘 예약 현황 렌더 ──
-function renderTodayRvList() {
-  var listEl = document.getElementById('today-rv-list');
-  var cntEl  = document.getElementById('today-rv-cnt');
-  if (!listEl) return;
-  var td = today();
-  var todayRvs = S.ress.filter(function(r) {
-    return r.date === td && r.st !== 'cancelled' && r.st !== 'completed';
-  }).sort(function(a, b) {
-    return (a.time||'') < (b.time||'') ? -1 : 1;
-  });
-  if (cntEl) cntEl.textContent = todayRvs.length + '건';
-  if (!todayRvs.length) {
-    listEl.innerHTML = '<div class="schrv-empty">오늘 예약 없습니다</div>';
-    return;
-  }
-  var html = '';
-  todayRvs.forEach(function(r) {
-    html += '<div class="rvtbl-row" data-rid="'+esc(String(r.id))+'">'
-      + '<span class="rvtbl-td-time">'+esc(r.time||'–')+'</span>'
-      + '<span class="rvtbl-td-name">'+esc(r.nm||'·')+'</span>'
-      + '<span class="rvtbl-td-g">'+esc(String(r.g))+'명</span>'
-      + rvTblCellHtml(r)
-      + '<span class="rvtbl-td-tags">'+(r.tags&&r.tags.length?r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join(''):'')+'</span>'
-      + '</div>';
-  });
-  listEl.innerHTML = html;
-  listEl.querySelectorAll('.rvtbl-row').forEach(function(el) {
-    el.addEventListener('click', function() { openRvDetail(this.getAttribute('data-rid')); });
-  });
-}
-
 // ── 스케줄 뷰 렌더 ──
 function buildInlinePanelHTML(date) {
   var rvs = S.ress.filter(function(r) {
@@ -1648,8 +1609,6 @@ function renderSchedView() {
       openRvDetail(this.getAttribute('data-rid'));
     });
   });
-
-  renderTodayRvList();
 }
 
 function renderSchedRvList(filterDate) {

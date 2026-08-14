@@ -101,7 +101,7 @@ function doEnter(store) {
       if (!S.tags || !S.tags.length) S.tags = DEFAULT_TAGS.slice();
       showBadge('');
       syncToday();
-      // 진입 시 항상 홀 현황 탭으로 이동
+      // 진입 시 항상 홈 탭으로 이동
       switchTab('floor');
       startFb();
     }
@@ -165,6 +165,14 @@ function openCfg() {
     '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">"알바 출퇴근 기록" 탭 접근 비밀번호를 변경합니다</div>' +
     '<button class="ab" style="background:var(--amber);width:100%" id="btn-staff-pw">🔑 비밀번호 변경</button>' +
     '<div class="divider"></div>' +
+    '<div class="ss-label">데이터 백업</div>' +
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">예약·손님·재고·확인 사항 등 매장의 정보를 파일로 저장하거나, 저장해둔 파일에서 복원합니다 (용량이 큰 이미지는 제외)</div>' +
+    '<div style="display:flex;gap:7px">' +
+    '<button class="ab" style="background:var(--green);flex:1" id="btn-data-export">📁 파일로 저장</button>' +
+    '<button class="ab" style="background:var(--indigo);flex:1" id="btn-data-import">📂 파일 불러오기</button>' +
+    '</div>' +
+    '<input type="file" id="data-import-input" accept=".txt,.json,application/json" style="display:none">' +
+    '<div class="divider"></div>' +
     '<div class="ss-label">노션 백업</div>' +
     '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">예약·손님 데이터를 노션에 저장합니다</div>' +
     '<div style="display:flex;gap:7px">' +
@@ -182,6 +190,17 @@ function openCfg() {
     '<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%" id="btn-out">← 매장 선택으로</button>' +
     '</div>'
   );
+  document.getElementById('btn-data-export').addEventListener('click', function() {
+    exportBackupToFile();
+  });
+  document.getElementById('btn-data-import').addEventListener('click', function() {
+    document.getElementById('data-import-input').click();
+  });
+  document.getElementById('data-import-input').addEventListener('change', function(e) {
+    var file = e.target.files && e.target.files[0];
+    importBackupFromFile(file);
+    e.target.value = '';
+  });
   document.getElementById('btn-backup').addEventListener('click', function() {
     runNotionBackup();
   });

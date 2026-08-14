@@ -124,6 +124,100 @@ function loadData() {
     if (!S.staffFavTimes) S.staffFavTimes = [];
   } catch(e) { S.tags = DEFAULT_TAGS.slice(); S.staffPw = S.staffPw || DEFAULT_STAFF_PW; }
 }
+
+// ── 데이터 백업(파일로 내보내기/가져오기) ──
+// Firebase 마이그레이션 버그 등으로 원격 데이터가 유실되는 사고에 대비해,
+// 매장의 전체 데이터를 사용자가 직접 파일로 내려받아 보관하고 필요 시 복원할 수 있게 한다.
+function getConfirmItemsForBackup() {
+  try {
+    var raw = localStorage.getItem('confirm_items_v1_' + (currentStore || ''));
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+function exportBackupToFile() {
+  var payload = {
+    _backupType: 'ryuma_backup',
+    _backupVersion: 1,
+    _exportedAt: new Date().toISOString(),
+    store: currentStore,
+    tables: S.tables || [],
+    waits: S.waits || [],
+    ress: S.ress || [],
+    tags: S.tags || [],
+    daily: S.daily || [],
+    customers: S.customers || [],
+    inventory: S.inventory || [],
+    stockCats: S.stockCats || [],
+    stockUnits: S.stockUnits || [],
+    staffPw: S.staffPw || DEFAULT_STAFF_PW,
+    staffActive: S.staffActive || [],
+    staffResigned: S.staffResigned || [],
+    staffLogs: S.staffLogs || [],
+    staffRecords: S.staffRecords || [],
+    staffFavTimes: S.staffFavTimes || [],
+    confirmItems: getConfirmItemsForBackup()
+  };
+  var json = JSON.stringify(payload, null, 2);
+  var blob = new Blob([json], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'ryuma_backup_' + (currentStore || 'store') + '_' + today() + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+function importBackupFromFile(file) {
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var data;
+    try { data = JSON.parse(e.target.result); } catch(err) {
+      alert('올바른 백업 파일이 아닙니다 (JSON 형식이 아님).');
+      return;
+    }
+    if (!data || typeof data !== 'object' || !Array.isArray(data.tables)) {
+      alert('올바른 백업 파일이 아닙니다.');
+      return;
+    }
+    if (!confirm('백업 파일을 불러오면 현재 매장(' + (STORE_NAMES[currentStore]||currentStore) + ')의 데이터가 파일 내용으로 덮어씌워집니다.\n계속하시겠습니까?')) return;
+
+    if (Array.isArray(data.tables)) S.tables = data.tables;
+    if (Array.isArray(data.waits)) S.waits = data.waits;
+    if (Array.isArray(data.ress)) S.ress = data.ress;
+    if (Array.isArray(data.tags) && data.tags.length) S.tags = data.tags;
+    if (Array.isArray(data.daily)) S.daily = data.daily;
+    if (Array.isArray(data.customers)) S.customers = data.customers;
+    if (Array.isArray(data.inventory)) S.inventory = data.inventory;
+    if (Array.isArray(data.stockCats) && data.stockCats.length) S.stockCats = data.stockCats;
+    if (Array.isArray(data.stockUnits) && data.stockUnits.length) S.stockUnits = data.stockUnits;
+    // 백업 파일에는 용량이 큰 이미지가 포함되지 않으므로, 불러오기 시에도 현재 이미지는 그대로 둔다.
+    if (data.staffPw) S.staffPw = data.staffPw;
+    if (Array.isArray(data.staffActive)) S.staffActive = data.staffActive;
+    if (Array.isArray(data.staffResigned)) S.staffResigned = data.staffResigned;
+    if (Array.isArray(data.staffLogs)) S.staffLogs = data.staffLogs;
+    if (Array.isArray(data.staffRecords)) S.staffRecords = data.staffRecords;
+    if (Array.isArray(data.staffFavTimes)) S.staffFavTimes = data.staffFavTimes;
+
+    if (data.confirmItems && data.confirmItems.cats && data.confirmItems.cats.length) {
+      try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(data.confirmItems)); } catch(err) {}
+      if (typeof renderConfirmItems === 'function') renderConfirmItems();
+    }
+
+    S.tables.forEach(function(t){ cardCache[t.id]=''; });
+    saveData();
+    closeModal();
+    if (currentTab === 'floor') renderAll();
+    else if (currentTab === 'cust') renderCustTab();
+    else if (currentTab === 'stock') renderStock();
+    else if (currentTab === 'images') renderImagesTab();
+    else if (currentTab === 'staff' && staffUnlocked) renderStaffTab();
+    showToast('백업 파일에서 데이터를 불러왔습니다');
+  };
+  reader.onerror = function() { alert('파일을 읽는 중 오류가 발생했습니다.'); };
+  reader.readAsText(file);
+}
 var saveDirty = false; // saveData() 예약(디바운스 대기) 중이면 true — flushPendingSave가 참조
 function saveData() {
   saveDirty = true;
@@ -283,7 +377,6 @@ function startFb() {
     isSyncingFromRemote = true;
     syncToday(); renderAll();
     isSyncingFromRemote = false;
-    if (currentTab === 'reserve') renderReservations();
     if (currentTab === 'stock') renderStock();
     if (currentTab === 'images') renderImagesTab();
     if (currentTab === 'staff' && staffUnlocked) renderStaffTab();

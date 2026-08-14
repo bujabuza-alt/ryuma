@@ -4,7 +4,6 @@
 document.getElementById('btn-covent').addEventListener('click', function(){ doEnter('covent'); });
 document.getElementById('btn-paragon').addEventListener('click', function(){ doEnter('paragon'); });
 document.getElementById('t1').addEventListener('click', function(){ switchTab('floor'); });
-document.getElementById('t2').addEventListener('click', function(){ switchTab('reserve'); });
 document.getElementById('t3').addEventListener('click', function(){ switchTab('cust'); });
 document.getElementById('t4').addEventListener('click', function(){ switchTab('stock'); });
 document.getElementById('t5').addEventListener('click', function(){ switchTab('images'); });
@@ -50,8 +49,6 @@ document.getElementById('schcal-date-close').addEventListener('click', function(
 document.getElementById('schv-btn-rv-menu').addEventListener('click', function() {
   openRvActionMenu();
 });
-document.getElementById('baddRv').addEventListener('click', openAddRv);
-document.getElementById('bNaverImport').addEventListener('click', openNaverImport);
 
 // ── 확인 사항 (구 주의사항 + 마감 체크리스트 통합, 카테고리 동적 관리) ──
 (function() {
@@ -327,11 +324,6 @@ document.getElementById('bNaverImport').addEventListener('click', openNaverImpor
 })();
 // 다크 모드 제거로 인해 테마 버튼 이벤트 바인딩 제거
 document.getElementById('btn-cfg').addEventListener('click', openCfg);
-document.getElementById('bcalp').addEventListener('click', function(){ calM--; if(calM<0){calM=11;calY--;} renderCal(); renderRvList(); });
-document.getElementById('bcaln').addEventListener('click', function(){ calM++; if(calM>11){calM=0;calY++;} renderCal(); renderRvList(); });
-document.getElementById('bcaltoday').addEventListener('click', function(){ var now=new Date(); calY=now.getFullYear(); calM=now.getMonth(); calSel=today(); renderCal(); renderRvList(); });
-document.getElementById('rvsrch').addEventListener('input', renderRvList);
-document.getElementById('rvsort').addEventListener('click', function(){ rvSortAsc=!rvSortAsc; renderRvList(); });
 document.getElementById('btn-cust-import').addEventListener('click', openCustImport);
 document.getElementById('mo').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 document.getElementById('mo').addEventListener('touchend', function(e){ if(e.target===this) closeModal(); });
@@ -367,9 +359,6 @@ setInterval(function(){
       renderCanvas();
       renderStats();
       renderSidebar();
-    } else {
-      // 캘린더 뷰: 오늘 예약 목록만 갱신 (매초 DOM 전체 교체 방지)
-      renderTodayRvList();
     }
     renderHeader();
   }
@@ -400,7 +389,7 @@ try {
   function runNfcAction() {
     if (!currentStore) { setTimeout(runNfcAction, 300); return; }
     if (action === 'reserve') {
-      switchTab('reserve');
+      switchTab('floor');
       setTimeout(openAddRv, 200);
     }
     // URL 파라미터 정리 (뒤로가기 시 재실행 방지)
