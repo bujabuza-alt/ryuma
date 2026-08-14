@@ -283,7 +283,6 @@ function startFb() {
     isSyncingFromRemote = true;
     syncToday(); renderAll();
     isSyncingFromRemote = false;
-    if (currentTab === 'reserve') renderReservations();
     if (currentTab === 'stock') renderStock();
     if (currentTab === 'images') renderImagesTab();
     if (currentTab === 'staff' && staffUnlocked) renderStaffTab();

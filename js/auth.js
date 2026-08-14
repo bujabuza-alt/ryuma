@@ -101,7 +101,7 @@ function doEnter(store) {
       if (!S.tags || !S.tags.length) S.tags = DEFAULT_TAGS.slice();
       showBadge('');
       syncToday();
-      // 진입 시 항상 홀 현황 탭으로 이동
+      // 진입 시 항상 홈 탭으로 이동
       switchTab('floor');
       startFb();
     }

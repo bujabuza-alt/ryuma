@@ -305,8 +305,14 @@ function renderRecListHtml() {
     return (a.staffName || '').localeCompare(b.staffName || '', 'ko');
   });
   if (!recs.length) return '<div class="stf-empty">출퇴근 기록이 없습니다.</div>';
-  var html = '', lastDate = '';
+  var html = '', lastDate = '', lastMonth = '';
   recs.forEach(function(r) {
+    var month = (r.date || '').slice(0, 7);
+    if (month !== lastMonth) {
+      html += '<div class="stf-rec-month-hd">' + esc(fmtMonthLabel(r.date)) + '</div>';
+      lastMonth = month;
+      lastDate = '';
+    }
     if (r.date !== lastDate) {
       html += '<div class="stf-rec-date-hd">' + esc(fmtDateShort(r.date)) + '</div>';
       lastDate = r.date;

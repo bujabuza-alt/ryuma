@@ -52,16 +52,13 @@
     </div>
     <div class="hd-right">
       <span id="badge"></span>
-      <span class="chip" id="c2" style="color:var(--red2);border-color:rgba(196,18,48,.3);background:rgba(196,18,48,.1)"></span>
-      <span class="chip" id="c3" style="color:var(--amber);border-color:rgba(200,146,42,.3);background:rgba(200,146,42,.1)"></span>
       <button class="bg" id="btn-view" style="font-size:14px;padding:5px 9px">☰</button>
       <button class="be" id="bedit">✏️</button>
       <button class="bg" id="btn-cfg" style="font-size:14px;padding:5px 8px">⚙</button>
     </div>
   </div>
   <div id="tb">
-    <button class="tab on" id="t1">🪑 홀 현황</button>
-    <button class="tab" id="t2">📋 예약 관리</button>
+    <button class="tab on" id="t1">🏠 홈</button>
     <button class="tab" id="t3">👤 손님</button>
     <button class="tab" id="t4">📦 재고</button>
     <button class="tab" id="t5">🖼 이미지 저장</button>
@@ -98,20 +95,6 @@
             <div id="schcal-date-list"></div>
           </div>
         </div>
-        <div id="today-rv">
-          <div class="schrv-hd-row">
-            <span class="schrv-title">오늘 예약 현황</span>
-            <span class="schrv-cnt" id="today-rv-cnt"></span>
-          </div>
-          <div class="rvtbl-row rvtbl-head">
-            <span class="rvtbl-th">시간</span>
-            <span class="rvtbl-th">이름</span>
-            <span class="rvtbl-th rvtbl-th-c">인원</span>
-            <span class="rvtbl-th rvtbl-th-c">테이블</span>
-            <span class="rvtbl-th">태그</span>
-          </div>
-          <div id="today-rv-list"></div>
-        </div>
         <!-- 확인 사항 섹션 (주의사항 + 체크리스트 통합, 카테고리 동적 관리) -->
         <div id="confirm-section">
           <div class="schrv-hd-row cl-hd-row">
@@ -139,51 +122,6 @@
         <div class="sc"><div class="si" style="background:rgba(42,114,200,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div><div class="sl">착석 인원</div><div class="sv" id="s1" style="color:#60a5fa">0명</div></div></div>
         <div class="sc"><div class="si" style="background:rgba(200,146,42,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></div><div><div class="sl">착석 테이블</div><div class="sv" id="s2" style="color:var(--amber)">0개</div></div></div>
         <div class="sc"><div class="si" style="background:rgba(42,154,90,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg></div><div><div class="sl">빈 테이블</div><div class="sv" id="s3" style="color:#4ade80">0개</div></div></div>
-      </div>
-    </div>
-    <div id="rv">
-      <div class="rv-top">
-        <input class="rv-srch" id="rvsrch" type="search" placeholder="이름, 연락처 검색…">
-        <button class="bg" id="bNaverImport" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">📷 가져오기</button>
-        <button class="bp" id="baddRv">+ 예약</button>
-      </div>
-      <div id="cal">
-        <div class="cal-hd">
-          <div class="cal-nav-group">
-            <button class="cal-nav" id="bcalp">‹</button>
-            <span class="cal-m" id="calm"></span>
-            <button class="cal-nav" id="bcaln">›</button>
-          </div>
-          <button class="cal-today-btn" id="bcaltoday">오늘</button>
-        </div>
-        <div class="cal-g">
-          <div class="cal-dow">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div>
-          <div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow">토</div>
-        </div>
-        <div class="cal-g" id="calg"></div>
-      </div>
-      <div id="rvw">
-        <div class="rvw-hd"><span class="rvw-title" id="rvtitle">전체 예약</span><div style="display:flex;align-items:center;gap:6px"><button id="rvsort" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surf2);color:var(--text2);cursor:pointer;font-family:inherit;font-weight:700">↑ 날짜순</button><span style="font-size:11px;color:var(--text3)" id="rvcnt"></span></div></div>
-        <!-- 예약 목록: 오늘예약 / 이후예약 / 완료예약 3단 레이아웃 -->
-        <div id="rv-sections" style="display:none">
-          <div class="rv-sec-col" id="rv-sc-today">
-            <div class="rv-sec-lbl" id="rv-sc-today-hd">오늘 예약 0건</div>
-            <div class="rv-sec-scroll" id="rv-sc-today-list"></div>
-          </div>
-          <div class="rv-sec-col" id="rv-sc-future">
-            <div class="rv-sec-lbl" id="rv-sc-future-hd">이후 예약 0건</div>
-            <div class="rv-sec-scroll" id="rv-sc-future-list"></div>
-          </div>
-          <div class="rv-sec-col" id="rv-sc-past">
-            <div class="rv-sec-lbl" id="rv-sc-past-hd">완료된 예약 0건</div>
-            <div class="rv-sec-scroll" id="rv-sc-past-list"></div>
-          </div>
-        </div>
-        <div id="rv-upcoming"></div>
-        <div id="rv-past-wrap" style="display:none">
-          <div class="rv-sec-lbl" id="rv-past-lbl">완료된 예약</div>
-          <div id="rv-past"></div>
-        </div>
       </div>
     </div>
     <div id="cust">
