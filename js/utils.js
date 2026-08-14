@@ -23,11 +23,6 @@ function fmtDateShort(s) {
   var p=s.split('-');
   return String(+p[0]).slice(2)+'년 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일';
 }
-function fmtMonthLabel(s) {
-  if (!s) return '';
-  var p=s.split('-');
-  return p[0]+'년 '+parseInt(p[1],10)+'월';
-}
 function addDays(dateStr, n) {
   var p=dateStr.split('-');
   var dt=new Date(+p[0],+p[1]-1,+p[2]);
