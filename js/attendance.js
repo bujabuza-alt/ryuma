@@ -4,6 +4,9 @@ var staffUnlocked = false;
 var staffSubTab   = 'logs';   // 'logs' | 'active' | 'resigned'
 var recEditId      = null;    // 출퇴근 기록 폼에서 수정 중인 기록 id (null = 신규 입력)
 var recActiveField = 'rec-in'; // 즐겨찾기 시간 탭 시 채워질 입력칸 ('rec-in' | 'rec-out')
+var staffCalYear    = new Date().getFullYear(); // 출퇴근 기록 캘린더에 표시 중인 연도
+var staffCalMonth   = new Date().getMonth();    // 출퇴근 기록 캘린더에 표시 중인 월 (0-indexed)
+var staffCalSelDate = null;   // 출퇴근 기록 캘린더에서 선택된 날짜 (null = 선택 없음)
 
 function getStaffPw() { return (S && S.staffPw) || DEFAULT_STAFF_PW; }
 
@@ -299,38 +302,96 @@ function renderFavChipsHtml() {
       '<button type="button" data-act="fav-del" data-t="' + t + '">✕</button></span>';
   }).join('');
 }
-function renderRecListHtml() {
-  var recs = (S.staffRecords || []).slice().sort(function(a, b) {
-    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
-    return (a.staffName || '').localeCompare(b.staffName || '', 'ko');
+// ── 렌더링: 출퇴근 기록 캘린더 ──
+function staffRecordsForDate(ds) {
+  return (S.staffRecords || []).filter(function(r) { return r.date === ds; })
+    .sort(function(a, b) { return (a.staffName || '').localeCompare(b.staffName || '', 'ko'); });
+}
+function staffRecRowHtml(r) {
+  var hrs = calcWorkedHours(r.inTime, r.outTime);
+  return '<div class="stf-rec-row' + (recEditId === r.id ? ' editing' : '') + '" data-id="' + r.id + '">' +
+    '<div class="stf-rec-main">' +
+    '<span class="stf-rec-name">' + esc(r.staffName || '-') + '</span>' +
+    '<span class="stf-rec-time">출근 ' + esc(r.inTime || '-') + ' · 퇴근 ' + esc(r.outTime || '-') + '</span>' +
+    (hrs ? '<span class="stf-rec-hours">' + hrs + ' 근무</span>' : '') +
+    '</div>' +
+    '<div class="stf-rec-actions">' +
+    '<button type="button" data-act="rec-edit" data-id="' + r.id + '">✏</button>' +
+    '<button type="button" data-act="rec-del" data-id="' + r.id + '">✕</button>' +
+    '</div>' +
+    '</div>';
+}
+function buildStaffDayPanelHtml(date) {
+  var recs = staffRecordsForDate(date);
+  return '<div class="schcal-inline-panel-inner">'
+    + '<div class="schcal-inline-hd">'
+    + '<span class="schcal-inline-title">' + esc(fmtDateShort(date)) + '</span>'
+    + '<span class="schcal-inline-cnt"><span>' + recs.length + '건</span>'
+    + '<button type="button" class="schcal-inline-close" data-stf-cal-close="1">×</button>'
+    + '</span></div>'
+    + '<div class="schcal-inline-list">'
+    + (recs.length ? recs.map(staffRecRowHtml).join('') : '<div class="stf-empty">이 날짜의 출퇴근 기록이 없습니다.</div>')
+    + '</div></div>';
+}
+function buildStaffCalendarHtml() {
+  var recDateSet = {};
+  (S.staffRecords || []).forEach(function(r) { if (r.date) recDateSet[r.date] = (recDateSet[r.date] || 0) + 1; });
+
+  var td = today();
+  var dows = ['일', '월', '화', '수', '목', '금', '토'];
+  var dowsHTML = '<div class="schcal-dows">' + dows.map(function(d, i) {
+    return '<div class="schcal-dow' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '') + '">' + d + '</div>';
+  }).join('') + '</div>';
+
+  var firstDay = new Date(staffCalYear, staffCalMonth, 1).getDay();
+  var daysInMonth = new Date(staffCalYear, staffCalMonth + 1, 0).getDate();
+  var weeks = [], week = [];
+  for (var i = 0; i < firstDay; i++) week.push(null);
+  for (var d = 1; d <= daysInMonth; d++) {
+    week.push(d);
+    if (week.length === 7) { weeks.push(week); week = []; }
+  }
+  if (week.length > 0) { while (week.length < 7) week.push(null); weeks.push(week); }
+
+  var selWeekIdx = -1;
+  if (staffCalSelDate) {
+    weeks.forEach(function(wk, wi) {
+      wk.forEach(function(day) {
+        if (day && staffCalYear + '-' + pad(staffCalMonth + 1) + '-' + pad(day) === staffCalSelDate) selWeekIdx = wi;
+      });
+    });
+  }
+
+  var gridHTML = '';
+  weeks.forEach(function(wk, wi) {
+    gridHTML += '<div class="schcal-week-row"><div class="schcal-days-inner">';
+    wk.forEach(function(day, di) {
+      if (!day) { gridHTML += '<div class="schcal-day empty"></div>'; return; }
+      var ds = staffCalYear + '-' + pad(staffCalMonth + 1) + '-' + pad(day);
+      var isT = ds === td, isSel = ds === staffCalSelDate;
+      var cnt = recDateSet[ds] || 0;
+      var cls = 'schcal-day' + (isT ? ' today' : '') + (isSel ? ' sel' : '') + (di === 0 ? ' sun' : di === 6 ? ' sat' : '');
+      gridHTML += '<div class="' + cls + '" data-date="' + ds + '">' + day + (cnt ? '<div class="schcal-dot"></div>' : '') + '</div>';
+    });
+    gridHTML += '</div>';
+    var isSelWeek = wi === selWeekIdx;
+    gridHTML += '<div class="schcal-inline-panel' + (isSelWeek ? ' open' : '') + '">';
+    if (isSelWeek) gridHTML += buildStaffDayPanelHtml(staffCalSelDate);
+    gridHTML += '</div></div>';
   });
-  if (!recs.length) return '<div class="stf-empty">출퇴근 기록이 없습니다.</div>';
-  var html = '', lastDate = '', lastMonth = '';
-  recs.forEach(function(r) {
-    var month = (r.date || '').slice(0, 7);
-    if (month !== lastMonth) {
-      html += '<div class="stf-rec-month-hd">' + esc(fmtMonthLabel(r.date)) + '</div>';
-      lastMonth = month;
-      lastDate = '';
-    }
-    if (r.date !== lastDate) {
-      html += '<div class="stf-rec-date-hd">' + esc(fmtDateShort(r.date)) + '</div>';
-      lastDate = r.date;
-    }
-    var hrs = calcWorkedHours(r.inTime, r.outTime);
-    html += '<div class="stf-rec-row' + (recEditId === r.id ? ' editing' : '') + '" data-id="' + r.id + '">' +
-      '<div class="stf-rec-main">' +
-      '<span class="stf-rec-name">' + esc(r.staffName || '-') + '</span>' +
-      '<span class="stf-rec-time">출근 ' + esc(r.inTime || '-') + ' · 퇴근 ' + esc(r.outTime || '-') + '</span>' +
-      (hrs ? '<span class="stf-rec-hours">' + hrs + ' 근무</span>' : '') +
-      '</div>' +
-      '<div class="stf-rec-actions">' +
-      '<button type="button" data-act="rec-edit" data-id="' + r.id + '">✏</button>' +
-      '<button type="button" data-act="rec-del" data-id="' + r.id + '">✕</button>' +
-      '</div>' +
-      '</div>';
-  });
-  return html;
+
+  return ''
+    + '<div id="stf-cal">'
+    + '<div class="schcal-hd">'
+    +   '<div class="schcal-nav-group">'
+    +     '<button type="button" class="schcal-nav" id="stf-cal-p">‹</button>'
+    +     '<span id="stf-cal-m" class="schcal-month">' + staffCalYear + '년 ' + (staffCalMonth + 1) + '월</span>'
+    +     '<button type="button" class="schcal-nav" id="stf-cal-n">›</button>'
+    +   '</div>'
+    +   '<button type="button" class="cal-today-btn" id="stf-cal-today">오늘</button>'
+    + '</div>'
+    + '<div id="stf-cal-g">' + dowsHTML + gridHTML + '</div>'
+    + '</div>';
 }
 function renderAttendanceTab() {
   var editRec = recEditId ? (S.staffRecords || []).filter(function(r) { return r.id === recEditId; })[0] : null;
@@ -347,7 +408,7 @@ function renderAttendanceTab() {
   }).join('');
   if (!staffOpts) staffOpts = '<option value="">등록된 알바생 없음</option>';
 
-  var dateVal = editRec ? editRec.date : today();
+  var dateVal = editRec ? editRec.date : (staffCalSelDate || today());
   var inVal   = editRec ? (editRec.inTime || '')  : '';
   var outVal  = editRec ? (editRec.outTime || '') : '';
 
@@ -368,7 +429,7 @@ function renderAttendanceTab() {
     + '</div>'
     + '</div>'
     + '<div class="stf-rec-list-hd">출퇴근 기록</div>'
-    + '<div id="rec-list">' + renderRecListHtml() + '</div>';
+    + buildStaffCalendarHtml();
 }
 function bindAttendanceEvents() {
   var body = document.getElementById('staff-body');
@@ -420,6 +481,40 @@ function bindAttendanceEvents() {
   body.querySelectorAll('[data-act="rec-del"]').forEach(function(btn) {
     btn.addEventListener('click', function() { deleteStaffRecord(btn.getAttribute('data-id')); });
   });
+
+  var calP = document.getElementById('stf-cal-p');
+  if (calP) calP.addEventListener('click', function() {
+    staffCalMonth--; if (staffCalMonth < 0) { staffCalMonth = 11; staffCalYear--; }
+    renderStaffTab();
+  });
+  var calN = document.getElementById('stf-cal-n');
+  if (calN) calN.addEventListener('click', function() {
+    staffCalMonth++; if (staffCalMonth > 11) { staffCalMonth = 0; staffCalYear++; }
+    renderStaffTab();
+  });
+  var calToday = document.getElementById('stf-cal-today');
+  if (calToday) calToday.addEventListener('click', function() {
+    var now = new Date();
+    staffCalYear = now.getFullYear(); staffCalMonth = now.getMonth(); staffCalSelDate = today();
+    renderStaffTab();
+  });
+  var calG = document.getElementById('stf-cal-g');
+  if (calG) {
+    calG.querySelectorAll('[data-date]').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var ds = this.getAttribute('data-date');
+        staffCalSelDate = (staffCalSelDate === ds) ? null : ds;
+        renderStaffTab();
+      });
+    });
+    calG.querySelectorAll('[data-stf-cal-close]').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        staffCalSelDate = null;
+        renderStaffTab();
+      });
+    });
+  }
 }
 
 // ── 탭 렌더 ──
