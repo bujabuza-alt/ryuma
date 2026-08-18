@@ -1467,11 +1467,8 @@ function renderSchedView() {
   if (mEl) mEl.textContent = schedCalYear+'년 '+(schedCalMonth+1)+'월';
 
   var td = today();
-  var todayDateEl = document.getElementById('schcal-today-date');
-  if (todayDateEl) {
-    var tp = td.split('-');
-    todayDateEl.textContent = tp[0]+'년 '+(+tp[1])+'월 '+(+tp[2])+'일';
-  }
+  var todaySubEl = document.getElementById('cal-today-sub');
+  if (todaySubEl) todaySubEl.textContent = dlabel(td);
 
   var gEl = document.getElementById('schcal-g');
   if (!gEl) return;
