@@ -468,6 +468,13 @@ textarea.fi{resize:none;min-height:60px;}
   font-weight: 800;
   color: var(--text);
 }
+.schcal-today-date {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .schcal-nav {
   background: var(--surf2);
   border: 1px solid var(--border2);
@@ -998,6 +1005,20 @@ body.light .schrv-tag-call { color: #c03060; }
   -webkit-tap-highlight-color: transparent;
 }
 .cf-cat-del:active { opacity: 1; }
+.cf-toggle {
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 3px;
+  line-height: 1;
+  transition: transform .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+#confirm-section:not(.cf-collapsed) .cf-toggle { transform: rotate(180deg); }
+#confirm-section #cf-title { cursor: pointer; }
+#confirm-section.cf-collapsed #cf-body { display: none; }
 /* 탭 (카테고리 동적 추가/삭제 지원 — 가로 스크롤) */
 .cl-tabs {
   display: flex;

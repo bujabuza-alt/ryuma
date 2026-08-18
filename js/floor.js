@@ -1466,10 +1466,16 @@ function renderSchedView() {
   var mEl = document.getElementById('schcal-m');
   if (mEl) mEl.textContent = schedCalYear+'년 '+(schedCalMonth+1)+'월';
 
+  var td = today();
+  var todayDateEl = document.getElementById('schcal-today-date');
+  if (todayDateEl) {
+    var tp = td.split('-');
+    todayDateEl.textContent = tp[0]+'년 '+(+tp[1])+'월 '+(+tp[2])+'일';
+  }
+
   var gEl = document.getElementById('schcal-g');
   if (!gEl) return;
 
-  var td = today();
   var dows = ['일','월','화','수','목','금','토'];
   var dowsHTML = '<div class="schcal-dows">';
   dows.forEach(function(d, i) {
@@ -1494,10 +1500,9 @@ function renderSchedView() {
     for (var i = 0; i < 7; i++) {
       var wd2 = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
       var ds = wd2.getFullYear()+'-'+pad(wd2.getMonth()+1)+'-'+pad(wd2.getDate());
-      var isT = ds === td;
       var isSel = ds === schedSelDate;
       var rvCnt = S.ress.filter(function(r){ return r.date===ds && r.st!=='cancelled' && r.st!=='completed'; }).length;
-      var cls = 'schcal-wday'+(isT?' today':'')+(isSel?' sel':'')+(i===0?' sun':i===6?' sat':'');
+      var cls = 'schcal-wday'+(isSel?' sel':'')+(i===0?' sun':i===6?' sat':'');
       gridHTML += '<div class="'+cls+'" data-date="'+ds+'">'
         + '<div class="schcal-wday-name">'+dows[i]+'</div>'
         + '<div class="schcal-wday-num">'+wd2.getDate()+(rvCnt?'<div class="schcal-dot"></div>':'')+'</div>'
@@ -1541,11 +1546,10 @@ function renderSchedView() {
           gridHTML += '<div class="schcal-day empty"></div>';
         } else {
           var ds = schedCalYear+'-'+pad(schedCalMonth+1)+'-'+pad(day);
-          var isT = ds === td;
           var isSel = ds === schedSelDate;
           var dow = di % 7;
           var rvCnt = S.ress.filter(function(r){ return r.date===ds && r.st!=='cancelled' && r.st!=='completed'; }).length;
-          var cls = 'schcal-day'+(isT?' today':'')+(isSel?' sel':'')+(dow===0?' sun':dow===6?' sat':'');
+          var cls = 'schcal-day'+(isSel?' sel':'')+(dow===0?' sun':dow===6?' sat':'');
           gridHTML += '<div class="'+cls+'" data-date="'+ds+'">'+day+(rvCnt?'<div class="schcal-dot"></div>':'')+'</div>';
         }
       });

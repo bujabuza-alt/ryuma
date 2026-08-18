@@ -82,6 +82,7 @@
               <span id="schcal-m" class="schcal-month"></span>
               <button class="schcal-nav" id="schcal-n">›</button>
             </div>
+            <span id="schcal-today-date" class="schcal-today-date"></span>
           </div>
           <div id="schcal-g"></div>
         </div>
@@ -96,16 +97,19 @@
           </div>
         </div>
         <!-- 확인 사항 섹션 (주의사항 + 체크리스트 통합, 카테고리 동적 관리) -->
-        <div id="confirm-section">
+        <div id="confirm-section" class="cf-collapsed">
           <div class="schrv-hd-row cl-hd-row">
             <span class="schrv-title" id="cf-title">✅ 확인 사항</span>
             <span style="display:flex;align-items:center;gap:8px">
               <span class="cl-progress" id="cf-progress">0 / 0</span>
               <button class="cf-cat-del" id="cf-del-cat" title="이 카테고리 삭제">🗑</button>
+              <button class="cf-toggle" id="cf-toggle" title="펼치기/접기">▾</button>
             </span>
           </div>
-          <div class="cl-tabs" id="cf-tabs"></div>
-          <div class="cl-track" id="cf-track"></div>
+          <div id="cf-body">
+            <div class="cl-tabs" id="cf-tabs"></div>
+            <div class="cl-track" id="cf-track"></div>
+          </div>
         </div>
       </div>
       <div id="leg">
