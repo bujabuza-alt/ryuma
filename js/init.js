@@ -60,6 +60,7 @@ document.getElementById('schv-btn-rv-menu').addEventListener('click', function()
     { key: 'etc',        label: '기타 체크' }
   ];
   var activeIdx = 0;
+  var collapsed = true; // 기본적으로 접힌 상태로 시작
 
   function storeKey() { return 'confirm_items_v1_' + (currentStore || ''); }
   function legacyNotesKey() { return 'hall_notes_items_' + (currentStore || ''); }
@@ -141,12 +142,14 @@ document.getElementById('schv-btn-rv-menu').addEventListener('click', function()
 
     var activeCat = data.cats[activeIdx];
     var activeItems = activeCat ? (data.items[activeCat.key] || []) : [];
+    var sectionEl = document.getElementById('confirm-section');
     var titleEl = document.getElementById('cf-title');
     var progEl  = document.getElementById('cf-progress');
     var delEl   = document.getElementById('cf-del-cat');
     if (titleEl) titleEl.textContent = '📋 확인 사항';
     if (progEl)  progEl.textContent  = activeItems.length + '개';
     if (delEl)   delEl.style.display = data.cats.length > 1 ? '' : 'none';
+    if (sectionEl) sectionEl.classList.toggle('cf-collapsed', collapsed);
 
     bindEvents(data);
 
@@ -318,6 +321,12 @@ document.getElementById('schv-btn-rv-menu').addEventListener('click', function()
     save(d);
     render();
   }
+
+  function toggleCollapse() { collapsed = !collapsed; render(); }
+  var cfToggleBtn = document.getElementById('cf-toggle');
+  var cfTitleBtn  = document.getElementById('cf-title');
+  if (cfToggleBtn) cfToggleBtn.addEventListener('click', toggleCollapse);
+  if (cfTitleBtn)  cfTitleBtn.addEventListener('click', toggleCollapse);
 
   render();
   window.renderConfirmItems = render;

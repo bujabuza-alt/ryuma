@@ -3,7 +3,7 @@ var DEFAULT_STAFF_PW = '0000';
 var staffUnlocked = false;
 var staffSubTab   = 'logs';   // 'logs' | 'active' | 'resigned'
 var recEditId      = null;    // 출퇴근 기록 폼에서 수정 중인 기록 id (null = 신규 입력)
-var recActiveField = 'rec-in'; // 즐겨찾기 시간 탭 시 채워질 입력칸 ('rec-in' | 'rec-out')
+var recActiveField = 'rec-in'; // 현재 포커스된 시간 입력칸 표시용 ('rec-in' | 'rec-out')
 var staffCalYear    = new Date().getFullYear(); // 출퇴근 기록 캘린더에 표시 중인 연도
 var staffCalMonth   = new Date().getMonth();    // 출퇴근 기록 캘린더에 표시 중인 월 (0-indexed)
 var staffCalSelDate = null;   // 출퇴근 기록 캘린더에서 선택된 날짜 (null = 선택 없음)
@@ -222,18 +222,19 @@ function startEditRecord(id) {
   renderStaffTab();
 }
 
-// ── 즐겨찾기 시간대 ──
+// ── 즐겨찾기 시간대 (출근~퇴근 시간대 단위, 예: "10:00~14:00") ──
 // 즐겨찾기 추가/삭제는 입력 중인 폼(알바생·날짜·시간)을 건드리지 않도록
 // 전체 탭을 다시 그리지 않고 즐겨찾기 칩 영역만 갱신한다.
-function addFavTime(t) {
-  if (!t) return;
+function addFavTime(inTime, outTime) {
+  if (!inTime || !outTime) return;
+  var t = inTime + '~' + outTime;
   if (!S.staffFavTimes) S.staffFavTimes = [];
   if (S.staffFavTimes.indexOf(t) >= 0) { showToast('이미 즐겨찾기에 있습니다'); return; }
   S.staffFavTimes.push(t);
   S.staffFavTimes.sort();
   saveData();
   refreshFavRow();
-  showToast('⭐ 즐겨찾기에 추가했습니다 (' + t + ')');
+  showToast('⭐ 즐겨찾기에 추가했습니다 (' + inTime + ' ~ ' + outTime + ')');
 }
 function removeFavTime(t) {
   S.staffFavTimes = (S.staffFavTimes || []).filter(function(x) { return x !== t; });
@@ -249,8 +250,11 @@ function refreshFavRow() {
 function bindFavChipEvents(scope) {
   scope.querySelectorAll('[data-act="fav-pick"]').forEach(function(el) {
     el.addEventListener('click', function() {
-      var target = document.getElementById(recActiveField) || document.getElementById('rec-in');
-      if (target) target.value = this.getAttribute('data-t');
+      var parts = this.getAttribute('data-t').split('~');
+      var inEl = document.getElementById('rec-in');
+      var outEl = document.getElementById('rec-out');
+      if (inEl && parts[0]) inEl.value = parts[0];
+      if (outEl && parts[1]) outEl.value = parts[1];
     });
   });
   scope.querySelectorAll('[data-act="fav-del"]').forEach(function(btn) {
@@ -296,10 +300,12 @@ function bindStaffCardEvents() {
 // ── 렌더링: 출퇴근 기록 탭 (기록 입력 + 목록) ──
 function renderFavChipsHtml() {
   var favs = (S.staffFavTimes || []).slice().sort();
-  if (!favs.length) return '<div class="stf-fav-empty">즐겨찾는 시간이 없습니다. 시간을 선택한 뒤 "현재 값 즐겨찾기"로 추가하세요.</div>';
+  if (!favs.length) return '<div class="stf-fav-empty">즐겨찾는 시간대가 없습니다. 출근·퇴근 시간을 입력한 뒤 "현재 시간대 즐겨찾기"로 추가하세요.</div>';
   return favs.map(function(t) {
-    return '<span class="stf-fav-chip"><span data-act="fav-pick" data-t="' + t + '">' + esc(t) + '</span>' +
-      '<button type="button" data-act="fav-del" data-t="' + t + '">✕</button></span>';
+    var parts = t.split('~');
+    var label = parts.length === 2 ? (parts[0] + ' ~ ' + parts[1]) : t;
+    return '<span class="stf-fav-chip"><span data-act="fav-pick" data-t="' + esc(t) + '">' + esc(label) + '</span>' +
+      '<button type="button" data-act="fav-del" data-t="' + esc(t) + '">✕</button></span>';
   }).join('');
 }
 // ── 렌더링: 출퇴근 기록 캘린더 ──
@@ -421,10 +427,10 @@ function renderAttendanceTab() {
     +   '<div class="fg"><label class="fl">출근 시간</label><input class="fi' + (recActiveField === 'rec-in' ? ' rec-active' : '') + '" type="time" id="rec-in" value="' + esc(inVal) + '"></div>'
     +   '<div class="fg"><label class="fl">퇴근 시간</label><input class="fi' + (recActiveField === 'rec-out' ? ' rec-active' : '') + '" type="time" id="rec-out" value="' + esc(outVal) + '"></div>'
     + '</div>'
-    + '<div class="stf-fav-lbl">⭐ 즐겨찾는 시간 <span>(탭하면 선택된 입력칸에 채워집니다)</span></div>'
+    + '<div class="stf-fav-lbl">⭐ 즐겨찾는 시간대 <span>(탭하면 출근·퇴근 시간이 함께 채워집니다)</span></div>'
     + '<div class="stf-fav-row">' + renderFavChipsHtml() + '</div>'
     + '<div class="stf-rec-btns">'
-    +   '<button type="button" class="bg" id="rec-fav-add">☆ 현재 값 즐겨찾기</button>'
+    +   '<button type="button" class="bg" id="rec-fav-add">☆ 현재 시간대 즐겨찾기</button>'
     +   '<button type="button" class="bp" id="rec-save">' + (editRec ? '수정 저장' : '저장') + '</button>'
     + '</div>'
     + '</div>'
@@ -448,10 +454,10 @@ function bindAttendanceEvents() {
 
   var favAddBtn = document.getElementById('rec-fav-add');
   if (favAddBtn) favAddBtn.addEventListener('click', function() {
-    var el = document.getElementById(recActiveField);
-    var v = el ? el.value : '';
-    if (!v) { showToast('즐겨찾기로 저장할 시간을 먼저 선택하세요'); return; }
-    addFavTime(v);
+    var inV = (document.getElementById('rec-in') || {}).value || '';
+    var outV = (document.getElementById('rec-out') || {}).value || '';
+    if (!inV || !outV) { showToast('출근·퇴근 시간을 모두 입력한 뒤 즐겨찾기하세요'); return; }
+    addFavTime(inV, outV);
   });
 
   var saveBtn = document.getElementById('rec-save');
