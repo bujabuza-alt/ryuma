@@ -36,7 +36,10 @@ function doEnter(store) {
   document.getElementById('bedit').textContent = '✏️';
   document.getElementById('bedit').classList.remove('on');
   document.getElementById('sel').style.display  = 'none';
-  document.getElementById('wrap').style.display = '';
+  // 데이터 로딩이 끝나기 전까지는 wrap을 숨겨둔다.
+  // (앱 실행 시 착석 인원/테이블 등이 전부 0으로 표시된 빈 화면이
+  //  잠깐 보였다가 실제 데이터로 갱신되는 "깜빡임" 방지)
+  document.getElementById('wrap').style.display = 'none';
   try { localStorage.setItem('ryuma_auth', JSON.stringify({store:store})); } catch(e) {}
 
   // 로딩 표시
@@ -104,6 +107,7 @@ function doEnter(store) {
       // 진입 시 항상 홈 탭으로 이동
       switchTab('floor');
       startFb();
+      document.getElementById('wrap').style.display = '';
     }
 
     if (newData && newData.tables && newData.tables.length) {
@@ -137,6 +141,7 @@ function doEnter(store) {
     if (!S.tags || !S.tags.length) S.tags = DEFAULT_TAGS.slice();
     showBadge('');
     syncToday(); switchTab('floor'); startFb();
+    document.getElementById('wrap').style.display = '';
   });
 }
 function logout() {
