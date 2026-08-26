@@ -122,7 +122,9 @@ function loadData() {
     if (!S.staffLogs) S.staffLogs = [];
     if (!S.staffRecords) S.staffRecords = [];
     if (!S.staffFavTimes) S.staffFavTimes = [];
-  } catch(e) { S.tags = DEFAULT_TAGS.slice(); S.staffPw = S.staffPw || DEFAULT_STAFF_PW; }
+    S.dailyMemos = (d.dailyMemos && typeof d.dailyMemos === 'object') ? d.dailyMemos : {};
+    S.weeklyMemos = (d.weeklyMemos && typeof d.weeklyMemos === 'object') ? d.weeklyMemos : {};
+  } catch(e) { S.tags = DEFAULT_TAGS.slice(); S.staffPw = S.staffPw || DEFAULT_STAFF_PW; S.dailyMemos = S.dailyMemos || {}; S.weeklyMemos = S.weeklyMemos || {}; }
 }
 
 // ── 데이터 백업(파일로 내보내기/가져오기) ──
@@ -155,6 +157,8 @@ function exportBackupToFile() {
     staffLogs: S.staffLogs || [],
     staffRecords: S.staffRecords || [],
     staffFavTimes: S.staffFavTimes || [],
+    dailyMemos: S.dailyMemos || {},
+    weeklyMemos: S.weeklyMemos || {},
     confirmItems: getConfirmItemsForBackup()
   };
   var json = JSON.stringify(payload, null, 2);
@@ -199,6 +203,8 @@ function importBackupFromFile(file) {
     if (Array.isArray(data.staffLogs)) S.staffLogs = data.staffLogs;
     if (Array.isArray(data.staffRecords)) S.staffRecords = data.staffRecords;
     if (Array.isArray(data.staffFavTimes)) S.staffFavTimes = data.staffFavTimes;
+    if (data.dailyMemos && typeof data.dailyMemos === 'object') S.dailyMemos = data.dailyMemos;
+    if (data.weeklyMemos && typeof data.weeklyMemos === 'object') S.weeklyMemos = data.weeklyMemos;
 
     if (data.confirmItems && data.confirmItems.cats && data.confirmItems.cats.length) {
       try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(data.confirmItems)); } catch(err) {}
@@ -268,6 +274,8 @@ function doActualSave() {
       staffLogs: S.staffLogs || [],
       staffRecords: S.staffRecords || [],
       staffFavTimes: S.staffFavTimes || [],
+      dailyMemos: S.dailyMemos || {},
+      weeklyMemos: S.weeklyMemos || {},
       _ts: ts
     };
     if (S._staffLogsMigrated) p._staffLogsMigrated = S._staffLogsMigrated;

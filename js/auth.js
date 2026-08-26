@@ -19,7 +19,7 @@ function doEnter(store) {
   lastSavedTs = 0;  // 매장 전환 시 반드시 초기화
   clearTimeout(fbReconnectTimer); fbReconnectTimer = null;
   fbRef = fbDb.ref('tableApp/' + store);
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[]};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],dailyMemos:{},weeklyMemos:{}};
   cardCache = {};
   stockTab = '전체'; stockChip = 'all'; stockSearch = ''; stockSort = 'name';
   stockOrderMode = false; stockSelectedIds = [];
@@ -150,7 +150,7 @@ function logout() {
   closeSaveErrorModal();
   if (fbRef) { fbRef.off(); fbRef = null; }
   currentStore = null;
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[]};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],dailyMemos:{},weeklyMemos:{}};
   cardCache = {};
   editMode = false;
   staffUnlocked = false; staffSubTab = 'logs';

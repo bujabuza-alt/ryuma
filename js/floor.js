@@ -1427,6 +1427,7 @@ function buildInlinePanelHTML(date) {
 
   var titleText = dlabel(date) + ' 예약';
   var cntText = rvs.length + '건';
+  var dayMemo = (S.dailyMemos && S.dailyMemos[date]) || '';
 
   var html = '<div class="schcal-inline-panel-inner">'
     + '<div class="schcal-inline-hd">'
@@ -1434,6 +1435,10 @@ function buildInlinePanelHTML(date) {
     + '<span class="schcal-inline-cnt"><span>'+esc(cntText)+'</span>'
     + '<button class="schcal-inline-close" data-close="1">×</button>'
     + '</span>'
+    + '</div>'
+    + '<div class="schcal-daymemo">'
+    + '<div class="schcal-daymemo-label">당일 메모</div>'
+    + '<textarea class="schcal-daymemo-input" data-date="'+esc(date)+'" placeholder="당일 메모를 입력하세요…">'+esc(dayMemo)+'</textarea>'
     + '</div>'
     + '<div class="schcal-inline-list">';
 
@@ -1474,12 +1479,12 @@ function renderSchedView() {
   if (!gEl) return;
 
   var dows = ['일','월','화','수','목','금','토'];
-  var dowsHTML = '<div class="schcal-dows">';
+  var dowsHTML = '<div class="schcal-dows-row"><div class="schcal-week-memo-spacer"></div><div class="schcal-dows">';
   dows.forEach(function(d, i) {
     var cls = 'schcal-dow'+(i===0?' sun':i===6?' sat':'');
     dowsHTML += '<div class="'+cls+'">'+d+'</div>';
   });
-  dowsHTML += '</div>';
+  dowsHTML += '</div></div>';
 
   var gridHTML = '';
   var panelAlreadyOpen = schedSelDate && gEl.querySelector('.schcal-inline-panel.open');
@@ -1493,19 +1498,26 @@ function renderSchedView() {
       weekDates.push(wd.getFullYear()+'-'+pad(wd.getMonth()+1)+'-'+pad(wd.getDate()));
     }
     var weekHasSel = schedSelDate && weekDates.indexOf(schedSelDate) >= 0;
-    gridHTML += '<div class="schcal-week-row"><div class="schcal-week">';
+    var weekKey0 = weekDates[0];
+    var weekMemo0 = (S.weeklyMemos && S.weeklyMemos[weekKey0]) || '';
+    gridHTML += '<div class="schcal-week-row"><div class="schcal-week-row-top">'
+      + '<div class="schcal-week-memo'+(weekMemo0?' has':'')+'" data-week="'+weekKey0+'" title="'+esc(weekMemo0)+'">'+(weekMemo0?'<div class="schcal-week-memo-dot"></div>':'')+'</div>'
+      + '<div class="schcal-week">';
     for (var i = 0; i < 7; i++) {
       var wd2 = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
       var ds = wd2.getFullYear()+'-'+pad(wd2.getMonth()+1)+'-'+pad(wd2.getDate());
       var isSel = ds === schedSelDate;
+      var isToday = ds === td;
+      var hasMemo = !!(S.dailyMemos && S.dailyMemos[ds]);
       var rvCnt = S.ress.filter(function(r){ return r.date===ds && r.st!=='cancelled' && r.st!=='completed'; }).length;
-      var cls = 'schcal-wday'+(isSel?' sel':'')+(i===0?' sun':i===6?' sat':'');
+      var cls = 'schcal-wday'+(isSel?' sel':'')+(isToday?' today':'')+(i===0?' sun':i===6?' sat':'');
+      var dotsHtml = (rvCnt?'<div class="schcal-dot"></div>':'')+(hasMemo?'<div class="schcal-dot schcal-dot-memo"></div>':'');
       gridHTML += '<div class="'+cls+'" data-date="'+ds+'">'
         + '<div class="schcal-wday-name">'+dows[i]+'</div>'
-        + '<div class="schcal-wday-num">'+wd2.getDate()+(rvCnt?'<div class="schcal-dot"></div>':'')+'</div>'
+        + '<div class="schcal-wday-num">'+wd2.getDate()+(dotsHtml?'<div class="schcal-dots">'+dotsHtml+'</div>':'')+'</div>'
         + '</div>';
     }
-    gridHTML += '</div>';
+    gridHTML += '</div></div>';
     var panelClass = 'schcal-inline-panel' + (weekHasSel && panelAlreadyOpen ? ' open' : '');
     gridHTML += '<div class="'+panelClass+'" data-week-panel="0">';
     if (weekHasSel) gridHTML += buildInlinePanelHTML(schedSelDate);
@@ -1537,20 +1549,28 @@ function renderSchedView() {
     }
 
     weeks.forEach(function(wk, wi) {
-      gridHTML += '<div class="schcal-week-row"><div class="schcal-days-inner">';
+      var weekSundayDate = new Date(schedCalYear, schedCalMonth, 1 - firstDay + wi*7);
+      var weekKey = weekSundayDate.getFullYear()+'-'+pad(weekSundayDate.getMonth()+1)+'-'+pad(weekSundayDate.getDate());
+      var weekMemo = (S.weeklyMemos && S.weeklyMemos[weekKey]) || '';
+      gridHTML += '<div class="schcal-week-row"><div class="schcal-week-row-top">'
+        + '<div class="schcal-week-memo'+(weekMemo?' has':'')+'" data-week="'+weekKey+'" title="'+esc(weekMemo)+'">'+(weekMemo?'<div class="schcal-week-memo-dot"></div>':'')+'</div>'
+        + '<div class="schcal-days-inner">';
       wk.forEach(function(day, di) {
         if (!day) {
           gridHTML += '<div class="schcal-day empty"></div>';
         } else {
           var ds = schedCalYear+'-'+pad(schedCalMonth+1)+'-'+pad(day);
           var isSel = ds === schedSelDate;
+          var isToday = ds === td;
+          var hasMemo = !!(S.dailyMemos && S.dailyMemos[ds]);
           var dow = di % 7;
           var rvCnt = S.ress.filter(function(r){ return r.date===ds && r.st!=='cancelled' && r.st!=='completed'; }).length;
-          var cls = 'schcal-day'+(isSel?' sel':'')+(dow===0?' sun':dow===6?' sat':'');
-          gridHTML += '<div class="'+cls+'" data-date="'+ds+'">'+day+(rvCnt?'<div class="schcal-dot"></div>':'')+'</div>';
+          var cls = 'schcal-day'+(isSel?' sel':'')+(isToday?' today':'')+(dow===0?' sun':dow===6?' sat':'');
+          var dotsHtml = (rvCnt?'<div class="schcal-dot"></div>':'')+(hasMemo?'<div class="schcal-dot schcal-dot-memo"></div>':'');
+          gridHTML += '<div class="'+cls+'" data-date="'+ds+'">'+day+(dotsHtml?'<div class="schcal-dots">'+dotsHtml+'</div>':'')+'</div>';
         }
       });
-      gridHTML += '</div>';
+      gridHTML += '</div></div>';
       var isSelWeek = wi === selWeekIdx;
       var panelClass = 'schcal-inline-panel' + (isSelWeek && panelAlreadyOpen ? ' open' : '');
       gridHTML += '<div class="'+panelClass+'" data-week-panel="'+wi+'">';
@@ -1609,6 +1629,41 @@ function renderSchedView() {
       e.stopPropagation();
       openRvDetail(this.getAttribute('data-rid'));
     });
+  });
+
+  // 주간 메모 박스 → 편집 모달
+  gEl.querySelectorAll('.schcal-week-memo').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openWeekMemoModal(this.getAttribute('data-week'));
+    });
+  });
+
+  // 당일 메모 입력 (인라인 패널 내부, 입력할 때마다 자동 저장)
+  gEl.querySelectorAll('.schcal-daymemo-input').forEach(function(el) {
+    el.addEventListener('click', function(e) { e.stopPropagation(); });
+    el.addEventListener('input', function() {
+      var d = this.getAttribute('data-date');
+      if (!S.dailyMemos) S.dailyMemos = {};
+      if (this.value) S.dailyMemos[d] = this.value; else delete S.dailyMemos[d];
+      saveData();
+    });
+  });
+}
+
+// 주간 메모 편집 모달 (해당 주 일요일 날짜를 key로 저장)
+function openWeekMemoModal(weekKey) {
+  if (!weekKey) return;
+  var memo = (S.weeklyMemos && S.weeklyMemos[weekKey]) || '';
+  showModal('<div class="md-hd"><span class="md-title">'+esc(dlabel(weekKey))+' 주간 메모</span><button class="md-x" id="mxbtn">×</button></div>'
+    + '<div class="mb"><div class="fg"><label class="fl">메모</label>'
+    + '<textarea class="fi" id="wkmemo-input" placeholder="이번 주 메모를 입력하세요…">'+esc(memo)+'</textarea></div>'
+    + '<button class="ab" style="background:var(--indigo);width:100%" id="wkmemo-save">저장</button></div>');
+  document.getElementById('wkmemo-save').addEventListener('click', function() {
+    var val = document.getElementById('wkmemo-input').value.trim();
+    if (!S.weeklyMemos) S.weeklyMemos = {};
+    if (val) S.weeklyMemos[weekKey] = val; else delete S.weeklyMemos[weekKey];
+    closeModal(); saveData(); renderSchedView();
   });
 }
 
