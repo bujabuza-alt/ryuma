@@ -493,10 +493,21 @@ textarea.fi{resize:none;min-height:60px;}
   justify-content: center;
   color: var(--text2);
 }
+.schcal-dows-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+.schcal-week-memo-spacer {
+  width: 20px;
+  flex-shrink: 0;
+}
 .schcal-dows {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  margin-bottom: 2px;
+  flex: 1;
+  min-width: 0;
 }
 .schcal-dow {
   text-align: center;
@@ -534,6 +545,7 @@ textarea.fi{resize:none;min-height:60px;}
   background: var(--red);
   color: #fff;
   font-weight: 800;
+  border-radius: 8px;
 }
 .schcal-day.sel {
   background: rgba(196,18,48,.18);
@@ -544,6 +556,12 @@ textarea.fi{resize:none;min-height:60px;}
 .schcal-day.sat { color: var(--blue); }
 .schcal-day.today.sun,
 .schcal-day.today.sat { color: #fff; }
+.schcal-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
 .schcal-dot {
   width: 4px;
   height: 4px;
@@ -551,12 +569,15 @@ textarea.fi{resize:none;min-height:60px;}
   background: var(--red);
   flex-shrink: 0;
 }
+.schcal-dot-memo { background: var(--indigo); }
 .schcal-day.today .schcal-dot { background: rgba(255,255,255,.8); }
 /* 주간 뷰 */
 .schcal-week {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 .schcal-wday {
   display: flex;
@@ -863,10 +884,70 @@ body.light .schrv-tag-call { color: #c03060; }
   display: flex;
   flex-direction: column;
 }
+.schcal-week-row-top {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
 .schcal-days-inner {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+/* 주간 메모 박스 (일요일 좌측) */
+.schcal-week-memo {
+  width: 20px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background: var(--surf2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, border-color .15s;
+}
+.schcal-week-memo:active { background: var(--surf3); }
+.schcal-week-memo.has {
+  background: rgba(72,64,176,.14);
+  border-color: var(--indigo);
+}
+.schcal-week-memo-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--indigo);
+}
+/* 당일 메모 (인라인 패널 내부) */
+.schcal-daymemo {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.schcal-daymemo-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text3);
+  margin-bottom: 6px;
+}
+.schcal-daymemo-input {
+  width: 100%;
+  min-height: 48px;
+  resize: vertical;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--surf);
+  color: var(--text);
+  box-sizing: border-box;
+}
+.schcal-daymemo-input:focus {
+  outline: none;
+  border-color: var(--indigo);
 }
 .schcal-inline-panel {
   overflow: hidden;
@@ -877,7 +958,7 @@ body.light .schrv-tag-call { color: #c03060; }
   transition: max-height 0.32s ease, opacity 0.24s ease, margin-top 0.32s ease, margin-bottom 0.32s ease;
 }
 .schcal-inline-panel.open {
-  max-height: 400px;
+  max-height: 480px;
   opacity: 1;
   margin-top: 6px;
   margin-bottom: 4px;
