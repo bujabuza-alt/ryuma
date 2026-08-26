@@ -1600,7 +1600,7 @@ function renderSchedView() {
     });
   }
 
-  gEl.querySelectorAll('[data-date]').forEach(function(el) {
+  gEl.querySelectorAll('.schcal-day[data-date], .schcal-wday[data-date]').forEach(function(el) {
     el.addEventListener('click', function() {
       var clickedDate = this.getAttribute('data-date');
       if (schedSelDate === clickedDate) {
@@ -1609,7 +1609,7 @@ function renderSchedView() {
         var panels = gEl.querySelectorAll('.schcal-inline-panel');
         panels.forEach(function(p){ p.classList.remove('open'); });
         setTimeout(function(){
-          gEl.querySelectorAll('[data-date]').forEach(function(e){ e.classList.remove('sel'); });
+          gEl.querySelectorAll('.schcal-day[data-date], .schcal-wday[data-date]').forEach(function(e){ e.classList.remove('sel'); });
           renderSchedView();
         }, 320);
       } else {
