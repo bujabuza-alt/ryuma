@@ -1467,6 +1467,14 @@ function buildInlinePanelHTML(date) {
 }
 
 function renderSchedView() {
+  var gEl = document.getElementById('schcal-g');
+  // 당일 메모 입력 중(포커스 상태)에는 다른 기기의 원격 동기화 등으로 인한
+  // 재렌더링이 입력란을 통째로 새로 그려 커서/입력 내용을 날려버리는 것을 방지
+  if (gEl && document.activeElement && gEl.contains(document.activeElement)
+      && document.activeElement.classList.contains('schcal-daymemo-input')) {
+    return;
+  }
+
   if (typeof renderConfirmItems === 'function') renderConfirmItems();
   var mEl = document.getElementById('schcal-m');
   if (mEl) mEl.textContent = schedCalYear+'년 '+(schedCalMonth+1)+'월';
@@ -1475,7 +1483,6 @@ function renderSchedView() {
   var todaySubEl = document.getElementById('cal-today-sub');
   if (todaySubEl) todaySubEl.textContent = dlabel(td);
 
-  var gEl = document.getElementById('schcal-g');
   if (!gEl) return;
 
   var dows = ['일','월','화','수','목','금','토'];
@@ -1501,7 +1508,7 @@ function renderSchedView() {
     var weekKey0 = weekDates[0];
     var weekMemo0 = (S.weeklyMemos && S.weeklyMemos[weekKey0]) || '';
     gridHTML += '<div class="schcal-week-row"><div class="schcal-week-row-top">'
-      + '<div class="schcal-week-memo'+(weekMemo0?' has':'')+'" data-week="'+weekKey0+'" title="'+esc(weekMemo0)+'">'+(weekMemo0?'<div class="schcal-week-memo-dot"></div>':'')+'</div>'
+      + '<div class="schcal-week-memo'+(weekMemo0?' has':'')+'" data-week="'+weekKey0+'" title="'+esc(weekMemo0)+'"><span class="schcal-week-memo-icon">📋</span></div>'
       + '<div class="schcal-week">';
     for (var i = 0; i < 7; i++) {
       var wd2 = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
@@ -1553,7 +1560,7 @@ function renderSchedView() {
       var weekKey = weekSundayDate.getFullYear()+'-'+pad(weekSundayDate.getMonth()+1)+'-'+pad(weekSundayDate.getDate());
       var weekMemo = (S.weeklyMemos && S.weeklyMemos[weekKey]) || '';
       gridHTML += '<div class="schcal-week-row"><div class="schcal-week-row-top">'
-        + '<div class="schcal-week-memo'+(weekMemo?' has':'')+'" data-week="'+weekKey+'" title="'+esc(weekMemo)+'">'+(weekMemo?'<div class="schcal-week-memo-dot"></div>':'')+'</div>'
+        + '<div class="schcal-week-memo'+(weekMemo?' has':'')+'" data-week="'+weekKey+'" title="'+esc(weekMemo)+'"><span class="schcal-week-memo-icon">📋</span></div>'
         + '<div class="schcal-days-inner">';
       wk.forEach(function(day, di) {
         if (!day) {

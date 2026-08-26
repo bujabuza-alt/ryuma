@@ -524,8 +524,10 @@ textarea.fi{resize:none;min-height:60px;}
   gap: 2px;
 }
 .schcal-day {
+  box-sizing: border-box;
   text-align: center;
   border-radius: 50%;
+  border: 2px solid transparent;
   font-size: 12px;
   cursor: pointer;
   display: flex;
@@ -540,10 +542,10 @@ textarea.fi{resize:none;min-height:60px;}
   font-weight: 600;
   flex-shrink: 0;
 }
-.schcal-day.empty { pointer-events: none; }
+.schcal-day.empty { pointer-events: none; border-color: transparent; }
 .schcal-day.today {
-  background: var(--red);
-  color: #fff;
+  border-color: var(--red);
+  color: var(--red2);
   font-weight: 800;
   border-radius: 8px;
 }
@@ -554,8 +556,6 @@ textarea.fi{resize:none;min-height:60px;}
 }
 .schcal-day.sun { color: var(--red); }
 .schcal-day.sat { color: var(--blue); }
-.schcal-day.today.sun,
-.schcal-day.today.sat { color: #fff; }
 .schcal-dots {
   display: flex;
   align-items: center;
@@ -570,7 +570,6 @@ textarea.fi{resize:none;min-height:60px;}
   flex-shrink: 0;
 }
 .schcal-dot-memo { background: var(--indigo); }
-.schcal-day.today .schcal-dot { background: rgba(255,255,255,.8); }
 /* 주간 뷰 */
 .schcal-week {
   display: grid;
@@ -898,7 +897,7 @@ body.light .schrv-tag-call { color: #c03060; }
 }
 /* 주간 메모 박스 (일요일 좌측) */
 .schcal-week-memo {
-  width: 20px;
+  width: 22px;
   flex-shrink: 0;
   border-radius: 6px;
   background: var(--surf2);
@@ -914,11 +913,15 @@ body.light .schrv-tag-call { color: #c03060; }
   background: rgba(72,64,176,.14);
   border-color: var(--indigo);
 }
-.schcal-week-memo-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--indigo);
+.schcal-week-memo-icon {
+  font-size: 12px;
+  line-height: 1;
+  opacity: .5;
+  filter: grayscale(1);
+}
+.schcal-week-memo.has .schcal-week-memo-icon {
+  opacity: 1;
+  filter: none;
 }
 /* 당일 메모 (인라인 패널 내부) */
 .schcal-daymemo {
