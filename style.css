@@ -797,15 +797,31 @@ body.light .schrv-tag-call { color: #c03060; }
   color: var(--red2);
 }
 .rvtbl-td-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+.rvtbl-name-txt {
   font-size: 15px;
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
+  max-width: 100%;
 }
-.rvtbl-guest-badge { font-size: 11px; margin-right: 2px; }
+.rvtbl-guest-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 99px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.rvtbl-guest-badge.new { background: rgba(42,114,200,.14); color: var(--blue); }
+.rvtbl-guest-badge.old { background: rgba(42,154,90,.14); color: var(--green); }
 .rvtbl-td-g {
   font-size: 14px;
   font-weight: 700;

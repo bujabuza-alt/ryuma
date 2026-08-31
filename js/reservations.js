@@ -1,6 +1,6 @@
 // ── 예약 관리 (Reservation Management) ──
 
-// ── 이름/전화번호 입력 중 신규·재방문 손님 실시간 표시 ──
+// ── 이름/전화번호 입력 중 신규·기존 손님 실시간 표시 ──
 // 전화번호(8자리 완성 시)를 우선으로, 없으면 이름으로 기존 고객 매칭
 function matchGuestByInput(custList, name, phoneDigits) {
   if (phoneDigits && phoneDigits.length === 8) {
@@ -14,9 +14,9 @@ function matchGuestByInput(custList, name, phoneDigits) {
 function updateGuestStatusEl(el, cust) {
   if (!el) return;
   if (cust === undefined) { el.className = 'guest-status'; el.textContent = ''; return; }
-  if (!cust || !cust.total) { el.className = 'guest-status new show'; el.textContent = '🆕 신규 손님'; return; }
+  if (!cust || !cust.total) { el.className = 'guest-status new show'; el.textContent = '신규 손님'; return; }
   el.className = 'guest-status returning show';
-  el.textContent = '🔁 재방문 손님 · 총 ' + cust.total + '회 방문' + (cust.last ? ' · 최근 ' + fmtDateShort(cust.last) : '');
+  el.textContent = '기존 손님 · 총 ' + cust.total + '회 방문' + (cust.last ? ' · 최근 ' + fmtDateShort(cust.last) : '');
 }
 function bindGuestStatus(nameId, phoneId, badgeId) {
   var nameEl = document.getElementById(nameId), phoneEl = document.getElementById(phoneId), badgeEl = document.getElementById(badgeId);
@@ -41,10 +41,10 @@ function matchGuestByRecord(custList, r) {
   if (nm) return custList.filter(function(c){ return (c.name||'').trim().toLowerCase() === nm; })[0] || null;
   return null;
 }
-// 예약 목록(날짜별 예약 상황 등)에 표시할 이름 옆 신규·재방문 아이콘
-function guestVisitIconHtml(cust) {
-  if (cust && cust.total) return '<span class="rvtbl-guest-badge" title="재방문 손님 · 총 '+cust.total+'회 방문">🔁</span>';
-  return '<span class="rvtbl-guest-badge" title="신규 손님">🆕</span>';
+// 예약 목록(날짜별 예약 상황 등)에 표시할 이름 옆 신규·기존 손님 배지
+function guestVisitBadgeHtml(cust) {
+  if (cust && cust.total) return '<span class="rvtbl-guest-badge old" title="기존 손님 · 총 '+cust.total+'회 방문">기존</span>';
+  return '<span class="rvtbl-guest-badge new" title="신규 손님">신규</span>';
 }
 // ── 예약 변경 후 현재 화면 갱신 (홈 탭의 캘린더/좌석도, 손님 탭의 취소 목록 등) ──
 function renderReservations(){
