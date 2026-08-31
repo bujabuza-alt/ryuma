@@ -1452,10 +1452,11 @@ function buildInlinePanelHTML(date) {
       + '<span class="rvtbl-th rvtbl-th-c">테이블</span>'
       + '<span class="rvtbl-th">태그</span>'
       + '</div>';
+    var custList = getAllCustomers();
     rvs.forEach(function(r) {
       html += '<div class="rvtbl-row" data-rid="'+esc(String(r.id))+'">'
         + '<span class="rvtbl-td-time">'+esc(r.time||'–')+'</span>'
-        + '<span class="rvtbl-td-name">'+esc(r.nm||'·')+'</span>'
+        + '<span class="rvtbl-td-name">'+guestVisitIconHtml(matchGuestByRecord(custList, r))+esc(r.nm||'·')+'</span>'
         + '<span class="rvtbl-td-g">'+esc(String(r.g))+'명</span>'
         + rvTblCellHtml(r)
         + '<span class="rvtbl-td-tags">'+(r.tags&&r.tags.length?r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join(''):'')+'</span>'
