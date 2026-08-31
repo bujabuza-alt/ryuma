@@ -1456,7 +1456,7 @@ function buildInlinePanelHTML(date) {
     rvs.forEach(function(r) {
       html += '<div class="rvtbl-row" data-rid="'+esc(String(r.id))+'">'
         + '<span class="rvtbl-td-time">'+esc(r.time||'–')+'</span>'
-        + '<span class="rvtbl-td-name">'+guestVisitIconHtml(matchGuestByRecord(custList, r))+esc(r.nm||'·')+'</span>'
+        + '<span class="rvtbl-td-name"><span class="rvtbl-name-txt">'+esc(r.nm||'·')+'</span>'+guestVisitBadgeHtml(matchGuestByRecord(custList, r))+'</span>'
         + '<span class="rvtbl-td-g">'+esc(String(r.g))+'명</span>'
         + rvTblCellHtml(r)
         + '<span class="rvtbl-td-tags">'+(r.tags&&r.tags.length?r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join(''):'')+'</span>'
