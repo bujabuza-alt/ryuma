@@ -1,5 +1,35 @@
 // ── 예약 관리 (Reservation Management) ──
 
+// ── 이름/전화번호 입력 중 신규·재방문 손님 실시간 표시 ──
+// 전화번호(8자리 완성 시)를 우선으로, 없으면 이름으로 기존 고객 매칭
+function matchGuestByInput(custList, name, phoneDigits) {
+  if (phoneDigits && phoneDigits.length === 8) {
+    var full = '010' + phoneDigits;
+    return custList.filter(function(c){ return (c.phone||'').replace(/\D/g,'') === full; })[0] || null;
+  }
+  var nm = (name||'').trim().toLowerCase();
+  if (nm) return custList.filter(function(c){ return (c.name||'').trim().toLowerCase() === nm; })[0] || null;
+  return undefined; // 아직 판단할 정보 없음
+}
+function updateGuestStatusEl(el, cust) {
+  if (!el) return;
+  if (cust === undefined) { el.className = 'guest-status'; el.textContent = ''; return; }
+  if (!cust || !cust.total) { el.className = 'guest-status new show'; el.textContent = '🆕 신규 손님'; return; }
+  el.className = 'guest-status returning show';
+  el.textContent = '🔁 재방문 손님 · 총 ' + cust.total + '회 방문' + (cust.last ? ' · 최근 ' + fmtDateShort(cust.last) : '');
+}
+function bindGuestStatus(nameId, phoneId, badgeId) {
+  var nameEl = document.getElementById(nameId), phoneEl = document.getElementById(phoneId), badgeEl = document.getElementById(badgeId);
+  if (!nameEl || !badgeEl) return;
+  var custList = getAllCustomers();
+  function update() {
+    var digits = phoneEl ? phoneEl.value.replace(/\D/g,'') : '';
+    updateGuestStatusEl(badgeEl, matchGuestByInput(custList, nameEl.value, digits));
+  }
+  nameEl.addEventListener('input', update);
+  if (phoneEl) phoneEl.addEventListener('input', update);
+  update();
+}
 // ── 예약 변경 후 현재 화면 갱신 (홈 탭의 캘린더/좌석도, 손님 탭의 취소 목록 등) ──
 function renderReservations(){
   renderHeader();
@@ -21,6 +51,7 @@ function openAddRv(){
     +'<div class="mb"><div class="g2">'
     +'<div class="fg"><label class="fl">이름 *</label><input class="fi" id="avn" placeholder="홍길동"></div>'
     +'<div class="fg"><label class="fl">연락처</label>'+phHtml('avp','')+'</div></div>'
+    +'<div class="guest-status" id="avguest"></div>'
     +'<div class="g2"><div class="fg"><label class="fl">날짜 *</label><input class="fi" id="avd" type="date" value="'+df+'"></div>'
     +'<div class="fg"><label class="fl">시간 *</label><input class="fi" id="avt" type="time" value="18:00"></div></div>'
     +'<div class="fg"><label class="fl">인원</label>'+guestSelectHtml('g-addrv', 2, 50)+'</div>'
@@ -28,7 +59,7 @@ function openAddRv(){
     +'<div class="fg"><label class="fl">태그(선택)</label>'+tagHtml('avtags',[])+'</div>'
     +'<div class="fg"><label class="fl">메모</label><textarea class="fi" id="avm" placeholder="알레르기, 특별 요청 등…"></textarea></div>'
     +'<button class="ab" style="background:var(--green);width:100%" id="avsubmit">예약 등록</button></div>');
-  bindPh('avp'); bindTag('avtags');
+  bindPh('avp'); bindTag('avtags'); bindGuestStatus('avn','avp','avguest');
   var tp=document.getElementById('avtbl');
   var info=document.getElementById('avtbl-info');
   function updateInfo(){
@@ -308,13 +339,14 @@ function openEditRv(rid){
     +'<div class="mb"><div class="g2">'
     +'<div class="fg"><label class="fl">이름 *</label><input class="fi" id="evn" value="'+esc(r.nm)+'"></div>'
     +'<div class="fg"><label class="fl">연락처</label>'+phHtml('evp',r.phone||'')+'</div></div>'
+    +'<div class="guest-status" id="evguest"></div>'
     +'<div class="g2"><div class="fg"><label class="fl">날짜 *</label><input class="fi" id="evd" type="date" value="'+esc(r.date||'')+'"></div>'
     +'<div class="fg"><label class="fl">시간 *</label><input class="fi" id="evt" type="time" value="'+esc(r.time||'')+'"></div></div>'
     +'<div class="fg"><label class="fl">인원</label>'+guestSelectHtml('g-editrv', gvRvEdit, 50)+'</div>'
     +'<div class="fg"><label class="fl">태그(선택)</label>'+tagHtml('evtags',r.tags||[])+'</div>'
     +'<div class="fg"><label class="fl">메모</label><textarea class="fi" id="evm">'+esc(r.memo||'')+'</textarea></div>'
     +'<button class="ab" style="background:var(--green);width:100%" id="evsubmit">저장</button></div>');
-  bindPh('evp'); bindTag('evtags');
+  bindPh('evp'); bindTag('evtags'); bindGuestStatus('evn','evp','evguest');
   document.getElementById('evsubmit').addEventListener('click',function(){
     var nm=document.getElementById('evn').value.trim(), d=document.getElementById('evd').value, t=document.getElementById('evt').value;
     if(!nm||!d||!t){alert('이름, 날짜, 시간은 필수입니다');return;}
