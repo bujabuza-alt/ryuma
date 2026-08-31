@@ -30,6 +30,22 @@ function bindGuestStatus(nameId, phoneId, badgeId) {
   if (phoneEl) phoneEl.addEventListener('input', update);
   update();
 }
+// 이미 저장된 예약 레코드(완성된 전화번호 보유)로 기존 고객 매칭
+function matchGuestByRecord(custList, r) {
+  var full = (r.phone||'').replace(/\D/g,'');
+  if (full) {
+    var m = custList.filter(function(c){ return (c.phone||'').replace(/\D/g,'') === full; })[0];
+    if (m) return m;
+  }
+  var nm = (r.nm||'').trim().toLowerCase();
+  if (nm) return custList.filter(function(c){ return (c.name||'').trim().toLowerCase() === nm; })[0] || null;
+  return null;
+}
+// 예약 목록(날짜별 예약 상황 등)에 표시할 이름 옆 신규·재방문 아이콘
+function guestVisitIconHtml(cust) {
+  if (cust && cust.total) return '<span class="rvtbl-guest-badge" title="재방문 손님 · 총 '+cust.total+'회 방문">🔁</span>';
+  return '<span class="rvtbl-guest-badge" title="신규 손님">🆕</span>';
+}
 // ── 예약 변경 후 현재 화면 갱신 (홈 탭의 캘린더/좌석도, 손님 탭의 취소 목록 등) ──
 function renderReservations(){
   renderHeader();

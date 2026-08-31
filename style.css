@@ -805,6 +805,7 @@ body.light .schrv-tag-call { color: #c03060; }
   text-overflow: ellipsis;
   min-width: 0;
 }
+.rvtbl-guest-badge { font-size: 11px; margin-right: 2px; }
 .rvtbl-td-g {
   font-size: 14px;
   font-weight: 700;
