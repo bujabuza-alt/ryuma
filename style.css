@@ -291,6 +291,10 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 .fi{width:100%;padding:9px 11px;border:1px solid var(--border2);border-radius:9px;font-size:14px;outline:none;-webkit-appearance:none;font-family:inherit;background:var(--surf2);color:var(--text);}
 .fi:focus{border-color:var(--red);}
 textarea.fi{resize:none;min-height:60px;}
+.guest-status{display:none;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:7px 11px;border-radius:9px;margin-top:-2px;}
+.guest-status.show{display:flex;}
+.guest-status.new{background:rgba(42,114,200,.12);color:var(--blue);}
+.guest-status.returning{background:rgba(42,154,90,.12);color:var(--green);}
 .tpb{padding:11px 13px;background:var(--surf2);border:1px solid var(--border2);border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:700;width:100%;color:var(--text);font-family:inherit;}
 .tps{color:var(--text3);font-size:12px;font-weight:500;}
 .tpb.on{border-color:var(--blue);background:rgba(42,114,200,.12);color:var(--blue);}
