@@ -818,6 +818,11 @@ document.getElementById('stock-order-cancel').addEventListener('click', function
 });
 document.getElementById('stock-srch').addEventListener('input', function(){
   stockSearch = this.value;
+  // 검색 중에는 특정 카테고리에 갇히지 않도록 '전체' 기준으로 전환
+  if (stockSearch.trim() && stockTab !== '전체') {
+    stockTab = '전체';
+    renderStockCats();
+  }
   renderStockList();
   renderStockStats();
 });
