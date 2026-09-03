@@ -47,7 +47,7 @@ var DEFAULT_INVENTORY = (function() {
 })();
 
 var stockTab        = '전체';
-var stockChip       = 'all';   // 'all' | 'low' | 'out'
+var stockChip       = 'all';   // 'all' | 'low' | 'out' | 'unused'
 var stockSearch     = '';
 var stockSort       = 'name';  // 'name' | 'qty_asc' | 'qty_desc' | 'recent'
 var stockOrderMode  = false;
@@ -105,9 +105,14 @@ function getStockList() {
   // 카테고리 필터
   if (stockTab !== '전체') list = list.filter(function(i){ return i.cat === stockTab; });
 
-  // 칩 필터
-  if (stockChip === 'low')  list = list.filter(function(i){ return stockStatus(i) === 'warn'; });
-  if (stockChip === 'out')  list = list.filter(function(i){ return stockStatus(i) === 'out'; });
+  // 미사용 품목은 '미사용' 칩을 선택했을 때만 노출, 그 외에는 목록에서 제외
+  if (stockChip === 'unused') {
+    list = list.filter(function(i){ return !!i.unused; });
+  } else {
+    list = list.filter(function(i){ return !i.unused; });
+    if (stockChip === 'low') list = list.filter(function(i){ return stockStatus(i) === 'warn'; });
+    if (stockChip === 'out') list = list.filter(function(i){ return stockStatus(i) === 'out'; });
+  }
 
   // 검색
   var q = stockSearch.trim().toLowerCase();
@@ -172,11 +177,12 @@ function renderStockChips() {
   var chips = [
     {k:'all', label:'전체'},
     {k:'low', label:'⚠ 부족'},
-    {k:'out', label:'🔴 품절'}
+    {k:'out', label:'🔴 품절'},
+    {k:'unused', label:'🚫 미사용'}
   ];
   var html = chips.map(function(c){
     var cls = 'schip';
-    if (c.k === stockChip) cls += (c.k==='low'?' warn-on':c.k==='out'?' out-on':' on');
+    if (c.k === stockChip) cls += (c.k==='low'?' warn-on':c.k==='out'?' out-on':c.k==='unused'?' unused-on':' on');
     return '<button class="'+cls+'" data-k="'+c.k+'">'+c.label+'</button>';
   }).join('');
   var el = document.getElementById('stock-chips');
@@ -194,9 +200,10 @@ function renderStockChips() {
 
 function renderStockStats() {
   if (!S.inventory) S.inventory = [];
-  var total = S.inventory.length;
-  var low   = S.inventory.filter(function(i){ return stockStatus(i) === 'warn'; }).length;
-  var out   = S.inventory.filter(function(i){ return stockStatus(i) === 'out'; }).length;
+  var active = S.inventory.filter(function(i){ return !i.unused; });
+  var total = active.length;
+  var low   = active.filter(function(i){ return stockStatus(i) === 'warn'; }).length;
+  var out   = active.filter(function(i){ return stockStatus(i) === 'out'; }).length;
   var el = document.getElementById('stock-stats');
   if (!el) return;
   el.innerHTML =
@@ -209,11 +216,12 @@ function renderStockStats() {
 function _buildStockCardHtml(item) {
   var st = stockStatus(item);
   var isSel = stockOrderMode && stockSelectedIds.indexOf(item.id) >= 0;
-  return '<div class="sk-card" data-id="'+item.id+'">'
+  return '<div class="sk-card'+(item.unused?' sk-unused':'')+'" data-id="'+item.id+'">'
     +'<div class="sk-bar '+st+'"></div>'
     +'<div class="sk-body">'
       +'<div class="sk-name">'+esc(item.n)+'</div>'
       +'<div class="sk-sub"><span class="sk-cat">'+esc(item.cat||'기타')+'</span>'
+        +(item.unused ? '<span class="sk-unused-badge">미사용</span>' : '')
         +(item.memo ? '<span>'+esc(item.memo)+'</span>' : '')
         +(item.upd  ? '<span>'+stockTimeAgo(item.upd)+'</span>' : '')
       +'</div>'
@@ -278,7 +286,7 @@ function renderStockList() {
 function _renderStockListGrouped(el) {
   if (!S.inventory) S.inventory = [];
   var catOrder = (S.stockCats && S.stockCats.length) ? S.stockCats : DEFAULT_STOCK_CATS.slice();
-  var allItems = S.inventory.slice().sort(function(a,b){
+  var allItems = S.inventory.filter(function(i){ return !i.unused; }).sort(function(a,b){
     return (a.n||'').localeCompare(b.n||'','ko');
   });
 
@@ -317,9 +325,10 @@ function _renderStockListGrouped(el) {
 function _renderStockListFiltered(el) {
   var list = getStockList();
   if (!list.length) {
-    el.innerHTML = '<div class="sk-empty">'+
-      (stockSearch||stockTab!=='전체'||stockChip!=='all' ? '검색 결과가 없습니다' : '등록된 재고 품목이 없습니다. + 추가 버튼을 눌러 시작하세요.')+
-      '</div>';
+    var emptyMsg = '등록된 재고 품목이 없습니다. + 추가 버튼을 눌러 시작하세요.';
+    if (stockChip === 'unused') emptyMsg = '미사용으로 표시된 품목이 없습니다';
+    else if (stockSearch || stockTab !== '전체' || stockChip !== 'all') emptyMsg = '검색 결과가 없습니다';
+    el.innerHTML = '<div class="sk-empty">'+emptyMsg+'</div>';
     return;
   }
   el.innerHTML = list.map(function(item){ return _buildStockCardHtml(item); }).join('');
@@ -483,6 +492,10 @@ function openEditStock(id) {
       +'<div class="fg"><div class="fl">최소 기준</div><input class="fi" id="sk-min" type="number" min="0" value="'+item.min+'" inputmode="numeric"></div>'
     +'</div>'
     +'<div class="fg"><div class="fl">메모</div><input class="fi" id="sk-memo" value="'+esc(item.memo||'')+'" maxlength="80"></div>'
+    +'<div class="fg" style="flex-direction:row;align-items:center;gap:8px;">'
+      +'<input type="checkbox" id="sk-unused" style="width:16px;height:16px;"'+(item.unused?' checked':'')+'>'
+      +'<label for="sk-unused" style="font-size:12px;color:var(--text2);cursor:pointer;">사용 안 함 (미사용 품목으로 분류)</label>'
+    +'</div>'
     +'<div class="abs">'
       +'<button class="ab" style="background:var(--red2);" onclick="delStockItem(\''+id+'\')">삭제</button>'
       +'<button class="ab" style="background:var(--red);" onclick="saveStockItem(\''+id+'\')">저장</button>'
@@ -498,16 +511,18 @@ function saveStockItem(editId) {
   var qty  = parseInt((document.getElementById('sk-qty')||{}).value)||0;
   var min  = parseInt((document.getElementById('sk-min')||{}).value)||0;
   var memo = (document.getElementById('sk-memo')||{}).value || '';
+  var unusedEl = document.getElementById('sk-unused');
+  var unused = unusedEl ? unusedEl.checked : false;
   if (!n.trim()) { showToast('상품명을 입력하세요'); return; }
 
   if (!S.inventory) S.inventory = [];
   if (editId) {
     S.inventory = S.inventory.map(function(i){
       if (i.id !== editId) return i;
-      return Object.assign({}, i, {n:n.trim(), cat:cat, unit:unit, qty:qty, min:min, memo:memo, upd:Date.now()});
+      return Object.assign({}, i, {n:n.trim(), cat:cat, unit:unit, qty:qty, min:min, memo:memo, unused:unused, upd:Date.now()});
     });
   } else {
-    S.inventory.push({id:uid(), n:n.trim(), cat:cat, unit:unit, qty:qty, min:min, memo:memo, hist:[], upd:Date.now()});
+    S.inventory.push({id:uid(), n:n.trim(), cat:cat, unit:unit, qty:qty, min:min, memo:memo, unused:false, hist:[], upd:Date.now()});
   }
   saveData();
   closeModal();
@@ -803,6 +818,11 @@ document.getElementById('stock-order-cancel').addEventListener('click', function
 });
 document.getElementById('stock-srch').addEventListener('input', function(){
   stockSearch = this.value;
+  // 검색 중에는 특정 카테고리에 갇히지 않도록 '전체' 기준으로 전환
+  if (stockSearch.trim() && stockTab !== '전체') {
+    stockTab = '전체';
+    renderStockCats();
+  }
   renderStockList();
   renderStockStats();
 });

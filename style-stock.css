@@ -40,6 +40,7 @@
 .schip.on{border-color:var(--red);background:rgba(196,18,48,.1);color:var(--red2);}
 .schip.warn-on{border-color:var(--amber);background:rgba(200,146,42,.1);color:var(--amber);}
 .schip.out-on{border-color:var(--red2);background:rgba(232,22,44,.1);color:var(--red2);}
+.schip.unused-on{border-color:var(--text3);background:rgba(120,120,120,.14);color:var(--text2);}
 
 /* ── 독립 스크롤 영역 ──
    #stock-top 이 고정되므로, 이 영역만 별도 스크롤.
@@ -73,6 +74,8 @@
 #stock-list{display:flex;flex-direction:column;gap:6px;}
 .sk-card{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:11px 13px;display:flex;align-items:stretch;gap:10px;cursor:pointer;position:relative;overflow:hidden;transition:opacity .12s;}
 .sk-card:active{opacity:.85;}
+.sk-card.sk-unused{opacity:.55;}
+.sk-unused-badge{background:rgba(120,120,120,.16);color:var(--text3);border-radius:99px;padding:1px 7px;font-weight:700;}
 .sk-bar{width:4px;border-radius:2px;flex-shrink:0;align-self:stretch;}
 .sk-bar.ok{background:var(--green);}
 .sk-bar.warn{background:var(--amber);}
