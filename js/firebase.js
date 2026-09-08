@@ -111,7 +111,6 @@ function loadData() {
     if (Array.isArray(d.staffRecords)) S.staffRecords = d.staffRecords;
     if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
     if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
-    S.staffPw = d.staffPw || DEFAULT_STAFF_PW;
     S.tags = (d.tags && d.tags.length) ? d.tags : DEFAULT_TAGS.slice();
     if (!S.stockCats.length) S.stockCats = DEFAULT_STOCK_CATS.slice();
     if (!S.stockUnits.length) S.stockUnits = DEFAULT_STOCK_UNITS.slice();
@@ -124,7 +123,7 @@ function loadData() {
     if (!S.staffFavTimes) S.staffFavTimes = [];
     S.dailyMemos = (d.dailyMemos && typeof d.dailyMemos === 'object') ? d.dailyMemos : {};
     S.weeklyMemos = (d.weeklyMemos && typeof d.weeklyMemos === 'object') ? d.weeklyMemos : {};
-  } catch(e) { S.tags = DEFAULT_TAGS.slice(); S.staffPw = S.staffPw || DEFAULT_STAFF_PW; S.dailyMemos = S.dailyMemos || {}; S.weeklyMemos = S.weeklyMemos || {}; }
+  } catch(e) { S.tags = DEFAULT_TAGS.slice(); S.dailyMemos = S.dailyMemos || {}; S.weeklyMemos = S.weeklyMemos || {}; }
 }
 
 // ── 데이터 백업(파일로 내보내기/가져오기) ──
@@ -151,7 +150,6 @@ function exportBackupToFile() {
     inventory: S.inventory || [],
     stockCats: S.stockCats || [],
     stockUnits: S.stockUnits || [],
-    staffPw: S.staffPw || DEFAULT_STAFF_PW,
     staffActive: S.staffActive || [],
     staffResigned: S.staffResigned || [],
     staffLogs: S.staffLogs || [],
@@ -197,7 +195,6 @@ function importBackupFromFile(file) {
     if (Array.isArray(data.stockCats) && data.stockCats.length) S.stockCats = data.stockCats;
     if (Array.isArray(data.stockUnits) && data.stockUnits.length) S.stockUnits = data.stockUnits;
     // 백업 파일에는 용량이 큰 이미지가 포함되지 않으므로, 불러오기 시에도 현재 이미지는 그대로 둔다.
-    if (data.staffPw) S.staffPw = data.staffPw;
     if (Array.isArray(data.staffActive)) S.staffActive = data.staffActive;
     if (Array.isArray(data.staffResigned)) S.staffResigned = data.staffResigned;
     if (Array.isArray(data.staffLogs)) S.staffLogs = data.staffLogs;
@@ -218,7 +215,7 @@ function importBackupFromFile(file) {
     else if (currentTab === 'cust') renderCustTab();
     else if (currentTab === 'stock') renderStock();
     else if (currentTab === 'images') renderImagesTab();
-    else if (currentTab === 'staff' && staffUnlocked) renderStaffTab();
+    else if (currentTab === 'staff') renderStaffTab();
     showToast('백업 파일에서 데이터를 불러왔습니다');
   };
   reader.onerror = function() { alert('파일을 읽는 중 오류가 발생했습니다.'); };
@@ -268,7 +265,6 @@ function doActualSave() {
       stockCats: S.stockCats || [],
       stockUnits: S.stockUnits || [],
       images: S.images || [],
-      staffPw: S.staffPw || DEFAULT_STAFF_PW,
       staffActive: S.staffActive || [],
       staffResigned: S.staffResigned || [],
       staffLogs: S.staffLogs || [],
@@ -375,7 +371,6 @@ function startFb() {
     if (Array.isArray(d.staffRecords)) S.staffRecords = d.staffRecords;
     if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
     if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
-    if (d.staffPw) S.staffPw = d.staffPw;
     if (d.confirmItems && d.confirmItems.cats && d.confirmItems.cats.length) {
       try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(d.confirmItems)); } catch(e) {}
       if (typeof renderConfirmItems === 'function') renderConfirmItems();
@@ -387,7 +382,7 @@ function startFb() {
     isSyncingFromRemote = false;
     if (currentTab === 'stock') renderStock();
     if (currentTab === 'images') renderImagesTab();
-    if (currentTab === 'staff' && staffUnlocked) renderStaffTab();
+    if (currentTab === 'staff') renderStaffTab();
   }, function(err) {
     var code = (err && err.code) || '';
     showBadge('err');

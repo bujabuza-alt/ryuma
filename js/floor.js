@@ -91,7 +91,7 @@ function switchTab(t) {
   else if (t==='cust') renderCustTab();
   else if (t==='stock') renderStock();
   else if (t==='images') renderImagesTab();
-  else if (t==='staff') checkStaffLock();
+  else if (t==='staff') renderStaffTab();
 }
 function getAllCustomers() {
   var deletedPhones = {};

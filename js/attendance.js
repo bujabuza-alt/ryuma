@@ -1,66 +1,11 @@
-// ── 알바 출퇴근 기록 (Part-timer Attendance) ──
-var DEFAULT_STAFF_PW = '0000';
-var staffUnlocked = false;
+// ── 스케줄 탭 (구 알바 출퇴근 기록, Part-timer Attendance) ──
+var staffTopTab   = 'schedule'; // 'schedule' | 'attendance'
 var staffSubTab   = 'logs';   // 'logs' | 'active' | 'resigned'
 var recEditId      = null;    // 출퇴근 기록 폼에서 수정 중인 기록 id (null = 신규 입력)
 var recActiveField = 'rec-in'; // 현재 포커스된 시간 입력칸 표시용 ('rec-in' | 'rec-out')
 var staffCalYear    = new Date().getFullYear(); // 출퇴근 기록 캘린더에 표시 중인 연도
 var staffCalMonth   = new Date().getMonth();    // 출퇴근 기록 캘린더에 표시 중인 월 (0-indexed)
 var staffCalSelDate = null;   // 출퇴근 기록 캘린더에서 선택된 날짜 (null = 선택 없음)
-
-function getStaffPw() { return (S && S.staffPw) || DEFAULT_STAFF_PW; }
-
-// ── 잠금 화면 ──
-function checkStaffLock() {
-  var lockEl = document.getElementById('staff-lock');
-  var contentEl = document.getElementById('staff-content');
-  if (!lockEl || !contentEl) return;
-  if (staffUnlocked) {
-    lockEl.style.display = 'none';
-    contentEl.classList.add('on');
-    migrateStaffLogsToRecords();
-    renderStaffTab();
-  } else {
-    lockEl.style.display = 'flex';
-    contentEl.classList.remove('on');
-    document.getElementById('staff-pw-input').value = '';
-    document.getElementById('staff-pw-err').textContent = '';
-  }
-}
-function tryStaffUnlock() {
-  var input = document.getElementById('staff-pw-input');
-  var errEl = document.getElementById('staff-pw-err');
-  if (input.value.trim() === getStaffPw()) {
-    staffUnlocked = true;
-    checkStaffLock();
-  } else {
-    errEl.textContent = '비밀번호가 일치하지 않습니다';
-    input.value = '';
-  }
-}
-function openStaffPwChange() {
-  showModal(
-    '<div class="md-hd"><span class="md-title">알바 출퇴근 비밀번호 변경</span><button class="md-x" id="mxbtn">×</button></div>' +
-    '<div class="mb">' +
-    '<div class="fg"><label class="fl">현재 비밀번호</label><input class="fi" type="password" id="stf-pw-cur" placeholder="현재 비밀번호" inputmode="numeric" autocomplete="off"></div>' +
-    '<div class="fg"><label class="fl">새 비밀번호</label><input class="fi" type="password" id="stf-pw-new" placeholder="새 비밀번호 (4자리 이상)" inputmode="numeric" autocomplete="off"></div>' +
-    '<div class="fg"><label class="fl">새 비밀번호 확인</label><input class="fi" type="password" id="stf-pw-new2" placeholder="새 비밀번호 확인" inputmode="numeric" autocomplete="off"></div>' +
-    '<button class="ab" style="background:var(--indigo);width:100%" id="stf-pw-save">변경</button>' +
-    '</div>'
-  );
-  document.getElementById('stf-pw-save').addEventListener('click', function() {
-    var cur = document.getElementById('stf-pw-cur').value;
-    var n1  = document.getElementById('stf-pw-new').value;
-    var n2  = document.getElementById('stf-pw-new2').value;
-    if (cur !== getStaffPw()) { alert('현재 비밀번호가 일치하지 않습니다'); return; }
-    if (!n1 || n1.length < 4) { alert('새 비밀번호는 4자리 이상 입력하세요'); return; }
-    if (n1 !== n2) { alert('새 비밀번호가 일치하지 않습니다'); return; }
-    S.staffPw = n1;
-    saveData();
-    closeModal();
-    showToast('비밀번호가 변경되었습니다');
-  });
-}
 
 // ── 알바생 CRUD ──
 function openStaffForm(existing) {
@@ -525,11 +470,21 @@ function bindAttendanceEvents() {
 
 // ── 탭 렌더 ──
 function renderStaffTab() {
-  if (!staffUnlocked) return;
+  migrateStaffLogsToRecords();
   if (!S.staffActive)   S.staffActive   = [];
   if (!S.staffResigned) S.staffResigned = [];
   if (!S.staffRecords)  S.staffRecords  = [];
   if (!S.staffFavTimes) S.staffFavTimes = [];
+
+  document.querySelectorAll('.staff-toptab').forEach(function(btn) {
+    btn.classList.toggle('on', btn.getAttribute('data-top') === staffTopTab);
+  });
+  var schedulePanel   = document.getElementById('staff-panel-schedule');
+  var attendancePanel = document.getElementById('staff-panel-attendance');
+  if (schedulePanel)   schedulePanel.classList.toggle('on', staffTopTab === 'schedule');
+  if (attendancePanel) attendancePanel.classList.toggle('on', staffTopTab === 'attendance');
+  if (staffTopTab !== 'attendance') return;
+
   document.querySelectorAll('.staff-subtab').forEach(function(btn) {
     btn.classList.toggle('on', btn.getAttribute('data-sub') === staffSubTab);
   });
@@ -547,11 +502,13 @@ function renderStaffTab() {
 }
 
 // ── 바인딩 ──
-document.getElementById('staff-pw-enter').addEventListener('click', tryStaffUnlock);
-document.getElementById('staff-pw-input').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') tryStaffUnlock();
-});
 document.getElementById('staff-btn-add').addEventListener('click', function() { openStaffForm(null); });
+document.getElementById('staff-toptabs').addEventListener('click', function(e) {
+  var btn = e.target.closest ? e.target.closest('.staff-toptab') : null;
+  if (!btn) return;
+  staffTopTab = btn.getAttribute('data-top');
+  renderStaffTab();
+});
 document.getElementById('staff-subtabs').addEventListener('click', function(e) {
   var btn = e.target.closest ? e.target.closest('.staff-subtab') : null;
   if (!btn) return;

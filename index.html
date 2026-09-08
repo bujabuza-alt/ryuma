@@ -62,7 +62,7 @@
     <button class="tab" id="t3">👤 손님</button>
     <button class="tab" id="t4">📦 재고</button>
     <button class="tab" id="t5">🖼 이미지 저장</button>
-    <button class="tab" id="t6">🕒 알바 출퇴근 기록</button>
+    <button class="tab" id="t6">📅 스케줄</button>
   </div>
   <div id="body">
     <div id="sb">
@@ -186,15 +186,16 @@
       <div id="img-grid"></div>
     </div>
 
-    <!-- 알바 출퇴근 기록 탭 (비밀번호 보호) -->
+    <!-- 스케줄 탭 (구 알바 출퇴근 기록) -->
     <div id="staff">
-      <div id="staff-lock">
-        <div class="pw-sub">🔒 비밀번호를 입력하세요</div>
-        <input type="password" class="pw-input" id="staff-pw-input" placeholder="비밀번호" maxlength="12" inputmode="numeric" autocomplete="off">
-        <button class="pw-btn" id="staff-pw-enter">입장</button>
-        <div class="pw-err" id="staff-pw-err"></div>
+      <div class="staff-toptabs" id="staff-toptabs">
+        <button class="staff-toptab on" data-top="schedule">스케줄</button>
+        <button class="staff-toptab" data-top="attendance">알바 출퇴근</button>
       </div>
-      <div id="staff-content">
+      <div id="staff-panel-schedule" class="staff-panel on">
+        <div class="stf-empty">준비 중입니다.</div>
+      </div>
+      <div id="staff-panel-attendance" class="staff-panel">
         <div class="staff-topbar">
           <div class="staff-subtabs" id="staff-subtabs">
             <button class="staff-subtab on" data-sub="logs">출퇴근 기록</button>

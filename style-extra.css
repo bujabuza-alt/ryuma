@@ -17,12 +17,14 @@
 .img-viewer{display:flex;flex-direction:column;gap:10px;}
 .img-viewer img{width:100%;border-radius:10px;max-height:55vh;object-fit:contain;background:var(--surf2);}
 
-/* ====== 알바 출퇴근 기록 탭 ====== */
+/* ====== 스케줄 탭 (구 알바 출퇴근 기록) ====== */
 #staff{flex:1;min-width:0;overflow:hidden;display:none;flex-direction:column;}
 #staff.on{display:flex;}
-#staff-lock{max-width:280px;width:100%;margin:auto;padding:30px 20px;display:flex;flex-direction:column;}
-#staff-content{flex:1;min-width:0;overflow:hidden;display:none;flex-direction:column;}
-#staff-content.on{display:flex;}
+.staff-toptabs{display:flex;gap:6px;padding:10px 10px 0;flex-shrink:0;}
+.staff-toptab{flex:1;text-align:center;border:1px solid var(--border2);background:var(--surf2);color:var(--text2);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;}
+.staff-toptab.on{border-color:var(--red);background:rgba(196,18,48,.12);color:var(--red2);}
+.staff-panel{flex:1;min-width:0;overflow:hidden;display:none;flex-direction:column;}
+.staff-panel.on{display:flex;}
 .staff-topbar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 10px 6px;}
 .staff-subtabs{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .staff-subtabs::-webkit-scrollbar{display:none;}
