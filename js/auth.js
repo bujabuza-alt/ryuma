@@ -19,12 +19,12 @@ function doEnter(store) {
   lastSavedTs = 0;  // 매장 전환 시 반드시 초기화
   clearTimeout(fbReconnectTimer); fbReconnectTimer = null;
   fbRef = fbDb.ref('tableApp/' + store);
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],dailyMemos:{},weeklyMemos:{}};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],dailyMemos:{},weeklyMemos:{}};
   cardCache = {};
   stockTab = '전체'; stockChip = 'all'; stockSearch = ''; stockSort = 'name';
   stockOrderMode = false; stockSelectedIds = [];
   imgSearch = '';
-  staffUnlocked = false; staffSubTab = 'logs';
+  staffTopTab = 'schedule'; staffSubTab = 'logs';
   document.getElementById('cvi').innerHTML = '';
   editMode = false;
   floorDate = today();
@@ -70,7 +70,6 @@ function doEnter(store) {
       if (Array.isArray(d.stockCats) && d.stockCats.length) S.stockCats = d.stockCats;
       if (Array.isArray(d.stockUnits) && d.stockUnits.length) S.stockUnits = d.stockUnits;
       if (Array.isArray(d.images)) S.images = d.images;
-      if (d.staffPw) S.staffPw = d.staffPw;
       if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
       if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
       if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
@@ -150,10 +149,10 @@ function logout() {
   closeSaveErrorModal();
   if (fbRef) { fbRef.off(); fbRef = null; }
   currentStore = null;
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffPw:'',staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],dailyMemos:{},weeklyMemos:{}};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],dailyMemos:{},weeklyMemos:{}};
   cardCache = {};
   editMode = false;
-  staffUnlocked = false; staffSubTab = 'logs';
+  staffTopTab = 'schedule'; staffSubTab = 'logs';
   try { localStorage.removeItem('ryuma_auth'); } catch(e) {}
   document.getElementById('cvi').innerHTML = '';
   document.getElementById('wrap').style.display = 'none';
@@ -166,10 +165,6 @@ function openCfg() {
   showModal(
     '<div class="md-hd"><span class="md-title">⚙ 전체 설정</span><button class="md-x" id="mxbtn">×</button></div>' +
     '<div class="mb">' +
-    '<div class="ss-label">알바 출퇴근 비밀번호</div>' +
-    '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">"알바 출퇴근 기록" 탭 접근 비밀번호를 변경합니다</div>' +
-    '<button class="ab" style="background:var(--amber);width:100%" id="btn-staff-pw">🔑 비밀번호 변경</button>' +
-    '<div class="divider"></div>' +
     '<div class="ss-label">데이터 백업</div>' +
     '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">예약·손님·재고·확인 사항 등 매장의 정보를 파일로 저장하거나, 저장해둔 파일에서 복원합니다 (용량이 큰 이미지는 제외)</div>' +
     '<div style="display:flex;gap:7px">' +
@@ -214,9 +209,6 @@ function openCfg() {
   });
   document.getElementById('btn-gemini-key').addEventListener('click', function() {
     closeModal(); setTimeout(openGeminiKeyInput, 150);
-  });
-  document.getElementById('btn-staff-pw').addEventListener('click', function() {
-    closeModal(); setTimeout(openStaffPwChange, 150);
   });
   document.getElementById('btn-out').addEventListener('click', function() {
     closeModal(); setTimeout(logout, 150);
