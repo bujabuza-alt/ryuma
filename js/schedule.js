@@ -5,7 +5,7 @@ var stfSchedMonth = new Date().getMonth(); // 0-indexed
 function getScheduleEntries(date, shift) {
   return (S.staffSchedule || []).filter(function(e) { return e.date === date && e.shift === shift; });
 }
-// 근무자를 직접 입력하지 않고, "알바 출퇴근" 탭에 등록된 직원/알바생 중에서 탭하여 켜고 끈다.
+// 근무자를 직접 입력하지 않고, "출퇴근 기록" 탭에 등록된 직원/알바생 중에서 탭하여 켜고 끈다.
 function toggleScheduleEntry(date, shift, staffId, staffName) {
   if (!S.staffSchedule) S.staffSchedule = [];
   var existing = S.staffSchedule.filter(function(e) {
@@ -115,7 +115,7 @@ function openScheduleDayEditor(date) {
   var hasStaff = (S.staffActive || []).length > 0;
   var bodyHtml = hasStaff
     ? scheduleShiftSectionHtml(date, 'lunch', '🍽 런치') + scheduleShiftSectionHtml(date, 'dinner', '🌙 디너')
-    : '<div class="stf-empty">등록된 직원/알바생이 없습니다.<br>"알바 출퇴근" 탭에서 먼저 추가해주세요.</div>';
+    : '<div class="stf-empty">등록된 직원/알바생이 없습니다.<br>"출퇴근 기록" 탭에서 먼저 추가해주세요.</div>';
   showModal(
     '<div class="md-hd"><span class="md-title">' + esc(fmtDateShort(date)) + ' 스케줄</span><button class="md-x" id="mxbtn">×</button></div>'
     + '<div class="mb">' + bodyHtml + '</div>'

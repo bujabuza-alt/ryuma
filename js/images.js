@@ -1,4 +1,4 @@
-// ── 이미지 저장 (Image Storage) ──
+// ── 이미지 (Image Storage) ──
 var imgSearch   = '';
 var IMG_MAX_DIM = 1280;   // 업로드 시 최대 가로/세로 픽셀 (용량 절약)
 var IMG_QUALITY = 0.78;

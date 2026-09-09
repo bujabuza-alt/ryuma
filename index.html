@@ -61,7 +61,7 @@
     <button class="tab on" id="t1">🏠 홈</button>
     <button class="tab" id="t3">👤 손님</button>
     <button class="tab" id="t4">📦 재고</button>
-    <button class="tab" id="t5">🖼 이미지 저장</button>
+    <button class="tab" id="t5">🖼 이미지</button>
     <button class="tab" id="t6">📅 스케줄</button>
   </div>
   <div id="body">
@@ -175,7 +175,7 @@
     <!-- ★ FAB: position:fixed, pill 형태 — 텍스트 잘림 없음, z-index:50 -->
     <button id="stock-btn-add" class="stock-fab">+ 추가</button>
 
-    <!-- 이미지 저장 탭 -->
+    <!-- 이미지 탭 -->
     <div id="images">
       <div class="rv-top">
         <input class="rv-srch" id="img-srch" type="search" placeholder="파일명, 메모 검색…">
@@ -190,7 +190,7 @@
     <div id="staff">
       <div class="staff-toptabs" id="staff-toptabs">
         <button class="staff-toptab on" data-top="schedule">스케줄</button>
-        <button class="staff-toptab" data-top="attendance">알바 출퇴근</button>
+        <button class="staff-toptab" data-top="attendance">출퇴근 기록</button>
       </div>
       <div id="staff-panel-schedule" class="staff-panel on">
         <div id="sched-body"></div>
@@ -199,8 +199,8 @@
         <div class="staff-topbar">
           <div class="staff-subtabs" id="staff-subtabs">
             <button class="staff-subtab on" data-sub="logs">출퇴근 기록</button>
-            <button class="staff-subtab" data-sub="active">현재 알바생</button>
-            <button class="staff-subtab" data-sub="resigned">퇴사 알바생</button>
+            <button class="staff-subtab" data-sub="active">현재 근무자</button>
+            <button class="staff-subtab" data-sub="resigned">퇴사 근무자</button>
           </div>
           <button class="bp" id="staff-btn-add">+ 알바생</button>
         </div>

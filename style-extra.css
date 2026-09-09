@@ -3,7 +3,7 @@
 #tb::-webkit-scrollbar{display:none;}
 .tab{flex-shrink:0;}
 
-/* ====== 이미지 저장 탭 ====== */
+/* ====== 이미지 탭 ====== */
 #images{flex:1;min-width:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;display:none;flex-direction:column;gap:10px;}
 #images.on{display:flex;}
 .img-upload-btn{white-space:nowrap;flex-shrink:0;cursor:pointer;display:flex;align-items:center;}
