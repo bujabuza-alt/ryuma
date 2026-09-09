@@ -58,7 +58,7 @@ function resignStaff(id) {
 function rehireStaff(id) {
   var idx = S.staffResigned.findIndex(function(s) { return s.id === id; });
   if (idx < 0) return;
-  if (!confirm('이 알바생을 다시 현재 알바생으로 복직 처리하시겠습니까?')) return;
+  if (!confirm('이 알바생을 다시 현재 근무자로 복직 처리하시겠습니까?')) return;
   var s = S.staffResigned.splice(idx, 1)[0];
   delete s.resignDate;
   S.staffActive.push(s);
