@@ -19,7 +19,7 @@ function doEnter(store) {
   lastSavedTs = 0;  // 매장 전환 시 반드시 초기화
   clearTimeout(fbReconnectTimer); fbReconnectTimer = null;
   fbRef = fbDb.ref('tableApp/' + store);
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],dailyMemos:{},weeklyMemos:{}};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{}};
   cardCache = {};
   stockTab = '전체'; stockChip = 'all'; stockSearch = ''; stockSort = 'name';
   stockOrderMode = false; stockSelectedIds = [];
@@ -75,6 +75,7 @@ function doEnter(store) {
       if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
       if (Array.isArray(d.staffRecords)) S.staffRecords = d.staffRecords;
       if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
+      if (Array.isArray(d.staffSchedule)) S.staffSchedule = d.staffSchedule;
       if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
     }
 
@@ -149,7 +150,7 @@ function logout() {
   closeSaveErrorModal();
   if (fbRef) { fbRef.off(); fbRef = null; }
   currentStore = null;
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],dailyMemos:{},weeklyMemos:{}};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{}};
   cardCache = {};
   editMode = false;
   staffTopTab = 'schedule'; staffSubTab = 'logs';
