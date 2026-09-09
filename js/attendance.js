@@ -475,6 +475,7 @@ function renderStaffTab() {
   if (!S.staffResigned) S.staffResigned = [];
   if (!S.staffRecords)  S.staffRecords  = [];
   if (!S.staffFavTimes) S.staffFavTimes = [];
+  if (!S.staffSchedule) S.staffSchedule = [];
 
   document.querySelectorAll('.staff-toptab').forEach(function(btn) {
     btn.classList.toggle('on', btn.getAttribute('data-top') === staffTopTab);
@@ -483,6 +484,7 @@ function renderStaffTab() {
   var attendancePanel = document.getElementById('staff-panel-attendance');
   if (schedulePanel)   schedulePanel.classList.toggle('on', staffTopTab === 'schedule');
   if (attendancePanel) attendancePanel.classList.toggle('on', staffTopTab === 'attendance');
+  if (staffTopTab === 'schedule') { renderScheduleTab(); return; }
   if (staffTopTab !== 'attendance') return;
 
   document.querySelectorAll('.staff-subtab').forEach(function(btn) {

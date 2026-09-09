@@ -121,27 +121,71 @@ function deleteImage(id) {
   closeModal();
 }
 
+function renameImage(id) {
+  var im = (S.images||[]).filter(function(x) { return x.id === id; })[0];
+  if (!im) return;
+  var next = (prompt('이미지 이름 변경', im.name) || '').trim();
+  if (!next || next === im.name) return;
+  im.name = next;
+  saveData();
+  renderImagesTab();
+  openImageViewer(id);
+  showToast('이름이 변경되었습니다');
+}
+
+// 이미지 공유: 파일 공유(Web Share API)를 지원하는 기기는 사진 앱/메신저 등으로 바로 공유,
+// 미지원 기기는 다운로드를 안내한다.
+function shareImage(id) {
+  var im = (S.images||[]).filter(function(x) { return x.id === id; })[0];
+  if (!im) return;
+  if (!navigator.share) {
+    showToast('이 기기는 공유 기능을 지원하지 않습니다. 다운로드를 이용해주세요.');
+    return;
+  }
+  fetch(im.dataUrl).then(function(res) { return res.blob(); }).then(function(blob) {
+    var file = new File([blob], im.name || 'image.jpg', { type: blob.type || 'image/jpeg' });
+    if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+      return navigator.share({ title: im.name });
+    }
+    return navigator.share({ files: [file], title: im.name });
+  }).catch(function(err) {
+    if (err && err.name === 'AbortError') return;
+    showToast('공유에 실패했습니다.');
+  });
+}
+
 function openImageViewer(id) {
   var im = (S.images||[]).filter(function(x) { return x.id === id; })[0];
   if (!im) return;
   showModal(
-    '<div class="md-hd"><span class="md-title">' + esc(im.name) + '</span><button class="md-x" id="mxbtn">×</button></div>' +
+    '<div class="md-hd"><span class="md-title">' + esc(im.name) + '</span>' +
+    '<span style="display:flex;align-items:center;gap:6px">' +
+    '<button class="md-x" id="img-rename-btn" title="이름 변경" style="font-size:13px">✏</button>' +
+    '<button class="md-x" id="mxbtn">×</button>' +
+    '</span></div>' +
     '<div class="mb img-viewer">' +
     '<img src="' + im.dataUrl + '" alt="' + esc(im.name) + '">' +
     '<textarea class="fi" id="img-memo-input" placeholder="메모…" maxlength="200">' + esc(im.memo||'') + '</textarea>' +
     '<div style="display:flex;gap:7px">' +
     '<button class="ab" style="background:var(--indigo);display:flex;align-items:center;justify-content:center" id="img-memo-save">메모 저장</button>' +
-    '<a class="ab" style="background:var(--surf3);color:var(--text2);text-decoration:none;display:flex;align-items:center;justify-content:center" href="' + im.dataUrl + '" download="' + esc(im.name) + '">↓ 다운로드</a>' +
+    '<button class="ab" style="background:var(--green);display:flex;align-items:center;justify-content:center" id="img-share-btn">🔗 공유</button>' +
     '</div>' +
+    '<a class="ab" style="background:var(--surf3);color:var(--text2);text-decoration:none;display:flex;align-items:center;justify-content:center" href="' + im.dataUrl + '" download="' + esc(im.name) + '">↓ 다운로드</a>' +
     '<button class="ab" style="background:var(--red2);width:100%" id="img-del-btn">삭제</button>' +
     '</div>'
   );
+  document.getElementById('img-rename-btn').addEventListener('click', function() {
+    renameImage(id);
+  });
   document.getElementById('img-memo-save').addEventListener('click', function() {
     im.memo = document.getElementById('img-memo-input').value.trim();
     saveData();
     closeModal();
     renderImagesTab();
     showToast('메모가 저장되었습니다');
+  });
+  document.getElementById('img-share-btn').addEventListener('click', function() {
+    shareImage(id);
   });
   document.getElementById('img-del-btn').addEventListener('click', function() {
     deleteImage(id);

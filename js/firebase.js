@@ -110,6 +110,7 @@ function loadData() {
     if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
     if (Array.isArray(d.staffRecords)) S.staffRecords = d.staffRecords;
     if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
+    if (Array.isArray(d.staffSchedule)) S.staffSchedule = d.staffSchedule;
     if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
     S.tags = (d.tags && d.tags.length) ? d.tags : DEFAULT_TAGS.slice();
     if (!S.stockCats.length) S.stockCats = DEFAULT_STOCK_CATS.slice();
@@ -121,6 +122,7 @@ function loadData() {
     if (!S.staffLogs) S.staffLogs = [];
     if (!S.staffRecords) S.staffRecords = [];
     if (!S.staffFavTimes) S.staffFavTimes = [];
+    if (!S.staffSchedule) S.staffSchedule = [];
     S.dailyMemos = (d.dailyMemos && typeof d.dailyMemos === 'object') ? d.dailyMemos : {};
     S.weeklyMemos = (d.weeklyMemos && typeof d.weeklyMemos === 'object') ? d.weeklyMemos : {};
   } catch(e) { S.tags = DEFAULT_TAGS.slice(); S.dailyMemos = S.dailyMemos || {}; S.weeklyMemos = S.weeklyMemos || {}; }
@@ -155,6 +157,7 @@ function exportBackupToFile() {
     staffLogs: S.staffLogs || [],
     staffRecords: S.staffRecords || [],
     staffFavTimes: S.staffFavTimes || [],
+    staffSchedule: S.staffSchedule || [],
     dailyMemos: S.dailyMemos || {},
     weeklyMemos: S.weeklyMemos || {},
     confirmItems: getConfirmItemsForBackup()
@@ -200,6 +203,7 @@ function importBackupFromFile(file) {
     if (Array.isArray(data.staffLogs)) S.staffLogs = data.staffLogs;
     if (Array.isArray(data.staffRecords)) S.staffRecords = data.staffRecords;
     if (Array.isArray(data.staffFavTimes)) S.staffFavTimes = data.staffFavTimes;
+    if (Array.isArray(data.staffSchedule)) S.staffSchedule = data.staffSchedule;
     if (data.dailyMemos && typeof data.dailyMemos === 'object') S.dailyMemos = data.dailyMemos;
     if (data.weeklyMemos && typeof data.weeklyMemos === 'object') S.weeklyMemos = data.weeklyMemos;
 
@@ -270,6 +274,7 @@ function doActualSave() {
       staffLogs: S.staffLogs || [],
       staffRecords: S.staffRecords || [],
       staffFavTimes: S.staffFavTimes || [],
+      staffSchedule: S.staffSchedule || [],
       dailyMemos: S.dailyMemos || {},
       weeklyMemos: S.weeklyMemos || {},
       _ts: ts
@@ -370,6 +375,7 @@ function startFb() {
     if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
     if (Array.isArray(d.staffRecords)) S.staffRecords = d.staffRecords;
     if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
+    if (Array.isArray(d.staffSchedule)) S.staffSchedule = d.staffSchedule;
     if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
     if (d.confirmItems && d.confirmItems.cats && d.confirmItems.cats.length) {
       try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(d.confirmItems)); } catch(e) {}
