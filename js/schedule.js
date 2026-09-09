@@ -5,26 +5,21 @@ var stfSchedMonth = new Date().getMonth(); // 0-indexed
 function getScheduleEntries(date, shift) {
   return (S.staffSchedule || []).filter(function(e) { return e.date === date && e.shift === shift; });
 }
-// 자주 쓰는 이름(등록된 알바생 + 과거 입력했던 이름)을 자동완성 후보로 제공
-function scheduleNameSuggestions() {
-  var set = {};
-  (S.staffActive || []).forEach(function(s) { if (s.name) set[s.name] = true; });
-  (S.staffSchedule || []).forEach(function(e) { if (e.name) set[e.name] = true; });
-  return Object.keys(set).sort(function(a, b) { return a.localeCompare(b, 'ko'); });
-}
-function addScheduleEntry(date, shift, name) {
-  name = (name || '').trim();
-  if (!name) return;
+// 근무자를 직접 입력하지 않고, "알바 출퇴근" 탭에 등록된 직원/알바생 중에서 탭하여 켜고 끈다.
+function toggleScheduleEntry(date, shift, staffId, staffName) {
   if (!S.staffSchedule) S.staffSchedule = [];
-  S.staffSchedule.push({ id: uid(), date: date, shift: shift, name: name });
-  saveData();
-}
-function deleteScheduleEntry(id) {
-  S.staffSchedule = (S.staffSchedule || []).filter(function(e) { return e.id !== id; });
+  var existing = S.staffSchedule.filter(function(e) {
+    return e.date === date && e.shift === shift && e.staffId === staffId;
+  })[0];
+  if (existing) {
+    S.staffSchedule = S.staffSchedule.filter(function(e) { return e.id !== existing.id; });
+  } else {
+    S.staffSchedule.push({ id: uid(), date: date, shift: shift, staffId: staffId, name: staffName });
+  }
   saveData();
 }
 
-// ── 렌더링: 월간 달력 그리드 ──
+// ── 렌더링: 월간 달력 그리드 (화면 높이에 맞춰 비율로 채우기 — 창 스크롤 방지) ──
 function buildScheduleCalendarHtml() {
   var dows = ['일', '월', '화', '수', '목', '금', '토'];
   var dowsHTML = '<div class="schcal-dows">' + dows.map(function(d, i) {
@@ -39,21 +34,26 @@ function buildScheduleCalendarHtml() {
   for (var d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
 
-  var gridHTML = '<div class="sched-grid">';
-  cells.forEach(function(day, idx) {
-    var dow = idx % 7;
-    if (!day) { gridHTML += '<div class="sched-day empty"></div>'; return; }
+  function dayCellHtml(day, dow) {
+    if (!day) return '<div class="sched-day empty"></div>';
     var ds = stfSchedYear + '-' + pad(stfSchedMonth + 1) + '-' + pad(day);
     var isToday = ds === td;
     var lunch  = getScheduleEntries(ds, 'lunch');
     var dinner = getScheduleEntries(ds, 'dinner');
     var cls = 'sched-day' + (isToday ? ' today' : '') + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '');
-    gridHTML += '<div class="' + cls + '" data-date="' + ds + '">'
+    return '<div class="' + cls + '" data-date="' + ds + '">'
       + '<div class="sched-day-num">' + day + '</div>'
       + (lunch.length  ? '<div class="sched-shift-line lunch"><span class="sched-shift-tag">런치</span>' + esc(lunch.map(function(e){return e.name;}).join(', ')) + '</div>' : '')
       + (dinner.length ? '<div class="sched-shift-line dinner"><span class="sched-shift-tag">디너</span>' + esc(dinner.map(function(e){return e.name;}).join(', ')) + '</div>' : '')
       + '</div>';
-  });
+  }
+
+  var gridHTML = '<div class="sched-grid">';
+  for (var w = 0; w < cells.length; w += 7) {
+    gridHTML += '<div class="sched-week-row">';
+    for (var c = 0; c < 7; c++) gridHTML += dayCellHtml(cells[w + c], c);
+    gridHTML += '</div>';
+  }
   gridHTML += '</div>';
   return dowsHTML + gridHTML;
 }
@@ -61,7 +61,7 @@ function renderScheduleTab() {
   if (!S.staffSchedule) S.staffSchedule = [];
   var body = document.getElementById('sched-body');
   if (!body) return;
-  body.innerHTML = ''
+  body.innerHTML = '<div class="sched-wrap">'
     + '<div class="schcal-hd">'
     +   '<div class="schcal-nav-group">'
     +     '<button type="button" class="schcal-nav" id="sched-cal-p">‹</button>'
@@ -70,7 +70,8 @@ function renderScheduleTab() {
     +   '</div>'
     +   '<button type="button" class="cal-today-btn" id="sched-cal-today">오늘</button>'
     + '</div>'
-    + buildScheduleCalendarHtml();
+    + buildScheduleCalendarHtml()
+    + '</div>';
   bindScheduleEvents();
 }
 function bindScheduleEvents() {
@@ -97,55 +98,35 @@ function bindScheduleEvents() {
   });
 }
 
-// ── 날짜별 런치/디너 인원 입력 모달 ──
+// ── 날짜별 런치/디너 근무자 선택 모달 (등록된 직원/알바생 중에서 탭하여 선택) ──
 function scheduleShiftSectionHtml(date, shift, label) {
-  var entries = getScheduleEntries(date, shift);
-  var listHtml = entries.length
-    ? '<div class="stf-fav-row">' + entries.map(function(e) {
-        return '<span class="stf-fav-chip"><span>' + esc(e.name) + '</span>'
-          + '<button type="button" data-act="sched-del" data-id="' + e.id + '">✕</button></span>';
-      }).join('') + '</div>'
-    : '<div class="stf-fav-empty">등록된 인원이 없습니다.</div>';
+  var activeIds = {};
+  getScheduleEntries(date, shift).forEach(function(e) { activeIds[e.staffId] = true; });
+  var pillsHtml = '<div class="tag-picker">' + (S.staffActive || []).map(function(s) {
+    var on = !!activeIds[s.id];
+    return '<button type="button" class="tag-pill' + (on ? ' on' : '') + '" data-shift="' + shift + '" data-staff-id="' + esc(s.id) + '" data-staff-name="' + esc(s.name) + '">' + esc(s.name) + '</button>';
+  }).join('') + '</div>';
   return '<div class="sched-shift-editor">'
     + '<div class="sched-shift-title">' + label + '</div>'
-    + listHtml
-    + '<div class="cl-add-row">'
-    +   '<input class="cl-add-input sched-add-input" data-shift="' + shift + '" list="sched-name-list" placeholder="이름 입력…" maxlength="20">'
-    +   '<button type="button" class="cl-add-btn sched-add-btn" data-shift="' + shift + '">추가</button>'
-    + '</div>'
+    + pillsHtml
     + '</div>';
 }
 function openScheduleDayEditor(date) {
-  var names = scheduleNameSuggestions();
+  var hasStaff = (S.staffActive || []).length > 0;
+  var bodyHtml = hasStaff
+    ? scheduleShiftSectionHtml(date, 'lunch', '🍽 런치') + scheduleShiftSectionHtml(date, 'dinner', '🌙 디너')
+    : '<div class="stf-empty">등록된 직원/알바생이 없습니다.<br>"알바 출퇴근" 탭에서 먼저 추가해주세요.</div>';
   showModal(
     '<div class="md-hd"><span class="md-title">' + esc(fmtDateShort(date)) + ' 스케줄</span><button class="md-x" id="mxbtn">×</button></div>'
-    + '<div class="mb">'
-    + '<datalist id="sched-name-list">' + names.map(function(n) { return '<option value="' + esc(n) + '">'; }).join('') + '</datalist>'
-    + scheduleShiftSectionHtml(date, 'lunch', '🍽 런치')
-    + scheduleShiftSectionHtml(date, 'dinner', '🌙 디너')
-    + '</div>'
+    + '<div class="mb">' + bodyHtml + '</div>'
   );
+  if (!hasStaff) return;
   var mdc = document.getElementById('mdc');
-  mdc.querySelectorAll('[data-act="sched-del"]').forEach(function(btn) {
+  mdc.querySelectorAll('.tag-pill').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      deleteScheduleEntry(btn.getAttribute('data-id'));
+      toggleScheduleEntry(date, btn.getAttribute('data-shift'), btn.getAttribute('data-staff-id'), btn.getAttribute('data-staff-name'));
       renderScheduleTab();
       openScheduleDayEditor(date);
-    });
-  });
-  function addFromInput(shift) {
-    var input = mdc.querySelector('.sched-add-input[data-shift="' + shift + '"]');
-    if (!input || !input.value.trim()) return;
-    addScheduleEntry(date, shift, input.value);
-    renderScheduleTab();
-    openScheduleDayEditor(date);
-  }
-  mdc.querySelectorAll('.sched-add-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() { addFromInput(btn.getAttribute('data-shift')); });
-  });
-  mdc.querySelectorAll('.sched-add-input').forEach(function(input) {
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') { e.preventDefault(); addFromInput(input.getAttribute('data-shift')); }
     });
   });
 }
