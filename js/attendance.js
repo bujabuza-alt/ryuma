@@ -7,13 +7,18 @@ var staffCalYear    = new Date().getFullYear(); // 출퇴근 기록 캘린더에
 var staffCalMonth   = new Date().getMonth();    // 출퇴근 기록 캘린더에 표시 중인 월 (0-indexed)
 var staffCalSelDate = null;   // 출퇴근 기록 캘린더에서 선택된 날짜 (null = 선택 없음)
 
-// ── 알바생 CRUD ──
+// ── 근무자 CRUD ──
 function openStaffForm(existing) {
   var isEdit = !!existing;
+  var selType = (existing && existing.type === 'employee') ? 'employee' : 'parttime';
   showModal(
-    '<div class="md-hd"><span class="md-title">' + (isEdit ? '알바생 정보 수정' : '알바생 추가') + '</span><button class="md-x" id="mxbtn">×</button></div>' +
+    '<div class="md-hd"><span class="md-title">' + (isEdit ? '근무자 정보 수정' : '근무자 추가') + '</span><button class="md-x" id="mxbtn">×</button></div>' +
     '<div class="mb">' +
     '<div class="fg"><label class="fl">이름</label><input class="fi" id="stf-f-name" value="' + esc(existing ? existing.name : '') + '" placeholder="이름"></div>' +
+    '<div class="fg"><label class="fl">근무자 유형</label><div class="tag-picker" id="stf-f-type">' +
+    '<button type="button" class="tag-pill' + (selType === 'employee' ? ' on' : '') + '" data-type="employee">직원</button>' +
+    '<button type="button" class="tag-pill' + (selType === 'parttime' ? ' on' : '') + '" data-type="parttime">알바생</button>' +
+    '</div></div>' +
     '<div class="fg"><label class="fl">연락처</label>' + phHtml('stf-f-phone', existing ? existing.phone : '') + '</div>' +
     '<div class="fg"><label class="fl">직급/포지션</label><input class="fi" id="stf-f-position" value="' + esc(existing ? existing.position : '') + '" placeholder="예: 홀, 주방"></div>' +
     '<div class="fg"><label class="fl">입사일</label><input class="fi" type="date" id="stf-f-join" value="' + esc(existing ? existing.joinDate : today()) + '"></div>' +
@@ -22,11 +27,19 @@ function openStaffForm(existing) {
     '</div>'
   );
   bindPh('stf-f-phone');
+  var typePicker = document.getElementById('stf-f-type');
+  typePicker.querySelectorAll('.tag-pill').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      selType = btn.getAttribute('data-type');
+      typePicker.querySelectorAll('.tag-pill').forEach(function(b) { b.classList.toggle('on', b === btn); });
+    });
+  });
   document.getElementById('stf-f-save').addEventListener('click', function() {
     var name = document.getElementById('stf-f-name').value.trim();
     if (!name) { alert('이름을 입력하세요'); return; }
     var data = {
       name: name,
+      type: selType,
       phone: getPh('stf-f-phone'),
       position: document.getElementById('stf-f-position').value.trim(),
       joinDate: document.getElementById('stf-f-join').value || today(),
@@ -41,24 +54,40 @@ function openStaffForm(existing) {
     saveData();
     closeModal();
     renderStaffTab();
-    showToast((isEdit ? name + ' - 정보가 수정되었습니다' : name + ' - 알바생이 추가되었습니다'));
+    showToast((isEdit ? name + ' - 정보가 수정되었습니다' : name + ' - 근무자가 추가되었습니다'));
   });
 }
-function resignStaff(id) {
+// 퇴사 처리는 항상 "현재 근무자" 목록에서 대상을 선택한 뒤 퇴사일을 입력하는 흐름으로 진행한다.
+function openResignForm(id) {
+  var s = (S.staffActive || []).filter(function(x) { return x.id === id; })[0];
+  if (!s) return;
+  showModal(
+    '<div class="md-hd"><span class="md-title">' + esc(s.name) + ' - 퇴사 처리</span><button class="md-x" id="mxbtn">×</button></div>' +
+    '<div class="mb">' +
+    '<div class="fg"><label class="fl">퇴사일</label><input class="fi" type="date" id="resign-f-date" value="' + today() + '"></div>' +
+    '<button class="ab" style="background:var(--amber);width:100%" id="resign-f-save">퇴사 처리</button>' +
+    '</div>'
+  );
+  document.getElementById('resign-f-save').addEventListener('click', function() {
+    var date = document.getElementById('resign-f-date').value || today();
+    resignStaff(id, date);
+  });
+}
+function resignStaff(id, resignDate) {
   var idx = S.staffActive.findIndex(function(s) { return s.id === id; });
   if (idx < 0) return;
-  if (!confirm('이 알바생을 퇴사 처리하시겠습니까?')) return;
   var s = S.staffActive.splice(idx, 1)[0];
-  s.resignDate = today();
+  s.resignDate = resignDate || today();
   S.staffResigned.push(s);
   saveData();
+  closeModal();
   renderStaffTab();
-  showToast(s.name + ' - 퇴사 처리되었습니다');
+  showToast(s.name + ' - 퇴사 처리되었습니다 (퇴사일 ' + s.resignDate + ')');
 }
 function rehireStaff(id) {
   var idx = S.staffResigned.findIndex(function(s) { return s.id === id; });
   if (idx < 0) return;
-  if (!confirm('이 알바생을 다시 현재 근무자로 복직 처리하시겠습니까?')) return;
+  if (!confirm('이 근무자를 다시 현재 근무자로 복직 처리하시겠습니까?')) return;
   var s = S.staffResigned.splice(idx, 1)[0];
   delete s.resignDate;
   S.staffActive.push(s);
@@ -67,7 +96,7 @@ function rehireStaff(id) {
   showToast(s.name + ' - 복직 처리되었습니다');
 }
 function deleteStaff(id, mode) {
-  if (!confirm('이 알바생 정보를 완전히 삭제하시겠습니까? 되돌릴 수 없습니다.')) return;
+  if (!confirm('이 근무자 정보를 완전히 삭제하시겠습니까? 되돌릴 수 없습니다.')) return;
   var arr = mode === 'resigned' ? S.staffResigned : S.staffActive;
   var idx = arr.findIndex(function(s) { return s.id === id; });
   if (idx < 0) return;
@@ -97,7 +126,7 @@ function openStaffMenu(id, mode) {
   var rehireBtn = document.getElementById('stf-menu-rehire');
   if (rehireBtn) rehireBtn.addEventListener('click', function() { closeModal(); rehireStaff(id); });
   var resignBtn = document.getElementById('stf-menu-resign');
-  if (resignBtn) resignBtn.addEventListener('click', function() { closeModal(); resignStaff(id); });
+  if (resignBtn) resignBtn.addEventListener('click', function() { closeModal(); setTimeout(function() { openResignForm(id); }, 150); });
   document.getElementById('stf-menu-del').addEventListener('click', function() { closeModal(); deleteStaff(id, mode); });
 }
 
@@ -207,16 +236,17 @@ function bindFavChipEvents(scope) {
   });
 }
 
-// ── 렌더링: 알바생 목록 (현재/퇴사) ──
+// ── 렌더링: 근무자 목록 (현재/퇴사) ──
 function staffCardHtml(s, mode) {
   var isResigned = mode === 'resigned';
+  var isEmployee = s.type === 'employee';
   var subParts = [];
   if (s.position) subParts.push(s.position);
   if (s.phone) subParts.push(s.phone);
   subParts.push(isResigned ? '퇴사일 ' + (s.resignDate || '-') : '입사일 ' + (s.joinDate || '-'));
   return '<div class="stf-card" data-id="' + s.id + '">' +
     '<div class="stf-hd"><div>' +
-    '<div class="stf-name">' + esc(s.name) + '</div>' +
+    '<div class="stf-name">' + esc(s.name) + '<span class="stf-type-badge' + (isEmployee ? ' employee' : '') + '">' + (isEmployee ? '직원' : '알바생') + '</span></div>' +
     '<div class="stf-sub">' + esc(subParts.join(' · ')) + '</div>' +
     (s.memo ? '<div class="stf-sub">📝 ' + esc(s.memo) + '</div>' : '') +
     '</div>' +
@@ -228,7 +258,7 @@ function renderStaffList(mode) {
   var arr = mode === 'resigned' ? (S.staffResigned || []) : (S.staffActive || []);
   if (!arr.length) {
     return '<div class="stf-empty">' +
-      (mode === 'resigned' ? '퇴사한 알바생이 없습니다.' : '등록된 알바생이 없습니다. 상단의 + 알바생 버튼으로 추가하세요.') +
+      (mode === 'resigned' ? '퇴사한 근무자가 없습니다.' : '등록된 근무자가 없습니다. 상단의 + 근무자 버튼으로 추가하세요.') +
       '</div>';
   }
   return arr.map(function(s) { return staffCardHtml(s, mode); }).join('');
@@ -357,7 +387,7 @@ function renderAttendanceTab() {
   var staffOpts = staffList.map(function(s) {
     return '<option value="' + esc(s.id) + '"' + (editRec && editRec.staffId === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>';
   }).join('');
-  if (!staffOpts) staffOpts = '<option value="">등록된 알바생 없음</option>';
+  if (!staffOpts) staffOpts = '<option value="">등록된 근무자 없음</option>';
 
   var dateVal = editRec ? editRec.date : (staffCalSelDate || today());
   var inVal   = editRec ? (editRec.inTime || '')  : '';
@@ -366,7 +396,7 @@ function renderAttendanceTab() {
   return ''
     + '<div class="stf-rec-form">'
     + (editRec ? '<div class="stf-rec-editnote">✏ 기록 수정 중 <button type="button" id="rec-edit-cancel">취소</button></div>' : '')
-    + '<div class="fg"><label class="fl">알바생</label><select class="fi" id="rec-staff">' + staffOpts + '</select></div>'
+    + '<div class="fg"><label class="fl">근무자</label><select class="fi" id="rec-staff">' + staffOpts + '</select></div>'
     + '<div class="fg"><label class="fl">날짜</label><input class="fi" type="date" id="rec-date" value="' + esc(dateVal) + '"></div>'
     + '<div class="g2">'
     +   '<div class="fg"><label class="fl">출근 시간</label><input class="fi' + (recActiveField === 'rec-in' ? ' rec-active' : '') + '" type="time" id="rec-in" value="' + esc(inVal) + '"></div>'
@@ -409,7 +439,7 @@ function bindAttendanceEvents() {
   if (saveBtn) saveBtn.addEventListener('click', function() {
     var staffSel = document.getElementById('rec-staff');
     var staffId = staffSel ? staffSel.value : '';
-    if (!staffId) { showToast('알바생을 선택하세요'); return; }
+    if (!staffId) { showToast('근무자를 선택하세요'); return; }
     var date = (document.getElementById('rec-date') || {}).value || today();
     var inTime = (document.getElementById('rec-in') || {}).value || '';
     var outTime = (document.getElementById('rec-out') || {}).value || '';
@@ -490,8 +520,9 @@ function renderStaffTab() {
   document.querySelectorAll('.staff-subtab').forEach(function(btn) {
     btn.classList.toggle('on', btn.getAttribute('data-sub') === staffSubTab);
   });
+  // "+ 근무자" 버튼은 현재 근무자 목록에서만 노출 (퇴사 근무자는 현재 근무자에서 선택해 처리)
   var addBtn = document.getElementById('staff-btn-add');
-  if (addBtn) addBtn.style.display = (staffSubTab === 'logs') ? 'none' : '';
+  if (addBtn) addBtn.style.display = (staffSubTab === 'active') ? '' : 'none';
   var body = document.getElementById('staff-body');
   if (!body) return;
   if (staffSubTab === 'logs') {

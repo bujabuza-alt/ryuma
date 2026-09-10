@@ -147,7 +147,7 @@ function shareImage(id) {
     if (navigator.canShare && !navigator.canShare({ files: [file] })) {
       return navigator.share({ title: im.name });
     }
-    return navigator.share({ files: [file], title: im.name });
+    return navigator.share({ files: [file] });
   }).catch(function(err) {
     if (err && err.name === 'AbortError') return;
     showToast('공유에 실패했습니다.');
