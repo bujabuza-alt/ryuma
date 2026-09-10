@@ -27,6 +27,7 @@ function renderSidebar() {
   var rvList = S.ress.filter(function(r){
     return r.date===sideDate && r.st!=='cancelled' && r.st!=='noshow' && r.st!=='completed';
   }).sort(function(a,b){ return (a.time||'')<(b.time||'')?-1:1; });
+  var custList = getAllCustomers();
   var secLabel = isToday ? '오늘 예약' : fmtDateShort(sideDate)+' 예약';
   html += '<div class="sb-sec"><span class="sb-sec-t">'+secLabel+'</span><span class="sb-sec-c">'+rvList.length+'건</span></div>';
   if (rvList.length) {
@@ -34,7 +35,7 @@ function renderSidebar() {
       var floorTbls=getRvTableIds(r).map(function(tid){return S.tables.filter(function(t){return t.id===tid;})[0];}).filter(Boolean);
       html += '<div class="ri" data-rid="'+esc(String(r.id))+'">'
         + '<div class="ri-top"><span class="ri-time">'+esc(r.time||'–')+'</span>'
-        + '<span class="ri-name">'+esc(r.nm)+'</span><span class="ri-g">'+esc(String(r.g))+'명</span></div>'
+        + '<span class="ri-name">'+esc(r.nm)+'</span>'+guestVisitBadgeHtml(matchGuestByRecord(custList, r))+'<span class="ri-g">'+esc(String(r.g))+'명</span></div>'
         + '<div class="ri-sub">'
         + (floorTbls.length ? '<span class="ri-tbl">🪑'+floorTbls.map(function(t){return esc(t.n);}).join('+')+'</span>' : '<span style="color:var(--amber)">미배정</span>')
         + '</div></div>';

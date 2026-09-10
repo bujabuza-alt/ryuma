@@ -35,6 +35,8 @@
 .stf-card{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:12px 13px;display:flex;flex-direction:column;gap:9px;}
 .stf-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .stf-name{font-weight:800;font-size:14px;color:var(--text);}
+.stf-type-badge{display:inline-block;margin-left:6px;font-size:9px;font-weight:800;padding:1px 6px;border-radius:99px;background:rgba(42,114,200,.14);color:var(--blue);vertical-align:middle;}
+.stf-type-badge.employee{background:rgba(90,82,200,.14);color:var(--indigo);}
 .stf-sub{font-size:10px;color:var(--text3);margin-top:2px;}
 .stf-menu-btn{background:var(--surf3);border:none;border-radius:50%;width:26px;height:26px;font-size:14px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:inherit;}
 .stf-empty{padding:32px 16px;text-align:center;color:var(--text3);font-size:12px;}

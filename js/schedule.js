@@ -5,6 +5,19 @@ var stfSchedMonth = new Date().getMonth(); // 0-indexed
 function getScheduleEntries(date, shift) {
   return (S.staffSchedule || []).filter(function(e) { return e.date === date && e.shift === shift; });
 }
+// 근무자 유형(직원 → 알바생) 순, 그 안에서는 이름순으로 정렬
+function staffTypeById(staffId) {
+  var s = (S.staffActive || []).concat(S.staffResigned || []).filter(function(x) { return x.id === staffId; })[0];
+  return s ? s.type : 'parttime';
+}
+function sortStaffByTypeThenName(list, typeOf) {
+  return list.slice().sort(function(a, b) {
+    var ta = typeOf(a) === 'employee' ? 0 : 1;
+    var tb = typeOf(b) === 'employee' ? 0 : 1;
+    if (ta !== tb) return ta - tb;
+    return (a.name || '').localeCompare(b.name || '', 'ko');
+  });
+}
 // 근무자를 직접 입력하지 않고, "출퇴근 기록" 탭에 등록된 직원/알바생 중에서 탭하여 켜고 끈다.
 function toggleScheduleEntry(date, shift, staffId, staffName) {
   if (!S.staffSchedule) S.staffSchedule = [];
@@ -38,8 +51,8 @@ function buildScheduleCalendarHtml() {
     if (!day) return '<div class="sched-day empty"></div>';
     var ds = stfSchedYear + '-' + pad(stfSchedMonth + 1) + '-' + pad(day);
     var isToday = ds === td;
-    var lunch  = getScheduleEntries(ds, 'lunch');
-    var dinner = getScheduleEntries(ds, 'dinner');
+    var lunch  = sortStaffByTypeThenName(getScheduleEntries(ds, 'lunch'),  function(e) { return staffTypeById(e.staffId); });
+    var dinner = sortStaffByTypeThenName(getScheduleEntries(ds, 'dinner'), function(e) { return staffTypeById(e.staffId); });
     var cls = 'sched-day' + (isToday ? ' today' : '') + (dow === 0 ? ' sun' : dow === 6 ? ' sat' : '');
     return '<div class="' + cls + '" data-date="' + ds + '">'
       + '<div class="sched-day-num">' + day + '</div>'
@@ -102,7 +115,8 @@ function bindScheduleEvents() {
 function scheduleShiftSectionHtml(date, shift, label) {
   var activeIds = {};
   getScheduleEntries(date, shift).forEach(function(e) { activeIds[e.staffId] = true; });
-  var pillsHtml = '<div class="tag-picker">' + (S.staffActive || []).map(function(s) {
+  var sortedStaff = sortStaffByTypeThenName(S.staffActive || [], function(s) { return s.type; });
+  var pillsHtml = '<div class="tag-picker">' + sortedStaff.map(function(s) {
     var on = !!activeIds[s.id];
     return '<button type="button" class="tag-pill' + (on ? ' on' : '') + '" data-shift="' + shift + '" data-staff-id="' + esc(s.id) + '" data-staff-name="' + esc(s.name) + '">' + esc(s.name) + '</button>';
   }).join('') + '</div>';

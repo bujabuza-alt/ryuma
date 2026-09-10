@@ -42,8 +42,9 @@ function matchGuestByRecord(custList, r) {
   return null;
 }
 // 예약 목록(날짜별 예약 상황 등)에 표시할 이름 옆 신규·기존 손님 배지
+// 기존 손님은 이번 예약이 몇 번째 방문인지(총 방문 + 1) 표기
 function guestVisitBadgeHtml(cust) {
-  if (cust && cust.total) return '<span class="rvtbl-guest-badge old" title="기존 손님 · 총 '+cust.total+'회 방문">기존</span>';
+  if (cust && cust.total) return '<span class="rvtbl-guest-badge old" title="기존 손님 · 총 '+cust.total+'회 방문">'+(cust.total+1)+'번째</span>';
   return '<span class="rvtbl-guest-badge new" title="신규 손님">신규</span>';
 }
 // ── 예약 변경 후 현재 화면 갱신 (홈 탭의 캘린더/좌석도, 손님 탭의 취소 목록 등) ──
