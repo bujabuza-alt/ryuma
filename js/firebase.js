@@ -105,6 +105,7 @@ function loadData() {
     if (Array.isArray(d.stockCats)) S.stockCats = d.stockCats;
     if (Array.isArray(d.stockUnits)) S.stockUnits = d.stockUnits;
     if (Array.isArray(d.images)) S.images = d.images;
+    if (Array.isArray(d.imageCats)) S.imageCats = d.imageCats;
     if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
     if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
     if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
@@ -117,6 +118,7 @@ function loadData() {
     if (!S.stockUnits.length) S.stockUnits = DEFAULT_STOCK_UNITS.slice();
     if (!S.inventory.length) S.inventory = DEFAULT_INVENTORY.slice();
     if (!S.images) S.images = [];
+    if (!S.imageCats || !S.imageCats.length) S.imageCats = DEFAULT_IMAGE_CATS.slice();
     if (!S.staffActive) S.staffActive = [];
     if (!S.staffResigned) S.staffResigned = [];
     if (!S.staffLogs) S.staffLogs = [];
@@ -152,6 +154,7 @@ function exportBackupToFile() {
     inventory: S.inventory || [],
     stockCats: S.stockCats || [],
     stockUnits: S.stockUnits || [],
+    imageCats: S.imageCats || [],
     staffActive: S.staffActive || [],
     staffResigned: S.staffResigned || [],
     staffLogs: S.staffLogs || [],
@@ -197,6 +200,7 @@ function importBackupFromFile(file) {
     if (Array.isArray(data.inventory)) S.inventory = data.inventory;
     if (Array.isArray(data.stockCats) && data.stockCats.length) S.stockCats = data.stockCats;
     if (Array.isArray(data.stockUnits) && data.stockUnits.length) S.stockUnits = data.stockUnits;
+    if (Array.isArray(data.imageCats) && data.imageCats.length) S.imageCats = data.imageCats;
     // 백업 파일에는 용량이 큰 이미지가 포함되지 않으므로, 불러오기 시에도 현재 이미지는 그대로 둔다.
     if (Array.isArray(data.staffActive)) S.staffActive = data.staffActive;
     if (Array.isArray(data.staffResigned)) S.staffResigned = data.staffResigned;
@@ -269,6 +273,7 @@ function doActualSave() {
       stockCats: S.stockCats || [],
       stockUnits: S.stockUnits || [],
       images: S.images || [],
+      imageCats: S.imageCats || [],
       staffActive: S.staffActive || [],
       staffResigned: S.staffResigned || [],
       staffLogs: S.staffLogs || [],
@@ -370,6 +375,7 @@ function startFb() {
     if (Array.isArray(d.stockCats) && d.stockCats.length) S.stockCats = d.stockCats;
     if (Array.isArray(d.stockUnits) && d.stockUnits.length) S.stockUnits = d.stockUnits;
     if (Array.isArray(d.images)) S.images = d.images;
+    if (Array.isArray(d.imageCats) && d.imageCats.length) S.imageCats = d.imageCats;
     if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
     if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
     if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
