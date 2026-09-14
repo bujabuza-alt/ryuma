@@ -1,8 +1,10 @@
 // ── 이미지 (Image Storage) ──
 var imgSearch   = '';
+var imgCatTab   = '전체'; // 이미지 분류 필터: '전체' | S.imageCats의 항목 | '미분류'
 var IMG_MAX_DIM = 1280;   // 업로드 시 최대 가로/세로 픽셀 (용량 절약)
 var IMG_QUALITY = 0.78;
 var IMG_MAX_COUNT = 150;  // Firebase/로컬 저장 용량 보호를 위한 최대 보관 장수
+var DEFAULT_IMAGE_CATS = ['메뉴','매장','기타'];
 
 // 업로드한 이미지를 캔버스로 축소·재압축하여 dataURL로 반환
 function compressImageFile(file) {
@@ -33,6 +35,11 @@ function getImageList() {
   if (!S.images) S.images = [];
   var q = imgSearch.trim().toLowerCase();
   var list = S.images.slice().sort(function(a, b) { return (b.ts||0) - (a.ts||0); });
+  if (imgCatTab === '미분류') {
+    list = list.filter(function(im) { return !im.cat; });
+  } else if (imgCatTab !== '전체') {
+    list = list.filter(function(im) { return im.cat === imgCatTab; });
+  }
   if (q) {
     list = list.filter(function(im) {
       return (im.name||'').toLowerCase().indexOf(q) >= 0 || (im.memo||'').toLowerCase().indexOf(q) >= 0;
@@ -46,6 +53,8 @@ function renderImagesTab() {
   var cntEl = document.getElementById('img-count');
   if (!grid) return;
   if (!S.images) S.images = [];
+  if (!S.imageCats || !S.imageCats.length) S.imageCats = DEFAULT_IMAGE_CATS.slice();
+  renderImageCats();
   var list = getImageList();
   if (cntEl) cntEl.textContent = '총 ' + S.images.length + '장';
   if (!list.length) {
@@ -58,6 +67,7 @@ function renderImagesTab() {
     return '<div class="img-card" data-id="' + im.id + '">' +
       '<img src="' + im.dataUrl + '" alt="' + esc(im.name) + '" loading="lazy">' +
       '<button type="button" class="img-card-del" data-id="' + im.id + '" title="삭제">×</button>' +
+      (im.cat ? '<div class="img-card-cat">' + esc(im.cat) + '</div>' : '') +
       '<div class="img-card-name">' + esc(im.name) + '</div>' +
       '</div>';
   }).join('');
@@ -73,6 +83,95 @@ function renderImagesTab() {
       deleteImage(btn.getAttribute('data-id'));
     });
   });
+}
+
+// ── 이미지 분류(카테고리) 칩 바 ──
+function renderImageCats() {
+  var bar = document.getElementById('img-cats');
+  if (!bar) return;
+  if (!S.imageCats || !S.imageCats.length) S.imageCats = DEFAULT_IMAGE_CATS.slice();
+  var tabs = ['전체'].concat(S.imageCats, ['미분류']);
+  if (imgCatTab !== '전체' && tabs.indexOf(imgCatTab) < 0) imgCatTab = '전체';
+  bar.innerHTML = tabs.map(function(c) {
+    return '<button class="scat' + (c === imgCatTab ? ' on' : '') + '" data-c="' + esc(c) + '">' + esc(c) + '</button>';
+  }).join('') + '<button class="bg img-cat-mgr-btn" id="img-cat-mgr-btn" title="분류 관리">⚙</button>';
+  bar.querySelectorAll('.scat').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      imgCatTab = this.getAttribute('data-c');
+      renderImagesTab();
+    });
+  });
+  var mgrBtn = document.getElementById('img-cat-mgr-btn');
+  if (mgrBtn) mgrBtn.addEventListener('click', openImageCatMgr);
+}
+
+// ── 이미지 분류 관리 모달 ──
+function openImageCatMgr() {
+  if (!S.imageCats || !S.imageCats.length) S.imageCats = DEFAULT_IMAGE_CATS.slice();
+  renderImageCatMgrModal();
+}
+
+function renderImageCatMgrModal() {
+  var catsHtml = S.imageCats.map(function(c, i) {
+    return '<div class="list-mgr-row"><span class="list-mgr-name">' + esc(c) + '</span>'
+      + '<button class="list-mgr-edit" onclick="renameImageCat(' + i + ')">✏</button>'
+      + '<button class="list-mgr-del" onclick="removeImageCat(' + i + ')">✕</button></div>';
+  }).join('') || '<div style="padding:6px;font-size:11px;color:var(--text3)">없음</div>';
+
+  showModal(
+    '<div class="md-hd"><div class="md-title">이미지 분류 관리</div><button class="md-x" onclick="closeModal()">✕</button></div>'
+    + '<div class="mb">'
+    + '<div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;max-height:160px;overflow-y:auto;">' + catsHtml + '</div>'
+    + '<div style="display:flex;gap:6px;margin-top:6px;">'
+      + '<input class="fi" id="new-imgcat-inp" placeholder="새 분류" maxlength="20" style="flex:1;">'
+      + '<button class="bp" onclick="addImageCat()">추가</button>'
+    + '</div>'
+    + '<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-top:10px;" onclick="closeModal()">닫기</button>'
+    + '</div>'
+  );
+}
+
+function addImageCat() {
+  var inp = document.getElementById('new-imgcat-inp');
+  var v = ((inp||{}).value || '').trim();
+  if (!v) return;
+  if (!S.imageCats) S.imageCats = [];
+  if (S.imageCats.indexOf(v) >= 0) { showToast('이미 있는 분류입니다'); return; }
+  S.imageCats.push(v);
+  saveData();
+  renderImageCatMgrModal();
+  renderImageCats();
+}
+function renameImageCat(idx) {
+  if (!S.imageCats) return;
+  var oldName = S.imageCats[idx];
+  var v = prompt('분류 이름 수정', oldName);
+  if (v === null) return;
+  v = v.trim();
+  if (!v || v === oldName) return;
+  if (S.imageCats.indexOf(v) >= 0) { showToast('이미 있는 분류입니다'); return; }
+  S.imageCats[idx] = v;
+  (S.images||[]).forEach(function(im) { if (im.cat === oldName) im.cat = v; });
+  if (imgCatTab === oldName) imgCatTab = v;
+  saveData();
+  renderImageCatMgrModal();
+  renderImagesTab();
+  showToast('분류 이름이 수정되었습니다');
+}
+function removeImageCat(idx) {
+  if (!S.imageCats) return;
+  var name = S.imageCats[idx];
+  var cnt = (S.images||[]).filter(function(im) { return im.cat === name; }).length;
+  var msg = cnt > 0
+    ? '"' + name + '" 분류를 삭제할까요?\n이 분류를 사용 중인 이미지 ' + cnt + '장은 "미분류"로 표시됩니다.'
+    : '"' + name + '" 분류를 삭제할까요?';
+  if (!confirm(msg)) return;
+  S.imageCats.splice(idx, 1);
+  (S.images||[]).forEach(function(im) { if (im.cat === name) im.cat = ''; });
+  if (imgCatTab === name) imgCatTab = '전체';
+  saveData();
+  renderImageCatMgrModal();
+  renderImagesTab();
 }
 
 function handleImageUpload(files) {
@@ -157,6 +256,10 @@ function shareImage(id) {
 function openImageViewer(id) {
   var im = (S.images||[]).filter(function(x) { return x.id === id; })[0];
   if (!im) return;
+  if (!S.imageCats || !S.imageCats.length) S.imageCats = DEFAULT_IMAGE_CATS.slice();
+  var catOptions = '<option value="">미분류</option>' + S.imageCats.map(function(c) {
+    return '<option value="' + esc(c) + '"' + (im.cat === c ? ' selected' : '') + '>' + esc(c) + '</option>';
+  }).join('');
   showModal(
     '<div class="md-hd"><span class="md-title">' + esc(im.name) + '</span>' +
     '<span style="display:flex;align-items:center;gap:6px">' +
@@ -165,9 +268,10 @@ function openImageViewer(id) {
     '</span></div>' +
     '<div class="mb img-viewer">' +
     '<img src="' + im.dataUrl + '" alt="' + esc(im.name) + '">' +
+    '<select class="fi" id="img-cat-select">' + catOptions + '</select>' +
     '<textarea class="fi" id="img-memo-input" placeholder="메모…" maxlength="200">' + esc(im.memo||'') + '</textarea>' +
     '<div style="display:flex;gap:7px">' +
-    '<button class="ab" style="background:var(--indigo);display:flex;align-items:center;justify-content:center" id="img-memo-save">메모 저장</button>' +
+    '<button class="ab" style="background:var(--indigo);display:flex;align-items:center;justify-content:center" id="img-memo-save">저장</button>' +
     '<button class="ab" style="background:var(--green);display:flex;align-items:center;justify-content:center" id="img-share-btn">🔗 공유</button>' +
     '</div>' +
     '<a class="ab" style="background:var(--surf3);color:var(--text2);text-decoration:none;display:flex;align-items:center;justify-content:center" href="' + im.dataUrl + '" download="' + esc(im.name) + '">↓ 다운로드</a>' +
@@ -179,10 +283,11 @@ function openImageViewer(id) {
   });
   document.getElementById('img-memo-save').addEventListener('click', function() {
     im.memo = document.getElementById('img-memo-input').value.trim();
+    im.cat = document.getElementById('img-cat-select').value;
     saveData();
     closeModal();
     renderImagesTab();
-    showToast('메모가 저장되었습니다');
+    showToast('저장되었습니다');
   });
   document.getElementById('img-share-btn').addEventListener('click', function() {
     shareImage(id);

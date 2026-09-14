@@ -19,7 +19,7 @@ function doEnter(store) {
   lastSavedTs = 0;  // 매장 전환 시 반드시 초기화
   clearTimeout(fbReconnectTimer); fbReconnectTimer = null;
   fbRef = fbDb.ref('tableApp/' + store);
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{}};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{}};
   cardCache = {};
   stockTab = '전체'; stockChip = 'all'; stockSearch = ''; stockSort = 'name';
   stockOrderMode = false; stockSelectedIds = [];
@@ -70,6 +70,7 @@ function doEnter(store) {
       if (Array.isArray(d.stockCats) && d.stockCats.length) S.stockCats = d.stockCats;
       if (Array.isArray(d.stockUnits) && d.stockUnits.length) S.stockUnits = d.stockUnits;
       if (Array.isArray(d.images)) S.images = d.images;
+      if (Array.isArray(d.imageCats) && d.imageCats.length) S.imageCats = d.imageCats;
       if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
       if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
       if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
@@ -150,7 +151,7 @@ function logout() {
   closeSaveErrorModal();
   if (fbRef) { fbRef.off(); fbRef = null; }
   currentStore = null;
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{}};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{}};
   cardCache = {};
   editMode = false;
   staffTopTab = 'schedule'; staffSubTab = 'logs';
