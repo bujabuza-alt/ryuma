@@ -111,3 +111,10 @@
   .sched-shift-line{font-size:10px;}
   .sched-shift-tag{font-size:9px;}
 }
+
+/* ── UI 다듬기: 터치 영역 · 가독성 ── */
+.img-card-del{width:30px;height:30px;font-size:16px;}
+.stf-type-badge{font-size:10px;}
+.stf-menu-btn{width:34px;height:34px;}
+.stf-rec-actions button{width:34px;height:34px;}
+.stf-fav-chip button{width:24px;height:24px;font-size:11px;}

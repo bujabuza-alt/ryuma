@@ -166,8 +166,21 @@ function showModal(html){
   var x=document.getElementById('mxbtn'); if(x)x.addEventListener('click',closeModal);
 }
 function closeModal(){ document.getElementById('mo').classList.remove('on'); document.getElementById('mdc').innerHTML=''; }
+// 앱 스타일 확인 대화상자 (native confirm() 대체)
+function showConfirm(title, msg, okLabel, onOk) {
+  showModal(
+    '<div class="md-hd"><div class="md-title">'+esc(title)+'</div><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
+    +'<div class="mb">'
+    +'<div class="md-msg">'+esc(msg)+'</div>'
+    +'<div class="abs">'
+      +'<button class="ab" style="background:var(--surf3);color:var(--text2);" onclick="closeModal()">취소</button>'
+      +'<button class="ab" style="background:var(--red);" id="md-confirm-ok">'+esc(okLabel||'확인')+'</button>'
+    +'</div>'
+    +'</div>'
+  );
+  document.getElementById('md-confirm-ok').addEventListener('click', function(){ closeModal(); if (onOk) onOk(); });
+}
 
-// ── 헬퍼 ──
 // ── 인원 드롭다운 (1~50) ──
 function guestSelectHtml(id, val, max) {
   // max: 착석 테이블 기반 최대인원 (없으면 50)
@@ -198,13 +211,12 @@ function getTags(pid){ var c=document.getElementById(pid); if(!c)return[]; var r
 
 // ── 토스트 알림 ──
 function showToast(msg) {
+  // 이전 토스트가 남아 있으면 겹치지 않도록 즉시 제거
+  document.querySelectorAll('.toast').forEach(function(o){ o.parentNode && o.parentNode.removeChild(o); });
   var t = document.createElement('div');
+  t.className = 'toast';
+  t.setAttribute('role', 'status');
   t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
-    + 'background:var(--surf3);color:var(--text);border:1px solid var(--border2);'
-    + 'border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;'
-    + 'z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4);'
-    + 'transition:opacity .3s ease;pointer-events:none;';
   document.body.appendChild(t);
   setTimeout(function(){ t.style.opacity='0'; }, 2200);
   setTimeout(function(){ t.parentNode && t.parentNode.removeChild(t); }, 2600);

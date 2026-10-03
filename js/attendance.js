@@ -12,7 +12,7 @@ function openStaffForm(existing) {
   var isEdit = !!existing;
   var selType = (existing && existing.type === 'employee') ? 'employee' : 'parttime';
   showModal(
-    '<div class="md-hd"><span class="md-title">' + (isEdit ? '근무자 정보 수정' : '근무자 추가') + '</span><button class="md-x" id="mxbtn">×</button></div>' +
+    '<div class="md-hd"><span class="md-title">' + (isEdit ? '근무자 정보 수정' : '근무자 추가') + '</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>' +
     '<div class="mb">' +
     '<div class="fg"><label class="fl">이름</label><input class="fi" id="stf-f-name" value="' + esc(existing ? existing.name : '') + '" placeholder="이름"></div>' +
     '<div class="fg"><label class="fl">근무자 유형</label><div class="tag-picker" id="stf-f-type">' +
@@ -62,7 +62,7 @@ function openResignForm(id) {
   var s = (S.staffActive || []).filter(function(x) { return x.id === id; })[0];
   if (!s) return;
   showModal(
-    '<div class="md-hd"><span class="md-title">' + esc(s.name) + ' - 퇴사 처리</span><button class="md-x" id="mxbtn">×</button></div>' +
+    '<div class="md-hd"><span class="md-title">' + esc(s.name) + ' - 퇴사 처리</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>' +
     '<div class="mb">' +
     '<div class="fg"><label class="fl">퇴사일</label><input class="fi" type="date" id="resign-f-date" value="' + today() + '"></div>' +
     '<button class="ab" style="background:var(--amber);width:100%" id="resign-f-save">퇴사 처리</button>' +
@@ -111,7 +111,7 @@ function openStaffMenu(id, mode) {
   var s = (arr||[]).filter(function(x) { return x.id === id; })[0];
   if (!s) return;
   showModal(
-    '<div class="md-hd"><span class="md-title">' + esc(s.name) + '</span><button class="md-x" id="mxbtn">×</button></div>' +
+    '<div class="md-hd"><span class="md-title">' + esc(s.name) + '</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>' +
     '<div class="mb">' +
     '<button class="ab" style="background:var(--indigo)" id="stf-menu-edit">✏ 정보 수정</button>' +
     (mode === 'resigned'
@@ -280,7 +280,7 @@ function renderFavChipsHtml() {
     var parts = t.split('~');
     var label = parts.length === 2 ? (parts[0] + ' ~ ' + parts[1]) : t;
     return '<span class="stf-fav-chip"><span data-act="fav-pick" data-t="' + esc(t) + '">' + esc(label) + '</span>' +
-      '<button type="button" data-act="fav-del" data-t="' + esc(t) + '">✕</button></span>';
+      '<button type="button" data-act="fav-del" data-t="' + esc(t) + '" aria-label="삭제">×</button></span>';
   }).join('');
 }
 // ── 렌더링: 출퇴근 기록 캘린더 ──
@@ -298,7 +298,7 @@ function staffRecRowHtml(r) {
     '</div>' +
     '<div class="stf-rec-actions">' +
     '<button type="button" data-act="rec-edit" data-id="' + r.id + '">✏</button>' +
-    '<button type="button" data-act="rec-del" data-id="' + r.id + '">✕</button>' +
+    '<button type="button" data-act="rec-del" data-id="' + r.id + '" aria-label="삭제">×</button>' +
     '</div>' +
     '</div>';
 }
@@ -507,7 +507,7 @@ function renderStaffTab() {
   if (!S.staffFavTimes) S.staffFavTimes = [];
   if (!S.staffSchedule) S.staffSchedule = [];
 
-  document.querySelectorAll('.staff-toptab').forEach(function(btn) {
+  document.querySelectorAll('#staff-toptabs .staff-toptab').forEach(function(btn) {
     btn.classList.toggle('on', btn.getAttribute('data-top') === staffTopTab);
   });
   var schedulePanel   = document.getElementById('staff-panel-schedule');

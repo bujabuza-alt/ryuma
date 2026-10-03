@@ -94,13 +94,13 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 .lc{width:7px;height:7px;border-radius:2px;flex-shrink:0;}
 #cv{background:var(--surf);border-radius:12px;border:1px solid var(--border);position:relative;width:100%;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);}
 /* 테이블 묶기 */
-.merge-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(90,82,200,.15);border:1px solid rgba(90,82,200,.3);border-radius:99px;padding:3px 8px;font-size:11px;font-weight:700;color:#a78bfa;}
+.merge-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(90,82,200,.15);border:1px solid rgba(90,82,200,.3);border-radius:99px;padding:3px 8px;font-size:11px;font-weight:700;color:var(--indigo);}
 .merge-badge{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--indigo);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;}
 .tc.merge-slave{border-style:dashed !important;}
 /* 묶기 선택 모드 - 더 명확한 시각 피드백 */
 .tc.merge-candidate{outline:3px dashed rgba(168,139,250,.9);outline-offset:-2px;filter:brightness(1.08);}
 .tc.merge-selected{outline:none;box-shadow:0 0 0 4px #a78bfa,0 0 20px rgba(167,139,250,.6),0 10px 20px rgba(90,82,200,.35);background:rgba(90,82,200,.28) !important;filter:brightness(1.12);}
-.tc.merge-selected::after{content:'✓';position:absolute;top:3px;right:5px;font-size:13px;font-weight:900;color:#a78bfa;}
+.tc.merge-selected::after{content:'✓';position:absolute;top:3px;right:5px;font-size:13px;font-weight:900;color:var(--indigo);}
 /* 그룹 색상 선택 */
 .merge-color-row{display:flex;flex-wrap:wrap;gap:8px;}
 .merge-color-swatch{width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;transition:transform .12s;flex-shrink:0;}
@@ -281,9 +281,9 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 .iv{font-weight:700;color:var(--text);}
 .gbs{display:flex;gap:6px;flex-wrap:wrap;}
 .gb{width:42px;height:42px;border-radius:9px;border:1.5px solid var(--border2);background:var(--surf2);color:var(--text2);font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;}
-.gb.bl{border-color:var(--blue);background:rgba(42,114,200,.15);color:#60a5fa;}
-.gb.pu{border-color:var(--indigo);background:rgba(90,82,200,.15);color:#a78bfa;}
-.gb.gr{border-color:var(--green);background:rgba(42,154,90,.15);color:#4ade80;}
+.gb.bl{border-color:var(--blue);background:rgba(26,90,170,.1);color:var(--blue);}
+.gb.pu{border-color:var(--indigo);background:rgba(90,82,200,.15);color:var(--indigo);}
+.gb.gr{border-color:var(--green);background:rgba(26,122,66,.1);color:var(--green);}
 .abs{display:flex;gap:7px;}
 .ab{flex:1;padding:12px 0;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;color:#fff;font-family:inherit;}
 .fg{display:flex;flex-direction:column;gap:4px;}
@@ -1294,3 +1294,46 @@ body.light .schrv-tag-call { color: #c03060; }
 }
 .cl-add-btn:active { opacity: .8; }
 
+
+/* ══════════════════════════════════════════════════════════
+   UI 다듬기 — 터치 영역 · 가독성 · 좁은 화면 대응
+   (기존 규칙을 덮어쓰는 보정값만 모아둠)
+══════════════════════════════════════════════════════════ */
+/* 버튼: 아이패드(768px 이상)에서도 손가락으로 누르기 충분한 높이 */
+.bp,.bg,.be{min-height:34px;display:inline-flex;align-items:center;justify-content:center;gap:4px;}
+.hd-ic{min-width:38px;font-size:15px;padding:5px 9px;}
+.top-btn{font-size:12px;padding:6px 11px;white-space:nowrap;flex-shrink:0;}
+.top-sel{flex-shrink:0;min-height:38px;padding:8px 10px;border:1px solid var(--border2);border-radius:10px;background:var(--surf);color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;outline:none;}
+.cal-nav,.schcal-nav{width:36px;height:36px;font-size:16px;border-radius:8px;}
+.cf-cat-del,.cf-toggle{min-width:32px;min-height:32px;display:inline-flex;align-items:center;justify-content:center;padding:4px 6px;}
+.cf-toggle{font-size:14px;}
+.cl-drag{width:30px;height:30px;}
+.cl-del{min-width:32px;min-height:32px;padding:4px 6px;}
+
+/* 검색 줄: 좁은 화면에서 버튼이 많아도 검색창이 찌그러지지 않도록 줄바꿈 */
+.rv-top{flex-wrap:wrap;}
+.rv-srch{min-width:180px;}
+@media (max-width:600px){
+  .rv-top .rv-srch,#stock-search-row .rv-srch{flex:1 1 100%;}
+}
+
+/* 가독성: 정보성 라벨 최소 10~11px */
+.hd-date{font-size:11px;}
+.sl{font-size:10px;font-weight:600;}
+.sb-sec-t,.sb-sec-c{font-size:10px;}
+.wi-tag,.tc-badge,.fdn-dow,.fdn-cnt-badge,.rvtbl-guest-badge{font-size:10px;}
+.rvtbl-src{font-size:9px;}
+
+/* 모달: 두 번째 레이어 확인 문구 */
+.md-msg{font-size:13px;line-height:1.6;color:var(--text2);white-space:pre-line;}
+
+/* 토스트 (utils.js showToast) */
+.toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%);max-width:calc(100% - 32px);
+  background:var(--text);color:var(--surf);border-radius:12px;padding:11px 18px;font-size:13px;font-weight:700;
+  z-index:9999;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.25);transition:opacity .3s ease;pointer-events:none;}
+
+/* 상단 탭 6개: 좁은 화면에서는 균등 분할해 가로 스크롤 없이 모두 보이게 */
+@media (max-width:560px){
+  #tb{padding:0 2px;gap:0;}
+  #tb .tab{flex:1;min-width:0;padding:10px 0;font-size:11px;white-space:nowrap;text-align:center;letter-spacing:-.02em;}
+}

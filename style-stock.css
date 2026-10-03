@@ -118,7 +118,7 @@
 .sk-hist-row:last-child{border-bottom:none;}
 .sk-hist-d{font-size:10px;color:var(--text3);}
 .sk-hist-delta{font-weight:700;padding:1px 6px;border-radius:5px;font-size:11px;}
-.sk-hist-delta.in{color:#4ade80;background:rgba(42,154,90,.12);}
+.sk-hist-delta.in{color:var(--green);background:rgba(42,154,90,.12);}
 .sk-hist-delta.out{color:var(--red2);background:rgba(196,18,48,.1);}
 .sk-hist-res{color:var(--text2);font-size:10px;}
 .sk-detail-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;}
@@ -154,3 +154,10 @@
   transition:transform .12s,box-shadow .12s;
 }
 .stock-fab:active{transform:scale(.94);box-shadow:0 2px 8px rgba(0,0,0,.3);}
+
+/* ── UI 다듬기 ── */
+#stock-search-row{flex-wrap:wrap;}
+.sk-adj{gap:6px;}
+.sk-adj-btn{width:34px;height:34px;font-size:18px;}
+.sk-min{font-size:10px;color:var(--text3);}
+.sk-detail-stat-l{font-size:10px;}

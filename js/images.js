@@ -115,11 +115,11 @@ function renderImageCatMgrModal() {
   var catsHtml = S.imageCats.map(function(c, i) {
     return '<div class="list-mgr-row"><span class="list-mgr-name">' + esc(c) + '</span>'
       + '<button class="list-mgr-edit" onclick="renameImageCat(' + i + ')">✏</button>'
-      + '<button class="list-mgr-del" onclick="removeImageCat(' + i + ')">✕</button></div>';
+      + '<button class="list-mgr-del" onclick="removeImageCat(' + i + ')" aria-label="삭제">×</button></div>';
   }).join('') || '<div style="padding:6px;font-size:11px;color:var(--text3)">없음</div>';
 
   showModal(
-    '<div class="md-hd"><div class="md-title">이미지 분류 관리</div><button class="md-x" onclick="closeModal()">✕</button></div>'
+    '<div class="md-hd"><div class="md-title">이미지 분류 관리</div><button class="md-x" onclick="closeModal()" aria-label="닫기">×</button></div>'
     + '<div class="mb">'
     + '<div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;max-height:160px;overflow-y:auto;">' + catsHtml + '</div>'
     + '<div style="display:flex;gap:6px;margin-top:6px;">'
@@ -263,8 +263,8 @@ function openImageViewer(id) {
   showModal(
     '<div class="md-hd"><span class="md-title">' + esc(im.name) + '</span>' +
     '<span style="display:flex;align-items:center;gap:6px">' +
-    '<button class="md-x" id="img-rename-btn" title="이름 변경" style="font-size:13px">✏</button>' +
-    '<button class="md-x" id="mxbtn">×</button>' +
+    '<button class="md-x" id="img-rename-btn" title="이름 변경" aria-label="이름 변경" style="font-size:13px">✏</button>' +
+    '<button class="md-x" id="mxbtn" aria-label="닫기">×</button>' +
     '</span></div>' +
     '<div class="mb img-viewer">' +
     '<img src="' + im.dataUrl + '" alt="' + esc(im.name) + '">' +
