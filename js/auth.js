@@ -19,10 +19,11 @@ function doEnter(store) {
   lastSavedTs = 0;  // 매장 전환 시 반드시 초기화
   clearTimeout(fbReconnectTimer); fbReconnectTimer = null;
   fbRef = fbDb.ref('tableApp/' + store);
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{}};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{},orderProducts:[],orderItems:[],orderHistory:[],orderInit:false};
   cardCache = {};
   stockTab = '전체'; stockChip = 'all'; stockSearch = ''; stockSort = 'name';
   stockOrderMode = false; stockSelectedIds = [];
+  orderSub = 'list'; orderBuiltSub = null; orderSearch = ''; orderCollapsed = {};
   imgSearch = '';
   staffTopTab = 'schedule'; staffSubTab = 'logs';
   document.getElementById('cvi').innerHTML = '';
@@ -78,6 +79,9 @@ function doEnter(store) {
       if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
       if (Array.isArray(d.staffSchedule)) S.staffSchedule = d.staffSchedule;
       if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
+      if (d.dailyMemos && typeof d.dailyMemos === 'object') S.dailyMemos = d.dailyMemos;
+      if (d.weeklyMemos && typeof d.weeklyMemos === 'object') S.weeklyMemos = d.weeklyMemos;
+      applyOrderData(d);
     }
 
     function boot() {
@@ -103,6 +107,7 @@ function doEnter(store) {
       if (!S.tables.length) S.tables = init.map(mkTable);
       if (!S.daily) S.daily = [];
       if (!S.tags || !S.tags.length) S.tags = DEFAULT_TAGS.slice();
+      seedOrderDataIfNeeded();
       showBadge('');
       syncToday();
       // 진입 시 항상 홈 탭으로 이동
@@ -151,7 +156,7 @@ function logout() {
   closeSaveErrorModal();
   if (fbRef) { fbRef.off(); fbRef = null; }
   currentStore = null;
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{}};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{},orderProducts:[],orderItems:[],orderHistory:[],orderInit:false};
   cardCache = {};
   editMode = false;
   staffTopTab = 'schedule'; staffSubTab = 'logs';
@@ -165,7 +170,7 @@ function logout() {
 // ── 설정 ──
 function openCfg() {
   showModal(
-    '<div class="md-hd"><span class="md-title">⚙ 전체 설정</span><button class="md-x" id="mxbtn">×</button></div>' +
+    '<div class="md-hd"><span class="md-title">⚙ 전체 설정</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>' +
     '<div class="mb">' +
     '<div class="ss-label">데이터 백업</div>' +
     '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">예약·손님·재고·확인 사항 등 매장의 정보를 파일로 저장하거나, 저장해둔 파일에서 복원합니다 (용량이 큰 이미지는 제외)</div>' +

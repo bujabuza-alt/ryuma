@@ -1,4 +1,3 @@
-// ── 재고 관리 (Inventory Management) ──
 // ══════════════════════════════════════════════════════════
 // ── 재고 관리 (Inventory Management) ──
 // ══════════════════════════════════════════════════════════
@@ -207,7 +206,7 @@ function renderStockStats() {
   var el = document.getElementById('stock-stats');
   if (!el) return;
   el.innerHTML =
-    '<div class="sc"><div class="si" style="background:rgba(42,114,200,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div><div><div class="sl">전체 품목</div><div class="sv" style="color:#60a5fa">'+total+'개</div></div></div>'+
+    '<div class="sc"><div class="si" style="background:rgba(26,90,170,.1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg></div><div><div class="sl">전체 품목</div><div class="sv" style="color:var(--blue)">'+total+'개</div></div></div>'+
     '<div class="sc"><div class="si" style="background:rgba(200,146,42,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="sl">부족 경고</div><div class="sv" style="color:var(--amber)">'+low+'개</div></div></div>'+
     '<div class="sc"><div class="si" style="background:rgba(196,18,48,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><div class="sl">품절</div><div class="sv" style="color:var(--red2)">'+out+'개</div></div></div>';
 }
@@ -228,10 +227,10 @@ function _buildStockCardHtml(item) {
     +'</div>'
     +'<div class="sk-right">'
       +'<div class="sk-qty '+st+'">'+item.qty+'<span class="sk-unit"> '+esc(item.unit||'')+'</span></div>'
-      +(item.min > 0 ? '<div style="font-size:10px;color:var(--text3)">최소 '+item.min+'</div>' : '<div></div>')
+      +(item.min > 0 ? '<div class="sk-min">최소 '+item.min+'</div>' : '<div></div>')
       +'<div class="sk-adj">'
-        +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="-1">−</button>'
-        +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="1">+</button>'
+        +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="-1" aria-label="1개 빼기">−</button>'
+        +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="1" aria-label="1개 더하기">+</button>'
       +'</div>'
     +'</div>'
     +(stockOrderMode ? '<div class="sk-sel'+(isSel?' show':'')+'"><div class="sk-sel-chk">'+(isSel?'✓':'')+'</div></div>' : '')
@@ -440,7 +439,7 @@ function openAddStock() {
   var catOpts = S.stockCats.map(function(c){ return '<option value="'+esc(c)+'"'+(c===activeCat?' selected':'')+'>'+esc(c)+'</option>'; }).join('');
   var unitOpts = S.stockUnits.map(function(u){ return '<option value="'+esc(u)+'">'+esc(u)+'</option>'; }).join('');
   showModal(
-    '<div class="md-hd"><div class="md-title">재고 품목 추가</div><button class="md-x" onclick="closeModal()">✕</button></div>'
+    '<div class="md-hd"><div class="md-title">재고 품목 추가</div><button class="md-x" onclick="closeModal()" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div class="fg"><div class="fl">상품명 *</div><input class="fi" id="sk-n" placeholder="예: 에티오피아 원두" maxlength="40"></div>'
     +'<div class="g2">'
@@ -476,7 +475,7 @@ function openEditStock(id) {
   var catOpts = S.stockCats.map(function(c){ return '<option value="'+esc(c)+'"'+(c===item.cat?' selected':'')+'>'+esc(c)+'</option>'; }).join('');
   var unitOpts = S.stockUnits.map(function(u){ return '<option value="'+esc(u)+'"'+(u===item.unit?' selected':'')+'>'+esc(u)+'</option>'; }).join('');
   showModal(
-    '<div class="md-hd"><div class="md-title">품목 수정</div><button class="md-x" onclick="closeModal()">✕</button></div>'
+    '<div class="md-hd"><div class="md-title">품목 수정</div><button class="md-x" onclick="closeModal()" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div class="fg"><div class="fl">상품명 *</div><input class="fi" id="sk-n" value="'+esc(item.n)+'" maxlength="40"></div>'
     +'<div class="g2">'
@@ -531,12 +530,12 @@ function saveStockItem(editId) {
 }
 
 function delStockItem(id) {
-  if (!confirm('이 품목을 삭제할까요?')) return;
-  S.inventory = (S.inventory||[]).filter(function(i){ return i.id !== id; });
-  saveData();
-  closeModal();
-  renderStock();
-  showToast('🗑 품목이 삭제되었습니다');
+  showConfirm('품목 삭제', '이 품목을 삭제할까요?', '삭제', function(){
+    S.inventory = (S.inventory||[]).filter(function(i){ return i.id !== id; });
+    saveData();
+    renderStock();
+    showToast('🗑 품목이 삭제되었습니다');
+  });
 }
 
 // ── 상세 모달 ──
@@ -595,7 +594,7 @@ function renderStockDetailModal(id) {
   for (var i=1; i<=50; i++) adjOpts += '<option value="'+i+'">'+i+'</option>';
 
   showModal(
-    '<div class="md-hd"><div class="md-title">'+esc(item.n)+'</div><button class="md-x" onclick="closeModal()">✕</button></div>'
+    '<div class="md-hd"><div class="md-title">'+esc(item.n)+'</div><button class="md-x" onclick="closeModal()" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surf2);border-radius:10px;padding:12px 14px;border:1px solid var(--border);">'
       +'<div>'
@@ -654,7 +653,7 @@ function openStockSort() {
     return '<button class="ab" style="background:'+(stockSort===o.k?'var(--red)':'var(--surf3)')+';color:'+(stockSort===o.k?'#fff':'var(--text2)')+';" onclick="stockSort=\''+o.k+'\';closeModal();renderStockList();">'+o.label+'</button>';
   }).join('');
   showModal(
-    '<div class="md-hd"><div class="md-title">정렬</div><button class="md-x" onclick="closeModal()">✕</button></div>'
+    '<div class="md-hd"><div class="md-title">정렬</div><button class="md-x" onclick="closeModal()" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div style="display:flex;flex-direction:column;gap:8px;">'+html+'</div>'
     +'</div>'
@@ -667,27 +666,22 @@ function toggleStockOrderMode() {
   stockSelectedIds = [];
   var btn = document.getElementById('stock-btn-order');
   if (btn) {
-    btn.textContent = stockOrderMode ? '취소' : '📋 발주';
-    btn.className = stockOrderMode ? 'be on' : 'bg';
+    btn.textContent = stockOrderMode ? '취소' : '🛒 발주 담기';
+    btn.className = stockOrderMode ? 'be on top-btn' : 'bg top-btn';
   }
   renderStockList();
   updateStockOrderBar();
 }
 
+// 선택한 재고 품목을 발주 탭의 발주 목록에 담는다 (수량 = 최소 기준, 없으면 1)
 function copyStockOrderList() {
   if (!stockSelectedIds.length) { showToast('품목을 선택하세요'); return; }
-  var lines = stockSelectedIds.map(function(id){
-    var item = (S.inventory||[]).filter(function(i){ return i.id===id; })[0];
-    if (!item) return '';
-    return item.n + ' ' + (item.min > 0 ? item.min : 1) + item.unit;
-  }).filter(Boolean);
-  var text = '[발주 목록]\n' + lines.join('\n');
-  navigator.clipboard.writeText(text).then(function(){
-    showToast('📋 발주 목록이 복사되었습니다 ('+lines.length+'개)');
-    toggleStockOrderMode();
-  }).catch(function(){
-    showToast('복사 실패 — 수동으로 복사하세요');
-  });
+  var cnt = stockSelectedIds.length;
+  var added = addStockItemsToOrder(stockSelectedIds.slice());
+  toggleStockOrderMode();
+  orderSub = 'list';
+  switchTab('order');
+  showToast(added ? '🛒 ' + added + '개 품목을 발주 목록에 담았어요' : '이미 발주 목록에 있는 품목이에요 (' + cnt + '개)');
 }
 
 // ── CSV 내보내기 ──
@@ -717,15 +711,15 @@ function openStockListMgr() {
 function renderStockListMgrModal() {
   var catsHtml = S.stockCats.map(function(c,i){
     return '<div class="list-mgr-row"><span class="list-mgr-name">'+esc(c)+'</span>'
-      +'<button class="list-mgr-edit" onclick="renameStockCat('+i+')">✏</button>'
-      +'<button class="list-mgr-del" onclick="removeStockCat('+i+')">✕</button></div>';
+      +'<button class="list-mgr-edit" onclick="renameStockCat('+i+')" aria-label="이름 수정">✏</button>'
+      +'<button class="list-mgr-del" onclick="removeStockCat('+i+')" aria-label="삭제">×</button></div>';
   }).join('') || '<div style="padding:6px;font-size:11px;color:var(--text3)">없음</div>';
   var unitsHtml = S.stockUnits.map(function(u,i){
-    return '<div class="list-mgr-row"><span class="list-mgr-name">'+esc(u)+'</span><button class="list-mgr-del" onclick="removeStockUnit('+i+')">✕</button></div>';
+    return '<div class="list-mgr-row"><span class="list-mgr-name">'+esc(u)+'</span><button class="list-mgr-del" onclick="removeStockUnit('+i+')" aria-label="삭제">×</button></div>';
   }).join('') || '<div style="padding:6px;font-size:11px;color:var(--text3)">없음</div>';
 
   showModal(
-    '<div class="md-hd"><div class="md-title">카테고리 · 단위 관리</div><button class="md-x" onclick="closeModal()">✕</button></div>'
+    '<div class="md-hd"><div class="md-title">카테고리 · 단위 관리</div><button class="md-x" onclick="closeModal()" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div style="font-size:12px;font-weight:800;color:var(--text2);margin-bottom:6px;">카테고리</div>'
     +'<div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;max-height:120px;overflow-y:auto;">'+catsHtml+'</div>'
@@ -779,12 +773,13 @@ function removeStockCat(idx) {
   var msg = cnt > 0
     ? '"'+name+'" 카테고리를 삭제할까요?\n이 카테고리를 사용 중인 품목 '+cnt+'개는 "기타"로 표시됩니다.'
     : '"'+name+'" 카테고리를 삭제할까요?';
-  if (!confirm(msg)) return;
-  S.stockCats.splice(idx, 1);
-  if (stockTab === name) stockTab = '전체';
-  saveData();
-  renderStockListMgrModal();
-  renderStock();
+  showConfirm('카테고리 삭제', msg, '삭제', function(){
+    S.stockCats.splice(idx, 1);
+    if (stockTab === name) stockTab = '전체';
+    saveData();
+    renderStock();
+    renderStockListMgrModal();
+  });
 }
 function addStockUnit() {
   var inp = document.getElementById('new-unit-inp');
@@ -813,7 +808,7 @@ document.getElementById('stock-order-copy').addEventListener('click', copyStockO
 document.getElementById('stock-order-cancel').addEventListener('click', function(){
   stockOrderMode = false; stockSelectedIds = [];
   var btn = document.getElementById('stock-btn-order');
-  if (btn) { btn.textContent = '📋 발주'; btn.className = 'bg'; }
+  if (btn) { btn.textContent = '🛒 발주 담기'; btn.className = 'bg top-btn'; }
   renderStockList(); updateStockOrderBar();
 });
 document.getElementById('stock-srch').addEventListener('input', function(){

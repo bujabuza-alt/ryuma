@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="style-stock.css">
 <link rel="stylesheet" href="style-extra.css">
+<link rel="stylesheet" href="style-order.css">
 <link rel="apple-touch-icon" href="app_icon_preview.png">
 </head>
 <body class="light">
@@ -52,17 +53,18 @@
     </div>
     <div class="hd-right">
       <span id="badge"></span>
-      <button class="bg" id="btn-view" style="font-size:14px;padding:5px 9px">☰</button>
-      <button class="be" id="bedit">✏️</button>
-      <button class="bg" id="btn-cfg" style="font-size:14px;padding:5px 8px">⚙</button>
+      <button class="bg hd-ic" id="btn-view" aria-label="보기 전환">☰</button>
+      <button class="be hd-ic" id="bedit" aria-label="배치 편집">✏️</button>
+      <button class="bg hd-ic" id="btn-cfg" aria-label="설정">⚙</button>
     </div>
   </div>
   <div id="tb">
     <button class="tab on" id="t1">🏠 홈</button>
-    <button class="tab" id="t3">👤 손님</button>
+    <button class="tab" id="t2">🛒 발주</button>
     <button class="tab" id="t4">📦 재고</button>
     <button class="tab" id="t5">🖼 이미지</button>
     <button class="tab" id="t6">📅 스케줄</button>
+    <button class="tab" id="t3">👤 손님</button>
   </div>
   <div id="body">
     <div id="sb">
@@ -81,9 +83,9 @@
           </div>
           <div class="schcal-hd">
             <div class="schcal-nav-group">
-              <button class="schcal-nav" id="schcal-p">‹</button>
+              <button class="schcal-nav" id="schcal-p" aria-label="이전 달">‹</button>
               <span id="schcal-m" class="schcal-month"></span>
-              <button class="schcal-nav" id="schcal-n">›</button>
+              <button class="schcal-nav" id="schcal-n" aria-label="다음 달">›</button>
             </div>
           </div>
           <div id="schcal-g"></div>
@@ -104,8 +106,8 @@
             <span class="schrv-title" id="cf-title">✅ 확인 사항</span>
             <span style="display:flex;align-items:center;gap:8px">
               <span class="cl-progress" id="cf-progress">0 / 0</span>
-              <button class="cf-cat-del" id="cf-del-cat" title="이 카테고리 삭제">🗑</button>
-              <button class="cf-toggle" id="cf-toggle" title="펼치기/접기">▾</button>
+              <button class="cf-cat-del" id="cf-del-cat" title="이 카테고리 삭제" aria-label="이 카테고리 삭제">🗑</button>
+              <button class="cf-toggle" id="cf-toggle" title="펼치기/접기" aria-label="펼치기/접기">▾</button>
             </span>
           </div>
           <div id="cf-body">
@@ -115,31 +117,31 @@
         </div>
       </div>
       <div id="leg">
-        <div class="ld"><div class="lc" id="lc-empty" style="background:#c8c0b0"></div>빈</div>
+        <div class="ld"><div class="lc" id="lc-empty" style="background:var(--surf3)"></div>빈</div>
         <div class="ld"><div class="lc" style="background:var(--blue)"></div>예약</div>
         <div class="ld"><div class="lc" style="background:var(--amber)"></div>~1h</div>
         <div class="ld"><div class="lc" style="background:#c87030"></div>~1.5h</div>
         <div class="ld"><div class="lc" style="background:var(--red)"></div>1.5h+</div>
         <span id="ehint" style="margin-left:auto;font-size:10px;color:var(--red);font-weight:700"></span>
       </div>
-      <div id="cv"><div id="edbanner">편집 모드 · 길게 누르고 드래그 · 완료 후 저장 클릭</div><div id="cvi"></div></div>
+      <div id="cv"><div id="edbanner">편집 모드 · 테이블을 길게 누르고 드래그 · 끝나면 ✅ 버튼</div><div id="cvi"></div></div>
       <div id="listview"></div>
       <div id="stats">
-        <div class="sc"><div class="si" style="background:rgba(42,114,200,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div><div class="sl">착석 인원</div><div class="sv" id="s1" style="color:#60a5fa">0명</div></div></div>
+        <div class="sc"><div class="si" style="background:rgba(26,90,170,.1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div><div class="sl">착석 인원</div><div class="sv" id="s1" style="color:var(--blue)">0명</div></div></div>
         <div class="sc"><div class="si" style="background:rgba(200,146,42,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></div><div><div class="sl">착석 테이블</div><div class="sv" id="s2" style="color:var(--amber)">0개</div></div></div>
-        <div class="sc"><div class="si" style="background:rgba(42,154,90,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg></div><div><div class="sl">빈 테이블</div><div class="sv" id="s3" style="color:#4ade80">0개</div></div></div>
+        <div class="sc"><div class="si" style="background:rgba(42,154,90,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12l2 2 4-4"/></svg></div><div><div class="sl">빈 테이블</div><div class="sv" id="s3" style="color:var(--green)">0개</div></div></div>
       </div>
     </div>
     <div id="cust">
       <div class="rv-top">
         <input class="rv-srch" id="custsrch" type="search" placeholder="이름, 연락처 검색…">
-        <select id="custsort" style="flex-shrink:0;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--surf);color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;outline:none">
-          <option value="visits">방문 횟수 많은 순</option>
+        <select id="custsort" class="top-sel" aria-label="정렬">
+          <option value="visits">방문 많은 순</option>
           <option value="recent">최근 방문순</option>
           <option value="name">이름순</option>
         </select>
-        <button class="bg" id="btn-cust-import" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">📥 불러오기</button>
-        <button class="bg" id="btn-cust-notion" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">☁ 노션</button>
+        <button class="bg top-btn" id="btn-cust-import">📥 불러오기</button>
+        <button class="bg top-btn" id="btn-cust-notion">☁ 노션</button>
       </div>
       <div id="cust-filter-row">
         <button class="cust-fpill on" data-f="active">손님</button>
@@ -147,15 +149,26 @@
       </div>
       <div id="custlist"></div>
     </div>
+    <!-- 발주 탭 (order-checklist 이식) -->
+    <div id="order">
+      <div class="staff-toptabs" id="order-subtabs">
+        <button class="staff-toptab on" data-sub="list">📋 발주 목록</button>
+        <button class="staff-toptab" data-sub="db">🗂 상품 관리</button>
+        <button class="staff-toptab" data-sub="history">📅 발주 내역</button>
+      </div>
+      <div id="order-body"></div>
+    </div>
+    <button id="order-btn-add" class="stock-fab">+ 품목 등록</button>
+
     <!-- 재고 관리 탭 -->
     <div id="stock">
       <!-- ★ 고정 헤더: 항상 화면 상단에 표시 -->
       <div id="stock-top">
         <div id="stock-search-row">
           <input class="rv-srch" id="stock-srch" type="search" placeholder="상품명 검색…">
-          <button class="bg" id="stock-btn-order" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">📋 발주</button>
-          <button class="bg" id="stock-btn-sort" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">↕ 정렬</button>
-          <button class="bg" id="stock-btn-csv" style="font-size:11px;padding:5px 9px;white-space:nowrap;flex-shrink:0">↓ CSV</button>
+          <button class="bg top-btn" id="stock-btn-order">🛒 발주 담기</button>
+          <button class="bg top-btn" id="stock-btn-sort">↕ 정렬</button>
+          <button class="bg top-btn" id="stock-btn-csv">↓ CSV</button>
         </div>
         <div id="stock-cats"></div>
         <div id="stock-chips"></div>
@@ -168,7 +181,7 @@
       <!-- ★ 발주 바: 발주 모드일 때 하단에 표시 -->
       <div id="stock-order-bar" style="display:none">
         <span id="stock-order-count"></span>
-        <button class="bg" id="stock-order-copy">📋 복사</button>
+        <button class="bp" id="stock-order-copy">🛒 발주 목록에 담기</button>
         <button class="bg" id="stock-order-cancel">취소</button>
       </div>
     </div>
@@ -179,7 +192,7 @@
     <div id="images">
       <div class="rv-top">
         <input class="rv-srch" id="img-srch" type="search" placeholder="파일명, 메모 검색…">
-        <label class="bg img-upload-btn" for="img-upload-input">📷 업로드</label>
+        <label class="bg top-btn img-upload-btn" for="img-upload-input">📷 업로드</label>
         <input type="file" id="img-upload-input" accept="image/*" multiple style="display:none">
       </div>
       <div id="img-cats"></div>
@@ -223,6 +236,7 @@
 <script src="js/reservations.js"></script>
 <script src="js/integrations.js"></script>
 <script src="js/stock.js"></script>
+<script src="js/order.js"></script>
 <script src="js/images.js"></script>
 <script src="js/schedule.js"></script>
 <script src="js/attendance.js"></script>

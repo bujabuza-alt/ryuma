@@ -68,7 +68,7 @@ function showSaveErrorModal(code, message) {
   var info = getSaveErrorInfo(code, message);
   saveErrorModalOpen = true;
   mdc2.innerHTML =
-    '<div class="md-hd"><span class="md-title">⚠ 저장 실패</span><button class="md-x" id="se-x">×</button></div>' +
+    '<div class="md-hd"><span class="md-title">⚠ 저장 실패</span><button class="md-x" id="se-x" aria-label="닫기">×</button></div>' +
     '<div class="mb">' +
     '<div style="font-size:13px;color:var(--text);line-height:1.6"><b>원인</b><br>' + esc(info.reason) + '</div>' +
     '<div style="font-size:13px;color:var(--text);line-height:1.6"><b>해결 방법</b><br>' + info.fix + '</div>' +
@@ -113,6 +113,7 @@ function loadData() {
     if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
     if (Array.isArray(d.staffSchedule)) S.staffSchedule = d.staffSchedule;
     if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
+    applyOrderData(d);
     S.tags = (d.tags && d.tags.length) ? d.tags : DEFAULT_TAGS.slice();
     if (!S.stockCats.length) S.stockCats = DEFAULT_STOCK_CATS.slice();
     if (!S.stockUnits.length) S.stockUnits = DEFAULT_STOCK_UNITS.slice();
@@ -163,6 +164,10 @@ function exportBackupToFile() {
     staffSchedule: S.staffSchedule || [],
     dailyMemos: S.dailyMemos || {},
     weeklyMemos: S.weeklyMemos || {},
+    orderInit: !!S.orderInit,
+    orderProducts: S.orderProducts || [],
+    orderItems: S.orderItems || [],
+    orderHistory: S.orderHistory || [],
     confirmItems: getConfirmItemsForBackup()
   };
   var json = JSON.stringify(payload, null, 2);
@@ -210,6 +215,7 @@ function importBackupFromFile(file) {
     if (Array.isArray(data.staffSchedule)) S.staffSchedule = data.staffSchedule;
     if (data.dailyMemos && typeof data.dailyMemos === 'object') S.dailyMemos = data.dailyMemos;
     if (data.weeklyMemos && typeof data.weeklyMemos === 'object') S.weeklyMemos = data.weeklyMemos;
+    applyOrderData(data);
 
     if (data.confirmItems && data.confirmItems.cats && data.confirmItems.cats.length) {
       try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(data.confirmItems)); } catch(err) {}
@@ -222,6 +228,7 @@ function importBackupFromFile(file) {
     if (currentTab === 'floor') renderAll();
     else if (currentTab === 'cust') renderCustTab();
     else if (currentTab === 'stock') renderStock();
+    else if (currentTab === 'order') renderOrderTab();
     else if (currentTab === 'images') renderImagesTab();
     else if (currentTab === 'staff') renderStaffTab();
     showToast('백업 파일에서 데이터를 불러왔습니다');
@@ -285,6 +292,14 @@ function doActualSave() {
       _ts: ts
     };
     if (S._staffLogsMigrated) p._staffLogsMigrated = S._staffLogsMigrated;
+    // 발주 데이터: 이 기기에서 초기화(서버 확인 후 시드)된 적이 있을 때만 포함 →
+    // 아직 받아오지 못한 기기가 빈 값으로 서버를 덮어쓰지 않도록 함
+    if (S.orderInit) {
+      p.orderInit = true;
+      p.orderProducts = S.orderProducts || [];
+      p.orderItems = S.orderItems || [];
+      p.orderHistory = S.orderHistory || [];
+    }
     if (hasConfirmItems) p.confirmItems = ci;
 
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch(e) {}
@@ -383,6 +398,9 @@ function startFb() {
     if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
     if (Array.isArray(d.staffSchedule)) S.staffSchedule = d.staffSchedule;
     if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
+    if (d.dailyMemos && typeof d.dailyMemos === 'object') S.dailyMemos = d.dailyMemos;
+    if (d.weeklyMemos && typeof d.weeklyMemos === 'object') S.weeklyMemos = d.weeklyMemos;
+    applyOrderData(d);
     if (d.confirmItems && d.confirmItems.cats && d.confirmItems.cats.length) {
       try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(d.confirmItems)); } catch(e) {}
       if (typeof renderConfirmItems === 'function') renderConfirmItems();
@@ -393,6 +411,7 @@ function startFb() {
     syncToday(); renderAll();
     isSyncingFromRemote = false;
     if (currentTab === 'stock') renderStock();
+    if (currentTab === 'order') renderOrderTab();
     if (currentTab === 'images') renderImagesTab();
     if (currentTab === 'staff') renderStaffTab();
   }, function(err) {

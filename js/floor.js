@@ -68,6 +68,7 @@ function renderSidebar() {
 function switchTab(t) {
   currentTab = t;
   document.getElementById('t1').className = 'tab' + (t==='floor'?' on':'');
+  document.getElementById('t2').className = 'tab' + (t==='order'?' on':'');
   document.getElementById('t3').className = 'tab' + (t==='cust'?' on':'');
   document.getElementById('t4').className = 'tab' + (t==='stock'?' on':'');
   document.getElementById('t5').className = 'tab' + (t==='images'?' on':'');
@@ -76,6 +77,7 @@ function switchTab(t) {
   document.getElementById('main').style.display = t==='floor'?'flex':'none';
   if (t==='cust') document.getElementById('cust').classList.add('on');
   else document.getElementById('cust').classList.remove('on');
+  document.getElementById('order').classList.toggle('on', t==='order');
   if (t==='stock') document.getElementById('stock').classList.add('on');
   else document.getElementById('stock').classList.remove('on');
   if (t==='images') document.getElementById('images').classList.add('on');
@@ -85,10 +87,13 @@ function switchTab(t) {
   // FAB visibility managed here since it lives outside #stock
   var fab = document.getElementById('stock-btn-add');
   if (fab) fab.style.display = (t==='stock') ? 'flex' : 'none';
+  var ofab = document.getElementById('order-btn-add');
+  if (ofab && t!=='order') ofab.style.display = 'none';
   // bedit/btn-view shown only in hall canvas mode; renderAll() handles this for floor tab
   document.getElementById('bedit').style.display = (t==='floor' && hallViewMode==='hall') ? '' : 'none';
   document.getElementById('btn-view').style.display = (t==='floor' && hallViewMode==='hall') ? '' : 'none';
   if (t==='floor') renderAll();
+  else if (t==='order') renderOrderTab();
   else if (t==='cust') renderCustTab();
   else if (t==='stock') renderStock();
   else if (t==='images') renderImagesTab();
@@ -237,7 +242,7 @@ function downloadCustImportSample() {
 function openCustImport() {
   var notionToken = (typeof getNotionToken === 'function') ? getNotionToken() : (localStorage.getItem('ryuma_notion_token') || '');
   showModal(
-    '<div class="md-hd"><span class="md-title">손님 정보 불러오기</span><button class="md-x" id="mxbtn">×</button></div>'
+    '<div class="md-hd"><span class="md-title">손님 정보 불러오기</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div style="font-size:12px;color:var(--text2);line-height:1.6;background:var(--surf2);border-radius:8px;padding:9px 11px;margin-bottom:10px">'
     +'<b>지원 형식:</b> CSV · XLSX · JSON<br>'
@@ -403,7 +408,7 @@ function openCustImport() {
   }
 }
 function openRvActionMenu() {
-  showModal('<div class="md-hd"><span class="md-title">예약 추가</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">예약 추가</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<button class="ab" style="background:var(--red);width:100%;font-size:15px;padding:16px 0" id="rv-menu-new">＋ 새 예약 등록</button>'
     +'<button class="ab" style="background:var(--surf2);color:var(--text2);width:100%;font-size:13px;padding:13px 0;border:1px solid var(--border2)" id="rv-menu-img">📷 이미지 불러오기</button>'
@@ -566,7 +571,7 @@ function renderCanvas() {
 
     // 슬레이브 테이블: 그룹 소속 표시
     if (isSlave) {
-      var slaveNameColor = groupColor || '#a78bfa';
+      var slaveNameColor = groupColor || 'var(--indigo)';
       if (isBar) {
         html = '<div style="display:flex;justify-content:space-between;align-items:center;width:100%;height:100%">'
              + '<div class="tc-name" style="color:'+slaveNameColor+'">'+esc(tb.n)+'</div>'
@@ -637,7 +642,7 @@ function renderCanvas() {
         } else if (isMaster) {
           var masterLabel = groupName ? esc(groupName) : getMergedNames(tb.id).join(' + ');
           html += '<div class="tc-info">'
-                + '<div style="font-size:10px;color:'+(groupColor||'#a78bfa')+';font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🔗 '+masterLabel+'</div>'
+                + '<div style="font-size:10px;color:'+(groupColor||'var(--indigo)')+';font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🔗 '+masterLabel+'</div>'
                 + '</div>';
         }
       }
@@ -800,7 +805,7 @@ function renderListView(){
       subHtml=esc(tb.res&&tb.res.name||'')+(tb.res&&tb.res.g?' · '+tb.res.g+'명':'');
       timeHtml='<div style="font-weight:800;font-size:14px;color:var(--blue)">'+esc(tb.res&&tb.res.time||'')+'</div>';
     } else {
-      statusHtml='<div class="lv-status" style="color:'+(isMerged?'#a78bfa':'var(--text3)')+'">빈 테이블'+(isMerged?' · 합석':'')+'</div>';
+      statusHtml='<div class="lv-status" style="color:'+(isMerged?'var(--indigo)':'var(--text3)')+'">빈 테이블'+(isMerged?' · 합석':'')+'</div>';
       subHtml=({sq:'정방형',wide:'가로형',bar:'바형'}[tb.shape]||'')+' · '+tb.c+'인';
       barColor=isMerged?'var(--indigo)':c.bd;
     }
@@ -899,7 +904,7 @@ function confirmAndSaveMerge() {
   }).join('');
 
   teardownMergeToolbar();
-  showModal('<div class="md-hd"><span class="md-title">묶음 그룹 설정</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">묶음 그룹 설정</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div class="fg"><label class="fl">그룹 이름 <span style="color:var(--text3);font-weight:400">(비워두면 자동)</span></label>'
     +'<input class="fi" id="merge-gname" placeholder="'+esc(defaultName)+'" value="'+esc(defaultName)+'"></div>'
@@ -986,7 +991,7 @@ function openMergeModal(masterId) {
   var itemsHtml = available.length ? available.map(function(t){
     var isMerged = currentMergeIds.indexOf(t.id) >= 0;
     return '<button type="button" class="tpb" data-mid="'+t.id+'" style="border-color:'+(isMerged?'var(--indigo)':'var(--border2)')+';background:'+(isMerged?'rgba(90,82,200,.12)':'var(--surf2)')+'">'
-      +'<span style="color:'+(isMerged?'#a78bfa':'var(--text)')+'">'+esc(t.n)+'</span>'
+      +'<span style="color:'+(isMerged?'var(--indigo)':'var(--text)')+'">'+esc(t.n)+'</span>'
       +'<span class="tps">'+t.c+'인 '+(isMerged?'✓ 묶임':'')+'</span></button>';
   }).join('') : '<p style="color:var(--text3);font-size:13px;text-align:center;padding:16px 0">묶을 수 있는 빈 테이블 없음</p>';
 
@@ -994,7 +999,7 @@ function openMergeModal(masterId) {
     var mt=S.tables.filter(function(t){return t.id===mid;})[0]; return a+(mt?mt.c:0);
   },0);
 
-  showModal('<div class="md-hd"><span class="md-title">'+esc(master.n)+' 테이블 묶기</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">'+esc(master.n)+' 테이블 묶기</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div style="font-size:12px;color:var(--text2);margin-bottom:10px">테이블을 선택하면 합쳐서 운영할 수 있어요<br>현재 최대 <span id="merge-cap-disp" style="font-weight:800;color:var(--indigo)">'+totalCap+'명</span></div>'
     +'<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px" id="merge-list">'+itemsHtml+'</div>'
@@ -1018,7 +1023,7 @@ function openMergeModal(masterId) {
       var isMergedNow = currentMergeIds.indexOf(mid) >= 0;
       this.style.borderColor = isMergedNow?'var(--indigo)':'var(--border2)';
       this.style.background  = isMergedNow?'rgba(90,82,200,.12)':'var(--surf2)';
-      this.querySelector('span').style.color = isMergedNow?'#a78bfa':'var(--text)';
+      this.querySelector('span').style.color = isMergedNow?'var(--indigo)':'var(--text)';
       this.querySelector('.tps').textContent = S.tables.filter(function(t){return t.id===mid;})[0].c+'인 '+(isMergedNow?'✓ 묶임':'');
     });
   });
@@ -1074,7 +1079,7 @@ function bindPickers() {
 function tblCap(shape,sz){ if(shape==='bar')return 2; return {s:2,m:4,l:6}[sz]||4; }
 function openAddTableModal(){
   _editShape='sq'; _editSz='m';
-  showModal('<div class="md-hd"><span class="md-title">테이블 추가</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">테이블 추가</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb"><div class="fg"><label class="fl">테이블 이름</label><input class="fi" id="atn" placeholder="예: 룸1, 테라스A"></div>'
     +'<div class="fg"><label class="fl">형태</label>'+shapeHtml('sq')+'</div>'
     +'<div class="fg"><label class="fl">크기</label>'+sizeHtml('m')+'</div>'
@@ -1090,7 +1095,7 @@ function openAddTableModal(){
 function openEditTableModal(tid){
   var tb=S.tables.filter(function(t){return t.id===tid;})[0]; if(!tb)return;
   _editShape=tb.shape||'sq'; _editSz=tb.sz||'m';
-  showModal('<div class="md-hd"><span class="md-title">테이블 편집</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">테이블 편집</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb"><div class="fg"><label class="fl">테이블 이름</label><input class="fi" id="etn" value="'+esc(tb.n)+'"></div>'
     +'<div class="fg"><label class="fl">형태</label>'+shapeHtml(_editShape)+'</div>'
     +'<div class="fg"><label class="fl">크기</label>'+sizeHtml(_editSz)+'</div>'
@@ -1114,7 +1119,7 @@ function deleteTable(tid){
 // ── 대기자 ──
 function openWaitModal(){
   gvWait=2; var n=new Date(), nt=pad(n.getHours())+':'+pad(n.getMinutes());
-  showModal('<div class="md-hd"><span class="md-title">대기자 추가</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">대기자 추가</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb"><div class="fg"><label class="fl">이름</label><input class="fi" id="wn" placeholder="고객 이름"></div>'
     +'<div class="fg"><label class="fl">인원</label>'+guestSelectHtml('g-wait', 2, 50)+'</div>'
     +'<div class="g2"><div class="fg"><label class="fl">연락처(선택)</label>'+phHtml('wp','')+'</div>'
@@ -1136,11 +1141,11 @@ function openSeatWaiter(wid){
   var tbH=avail.length
     ?avail.map(function(t){return '<button class="tpb" data-tid="'+t.id+'"><span>'+esc(t.n)+'</span><span class="tps">'+({'sq':'정방형','wide':'가로형','bar':'바형'}[t.shape]||t.shape)+' '+t.sz.toUpperCase()+'·'+t.c+'인</span></button>';}).join('')
     :'<p style="color:var(--text3);font-size:13px;text-align:center;padding:10px 0">적합한 빈 테이블 없음</p>';
-  showModal('<div class="md-hd"><span class="md-title">'+esc(w.nm)+'('+w.g+'명) 착석</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">'+esc(w.nm)+'('+w.g+'명) 착석</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="ib" style="background:var(--surf2);border-color:var(--border2)">'
     +'<div class="ir"><span class="il">대기 경과</span><span class="iv">'+fmtElapsed(Date.now()-w.since)+'</span></div>'
     +(w.time?'<div class="ir"><span class="il">접수</span><span class="iv">'+esc(w.time)+'</span></div>':'')
-    +(w.phone?'<div class="ir"><span class="il">연락처</span><span class="iv"><a href="tel:'+esc(w.phone)+'" style="color:#60a5fa;text-decoration:none">'+esc(w.phone)+'</a></span></div>':'')
+    +(w.phone?'<div class="ir"><span class="il">연락처</span><span class="iv"><a href="tel:'+esc(w.phone)+'" style="color:var(--blue);text-decoration:none">'+esc(w.phone)+'</a></span></div>':'')
     +(w.memo?'<div class="ir"><span class="il">메모</span><span class="iv" style="text-align:right;max-width:160px">'+esc(w.memo)+'</span></div>':'')
     +'</div><p style="font-size:13px;color:var(--text2);margin-bottom:9px">착석할 테이블을 선택하세요</p>'
     +'<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">'+tbH+'</div>'
@@ -1170,7 +1175,7 @@ function openTableModal(tid){
   }
 
   if(editMode){
-    showModal('<div class="md-hd"><span class="md-title">'+esc(realTb.n)+' 테이블</span><button class="md-x" id="mxbtn">×</button></div>'
+    showModal('<div class="md-hd"><span class="md-title">'+esc(realTb.n)+' 테이블</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
       +'<div class="mb">'
       +'<button class="ab" style="background:var(--indigo);width:100%" id="tbl-edit-btn">✏️ 이름 · 형태 변경</button>'
       +'<button class="ab" style="background:var(--red);width:100%;margin-top:0" id="tbl-del-btn">🗑 테이블 삭제</button>'
@@ -1249,7 +1254,7 @@ function showEmpty(tb, isViewingToday){
       +'<button class="ab" style="background:var(--indigo)" id="bres2">예약 등록</button>'
       +'</div>'
       +assignedList;
-  showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' — 착석</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' — 착석</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +mergeInfo
     +(isViewingToday ? '<div class="fg"><label class="fl">인원 (최대 '+cap+'명)</label>'+guestSelectHtml('g-floor', Math.min(tb.g||2, cap), cap)+'</div>' : '')
@@ -1278,7 +1283,7 @@ function showOccupied(tb, isViewingToday){
       + '<button class="ab" style="background:var(--amber);color:#1a1410" id="bswap">⇄ 맞교환</button>'
       + '</div>'
     : '';
-  showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' — 착석중</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' — 착석중</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="ib" style="background:var(--surf2);border-color:'+c.bd+'">'
     +'<div class="ir"><span class="il">착석 인원</span><span class="iv">'+tb.g+'명</span></div>'
     +'<div class="ir"><span class="il">착석 시간</span><span class="iv">'+fmtTime(tb.seatTime)+'</span></div>'
@@ -1306,12 +1311,12 @@ function showOccupied(tb, isViewingToday){
 function showReserved(tb, isViewingToday){
   var r=tb.res||{};
   var assignedList = tableAssignedListHtml(tb.id);
-  showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' — 예약</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' — 예약</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="ib" style="background:rgba(42,114,200,.08);border-color:rgba(42,114,200,.3)">'
     +'<div class="ir"><span class="il">예약자</span><span class="iv">'+esc(r.name||'')+'</span></div>'
     +'<div class="ir"><span class="il">인원</span><span class="iv">'+esc(String(r.g||''))+'명</span></div>'
     +'<div class="ir"><span class="il">시간</span><span class="iv">'+esc(r.time||'')+'</span></div>'
-    +(r.phone?'<div class="ir"><span class="il">연락처</span><span class="iv"><a href="tel:'+esc(r.phone)+'" style="color:#60a5fa;text-decoration:none">'+esc(r.phone)+'</a></span></div>':'')
+    +(r.phone?'<div class="ir"><span class="il">연락처</span><span class="iv"><a href="tel:'+esc(r.phone)+'" style="color:var(--blue);text-decoration:none">'+esc(r.phone)+'</a></span></div>':'')
     +(r.memo?'<div class="ir"><span class="il">메모</span><span class="iv" style="text-align:right;max-width:160px">'+esc(r.memo)+'</span></div>':'')
     +'</div>'+assignedList+'<div class="abs">'
     +'<button class="ab" style="background:var(--red)" id="bcancr">예약 취소</button></div>');
@@ -1328,7 +1333,7 @@ function openResModal(tid){
   activeResTableId=tid;
   var tb=S.tables.filter(function(t){return t.id===tid;})[0];
   var cap = getMergedCap(tid);
-  showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' 예약 등록</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">'+esc(tb.n)+' 예약 등록</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb"><div class="fg"><label class="fl">예약자 이름</label><input class="fi" id="rn" placeholder="고객 이름"></div>'
     +'<div class="fg"><label class="fl">인원 (최대 '+cap+'명)</label>'+guestSelectHtml('g-res', 2, cap)+'</div>'
     +'<div class="g2"><div class="fg"><label class="fl">예약 날짜</label><input class="fi" id="rd" type="date" value="'+today()+'"></div>'
@@ -1664,7 +1669,7 @@ function renderSchedView() {
 function openWeekMemoModal(weekKey) {
   if (!weekKey) return;
   var memo = (S.weeklyMemos && S.weeklyMemos[weekKey]) || '';
-  showModal('<div class="md-hd"><span class="md-title">'+esc(dlabel(weekKey))+' 주간 메모</span><button class="md-x" id="mxbtn">×</button></div>'
+  showModal('<div class="md-hd"><span class="md-title">'+esc(dlabel(weekKey))+' 주간 메모</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     + '<div class="mb"><div class="fg"><label class="fl">메모</label>'
     + '<textarea class="fi" id="wkmemo-input" placeholder="이번 주 메모를 입력하세요…">'+esc(memo)+'</textarea></div>'
     + '<button class="ab" style="background:var(--indigo);width:100%" id="wkmemo-save">저장</button></div>');
@@ -1851,7 +1856,7 @@ function openTransferModal(srcId) {
       }).join('')
     : '<p style="color:var(--text3);font-size:13px;text-align:center;padding:16px 0">이동 가능한 빈 테이블이 없습니다</p>';
   showModal(
-    '<div class="md-hd"><span class="md-title">'+esc(src.n)+' → 테이블 이동</span><button class="md-x" id="mxbtn">×</button></div>'
+    '<div class="md-hd"><span class="md-title">'+esc(src.n)+' → 테이블 이동</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div style="font-size:12px;color:var(--text2);background:rgba(196,18,48,.07);border:1px solid rgba(196,18,48,.2);border-radius:9px;padding:9px 11px">'
     +'착석 인원 <b style="color:var(--text)">'+src.g+'명</b>과 착석 정보가 선택한 빈 테이블로 이동됩니다.<br>'
@@ -1865,7 +1870,7 @@ function openTransferModal(srcId) {
       var dst = S.tables.filter(function(t){ return t.id === dstId; })[0];
       if (!dst) return;
       showModal(
-        '<div class="md-hd"><span class="md-title">이동 확인</span><button class="md-x" id="mxbtn">×</button></div>'
+        '<div class="md-hd"><span class="md-title">이동 확인</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
         +'<div class="mb">'
         +'<div class="ib" style="background:rgba(196,18,48,.07);border-color:rgba(196,18,48,.35)">'
         +'<div class="ir"><span class="il">출발 테이블</span><span class="iv">'+esc(src.n)+'</span></div>'
@@ -1928,7 +1933,7 @@ function openSwapModal(srcId) {
     : '<p style="color:var(--text3);font-size:13px;text-align:center;padding:16px 0">교환 가능한 테이블이 없습니다</p>';
   var srcLabel = src.st==='occupied' ? src.g+'명 착석중' : '예약';
   showModal(
-    '<div class="md-hd"><span class="md-title">'+esc(src.n)+' — 테이블 맞교환</span><button class="md-x" id="mxbtn">×</button></div>'
+    '<div class="md-hd"><span class="md-title">'+esc(src.n)+' — 테이블 맞교환</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div style="font-size:12px;color:var(--text2);background:rgba(200,146,42,.08);border:1px solid rgba(200,146,42,.3);border-radius:9px;padding:9px 11px">'
     +'<b style="color:var(--amber)">'+esc(src.n)+'</b> ('+srcLabel+')의 손님 정보를<br>'
@@ -1948,7 +1953,7 @@ function openSwapModal(srcId) {
         ? dst.g+'명 · '+fmtTime(dst.seatTime)+' 착석'
         : '예약 · '+(dst.res&&dst.res.name||'');
       showModal(
-        '<div class="md-hd"><span class="md-title">테이블 맞교환 확인</span><button class="md-x" id="mxbtn">×</button></div>'
+        '<div class="md-hd"><span class="md-title">테이블 맞교환 확인</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
         +'<div class="mb">'
         +'<div class="ib" style="background:rgba(200,146,42,.07);border-color:rgba(200,146,42,.4)">'
         +'<div class="ir"><span class="il" style="color:var(--amber);font-weight:800">⇄ 교환 대상</span></div>'

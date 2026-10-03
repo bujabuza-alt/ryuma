@@ -4,6 +4,7 @@
 document.getElementById('btn-covent').addEventListener('click', function(){ doEnter('covent'); });
 document.getElementById('btn-paragon').addEventListener('click', function(){ doEnter('paragon'); });
 document.getElementById('t1').addEventListener('click', function(){ switchTab('floor'); });
+document.getElementById('t2').addEventListener('click', function(){ switchTab('order'); });
 document.getElementById('t3').addEventListener('click', function(){ switchTab('cust'); });
 document.getElementById('t4').addEventListener('click', function(){ switchTab('stock'); });
 document.getElementById('t5').addEventListener('click', function(){ switchTab('images'); });
@@ -336,6 +337,21 @@ document.getElementById('btn-cfg').addEventListener('click', openCfg);
 document.getElementById('btn-cust-import').addEventListener('click', openCustImport);
 document.getElementById('mo').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 document.getElementById('mo').addEventListener('touchend', function(e){ if(e.target===this) closeModal(); });
+// 두 번째 모달 레이어(#mo2)도 배경 탭으로 닫기 — 각 모달의 닫기(×) 버튼 동작을 그대로 사용
+function closeModal2() {
+  var mo2 = document.getElementById('mo2');
+  var x = document.querySelector('#mdc2 .md-x');
+  if (x) { x.click(); return; }
+  mo2.classList.remove('on');
+  document.getElementById('mdc2').innerHTML = '';
+}
+document.getElementById('mo2').addEventListener('click', function(e){ if (e.target === this) closeModal2(); });
+// Esc 키: 가장 위에 열린 모달부터 닫기 (외부 키보드 사용 시)
+document.addEventListener('keydown', function(e){
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('mo2').classList.contains('on')) { closeModal2(); return; }
+  if (document.getElementById('mo').classList.contains('on')) closeModal();
+});
 
 // 마지막 날짜 초기화 (페이지 로드 시 오늘 날짜로 확실히 설정)
 lastDate = today();

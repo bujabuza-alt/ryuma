@@ -7,7 +7,7 @@ function getGeminiKey() {
 function openGeminiKeyInput(cb) {
   var cur = getGeminiKey();
   showModal(
-    '<div class="md-hd"><span class="md-title">Gemini API 키 설정</span><button class="md-x" id="mxbtn">×</button></div>'
+    '<div class="md-hd"><span class="md-title">Gemini API 키 설정</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:10px">'
     +'① <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue)">aistudio.google.com/apikey</a> 접속<br>'
@@ -36,7 +36,7 @@ function openNaverImport() {
   var imgData = null, imgMediaType = null;
 
   showModal(
-    '<div class="md-hd"><span class="md-title">📷 네이버 예약 가져오기</span><button class="md-x" id="mxbtn">×</button></div>'
+    '<div class="md-hd"><span class="md-title">📷 네이버 예약 가져오기</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div style="font-size:11px;color:var(--text2);margin-bottom:10px">스마트플레이스 예약 상세 페이지의 스크린샷을 업로드하면 자동으로 파싱합니다</div>'
     +'<div class="nv-upload-area" id="nv-area">'
@@ -154,7 +154,7 @@ function confirmNaverImport(p) {
   var memo = p.memo || '';
 
   showModal(
-    '<div class="md-hd"><span class="md-title">가져오기 확인</span><button class="md-x" id="mxbtn">×</button></div>'
+    '<div class="md-hd"><span class="md-title">가져오기 확인</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div style="background:rgba(42,154,90,.1);border:1px solid rgba(42,154,90,.3);border-radius:8px;padding:8px 11px;font-size:11px;color:var(--green);margin-bottom:12px">✓ 파싱 완료 · 내용을 확인하고 저장하세요</div>'
     +'<div class="g2">'
@@ -248,7 +248,7 @@ function getNotionToken() {
 function openNotionTokenInput() {
   var cur = getNotionToken();
   showModal(
-    '<div class="md-hd"><span class="md-title">Notion 연동 설정</span><button class="md-x" id="mxbtn">×</button></div>'
+    '<div class="md-hd"><span class="md-title">Notion 연동 설정</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
     +'<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">'
     +'① notion.so → 설정 → 연결 → <b>연결 개발</b><br>'

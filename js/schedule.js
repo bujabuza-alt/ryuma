@@ -131,7 +131,7 @@ function openScheduleDayEditor(date) {
     ? scheduleShiftSectionHtml(date, 'lunch', '🍽 런치') + scheduleShiftSectionHtml(date, 'dinner', '🌙 디너')
     : '<div class="stf-empty">등록된 직원/알바생이 없습니다.<br>"출퇴근 기록" 탭에서 먼저 추가해주세요.</div>';
   showModal(
-    '<div class="md-hd"><span class="md-title">' + esc(fmtDateShort(date)) + ' 스케줄</span><button class="md-x" id="mxbtn">×</button></div>'
+    '<div class="md-hd"><span class="md-title">' + esc(fmtDateShort(date)) + ' 스케줄</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     + '<div class="mb">' + bodyHtml + '</div>'
   );
   if (!hasStaff) return;
