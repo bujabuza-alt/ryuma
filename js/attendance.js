@@ -168,11 +168,11 @@ function calcWorkedHours(inTime, outTime) {
   return h + '시간' + (m ? ' ' + m + '분' : '');
 }
 
-// ── 출퇴근 기록 저장/삭제 (알바생+날짜 당 하나의 통합 기록) ──
+// ── 출퇴근 기록 저장/삭제 ──
+// 수정(editId) 시에만 기존 기록을 덮어쓰고, 그 외에는 같은 날 같은 근무자라도 별도 기록으로 추가 (분할 근무 등)
 function upsertStaffRecord(editId, staffId, staffName, date, inTime, outTime) {
   if (!S.staffRecords) S.staffRecords = [];
   var rec = editId ? S.staffRecords.filter(function(r) { return r.id === editId; })[0] : null;
-  if (!rec) rec = S.staffRecords.filter(function(r) { return r.staffId === staffId && r.date === date; })[0];
   if (rec) {
     rec.staffId = staffId; rec.staffName = staffName; rec.date = date;
     rec.inTime = inTime; rec.outTime = outTime;
@@ -286,7 +286,10 @@ function renderFavChipsHtml() {
 // ── 렌더링: 출퇴근 기록 캘린더 ──
 function staffRecordsForDate(ds) {
   return (S.staffRecords || []).filter(function(r) { return r.date === ds; })
-    .sort(function(a, b) { return (a.staffName || '').localeCompare(b.staffName || '', 'ko'); });
+    .sort(function(a, b) {
+      return (a.staffName || '').localeCompare(b.staffName || '', 'ko')
+        || (a.inTime || a.outTime || '').localeCompare(b.inTime || b.outTime || '');
+    });
 }
 function staffRecRowHtml(r) {
   var hrs = calcWorkedHours(r.inTime, r.outTime);

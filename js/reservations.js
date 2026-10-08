@@ -42,9 +42,21 @@ function matchGuestByRecord(custList, r) {
   return null;
 }
 // 예약 목록(날짜별 예약 상황 등)에 표시할 이름 옆 신규·기존 손님 배지
-// 기존 손님은 이번 예약이 몇 번째 방문인지(총 방문 + 1) 표기
-function guestVisitBadgeHtml(cust) {
-  if (cust && cust.total) return '<span class="rvtbl-guest-badge old" title="기존 손님 · 총 '+cust.total+'회 방문">'+(cust.total+1)+'번째</span>';
+// 예약 날짜(date) 기준으로 그 이전 방문 수 + 1 = 이번 예약이 몇 번째 방문인지
+// (현재까지의 총 방문 수가 아니라 예약 날짜 기준이므로 날짜가 지나도 표기가 바뀌지 않음)
+function guestVisitOrdinal(cust, date) {
+  if (!cust) return 1;
+  var dates = cust.visitDates || [];
+  var before = dates.filter(function(d){ return !date || d < date; }).length;
+  // 가져오기(import)로만 기록된 과거 방문 수 보정
+  var extra = Math.max(0, (cust.manualCount||0) - dates.length);
+  if (extra && (!date || !cust.manualLast || cust.manualLast < date)) before += extra;
+  return before + 1;
+}
+// 기존 손님은 이번 예약이 몇 번째 방문인지(예약 날짜 기준) 표기
+function guestVisitBadgeHtml(cust, date) {
+  var n = guestVisitOrdinal(cust, date);
+  if (n > 1) return '<span class="rvtbl-guest-badge old" title="기존 손님 · 총 '+cust.total+'회 방문">'+n+'번째</span>';
   return '<span class="rvtbl-guest-badge new" title="신규 손님">신규</span>';
 }
 // ── 예약 변경 후 현재 화면 갱신 (홈 탭의 캘린더/좌석도, 손님 탭의 취소 목록 등) ──
