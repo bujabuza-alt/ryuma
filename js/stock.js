@@ -60,6 +60,10 @@ var stockExpanded = (function() {
 function saveStockExpanded() {
   try { localStorage.setItem('stockExpanded', JSON.stringify(stockExpanded)); } catch (e) {}
 }
+// 목록 보기 방식: 'row'(한 줄 1열) | 'box'(사각형 박스 2열). 기기별 저장
+var stockView = (function() {
+  try { return localStorage.getItem('stockView') === 'box' ? 'box' : 'row'; } catch (e) { return 'row'; }
+})();
 
 // ── 헬퍼 ──
 function stockStatus(item) {
@@ -286,11 +290,35 @@ function renderStockList() {
     scrollEl._stockScrollHandler = null;
   }
 
+  el.classList.toggle('view-box', stockView === 'box');
   if (isGroupedMode()) {
     _renderStockListGrouped(el);
   } else {
     _renderStockListFiltered(el);
   }
+  _bindStockTools(el);
+}
+
+// ── 목록 상단 도구줄: 보기 방식(줄/박스) 전환 + (grouped 모드) 모두 펼치기/접기 ──
+function _stockToolsHtml(toggleAllLabel) {
+  return '<div class="sk-list-tools">'
+    +'<div class="sk-view-seg" role="group" aria-label="보기 방식">'
+      +'<button type="button" class="sk-view-btn'+(stockView==='row'?' on':'')+'" data-view="row">☰ 줄</button>'
+      +'<button type="button" class="sk-view-btn'+(stockView==='box'?' on':'')+'" data-view="box">▦ 박스</button>'
+    +'</div>'
+    +(toggleAllLabel ? '<button type="button" class="bg" id="sk-toggle-all">'+toggleAllLabel+'</button>' : '')
+  +'</div>';
+}
+function _bindStockTools(el) {
+  el.querySelectorAll('.sk-view-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var v = this.getAttribute('data-view');
+      if (v === stockView) return;
+      stockView = v;
+      try { localStorage.setItem('stockView', v); } catch (e) {}
+      renderStockList();
+    });
+  });
 }
 
 // ── Grouped 모드: 카테고리별 접기/펼치기 섹션 렌더 ──
@@ -331,7 +359,7 @@ function _renderStockListGrouped(el) {
   }
 
   var anyOpen = sections.some(function(sec){ return stockExpanded[sec.cat]; });
-  el.innerHTML = '<div class="sk-list-tools"><button type="button" class="bg" id="sk-toggle-all">'+(anyOpen ? '모두 접기' : '모두 펼치기')+'</button></div>'
+  el.innerHTML = _stockToolsHtml(anyOpen ? '모두 접기' : '모두 펼치기')
     + sections.map(function(sec){ return _stockSectionHtml(sec.cat, sec.items); }).join('');
 
   el.querySelectorAll('.sk-section-hd').forEach(function(hd){
@@ -360,10 +388,10 @@ function _renderStockListFiltered(el) {
     var emptyMsg = '등록된 재고 품목이 없습니다. + 추가 버튼을 눌러 시작하세요.';
     if (stockChip === 'unused') emptyMsg = '미사용으로 표시된 품목이 없습니다';
     else if (stockSearch || stockTab !== '전체' || stockChip !== 'all') emptyMsg = '검색 결과가 없습니다';
-    el.innerHTML = '<div class="sk-empty">'+emptyMsg+'</div>';
+    el.innerHTML = _stockToolsHtml() + '<div class="sk-empty">'+emptyMsg+'</div>';
     return;
   }
-  el.innerHTML = '<div class="sk-sec-body">'+list.map(function(item){ return _buildStockCardHtml(item, true); }).join('')+'</div>';
+  el.innerHTML = _stockToolsHtml() + '<div class="sk-sec-body">'+list.map(function(item){ return _buildStockCardHtml(item, true); }).join('')+'</div>';
   _attachStockCardListeners(el);
 }
 
@@ -436,6 +464,9 @@ function updateStockOrderBar() {
   var bar = document.getElementById('stock-order-bar');
   var cnt = document.getElementById('stock-order-count');
   if (!bar) return;
+  // 발주 모드에서는 하단 발주 바의 버튼을 가리지 않도록 + 추가 FAB 숨김
+  var fab = document.getElementById('stock-btn-add');
+  if (fab && currentTab === 'stock') fab.style.display = stockOrderMode ? 'none' : 'flex';
   if (stockOrderMode) {
     bar.style.display = 'flex';
     if (cnt) cnt.textContent = stockSelectedIds.length + '개 선택됨';
