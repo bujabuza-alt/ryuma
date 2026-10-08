@@ -219,8 +219,7 @@ function renderOrderTab() {
             + '<button class="od-seg-btn" data-act="sort" data-v="freq">사용빈도순</button>'
           + '</div>'
         + '</div>'
-        + '<div class="od-hint-row"><span class="od-hint">품목을 누르면 발주 목록에 담기/빼기 됩니다.</span>'
-          + '<button class="bg od-import-btn" data-act="import">📥 기존 발주앱 데이터 가져오기</button></div>'
+        + '<div class="od-hint-row"><span class="od-hint">품목을 누르면 발주 목록에 담기/빼기 됩니다.</span></div>'
         + '<div id="od-db-list"></div>'
         + '</div>';
       document.getElementById('od-srch').addEventListener('input', function(){
@@ -392,7 +391,7 @@ function renderOrderHistory() {
   if (!el) return;
   var hist = S.orderHistory || [];
   if (!hist.length) {
-    el.innerHTML = '<div class="od-empty"><div class="od-empty-ic">📭</div><div>아직 발주 내역이 없어요</div><div class="od-empty-sub">발주 내용 복사 또는 목록 초기화 시 자동으로 기록돼요</div><button class="bg od-empty-btn" data-act="import">📥 기존 발주앱 데이터 가져오기</button></div>';
+    el.innerHTML = '<div class="od-empty"><div class="od-empty-ic">📭</div><div>아직 발주 내역이 없어요</div><div class="od-empty-sub">발주 내용 복사 또는 목록 초기화 시 자동으로 기록돼요</div></div>';
     return;
   }
   el.innerHTML = '<div class="od-hist-list">' + hist.map(function(h, idx){
@@ -559,87 +558,6 @@ function confirmDeleteOrderProduct(id) {
   });
 }
 
-// ── 기존 발주 체크 앱 데이터 가져오기 (붙여넣기) ──
-// 기존 앱의 「📤 류마 앱으로 데이터 내보내기」가 복사한 JSON(products/orderItems/orderHistory)이나
-// 류마 백업 형식(orderProducts/orderItems/orderHistory)을 받아 발주 데이터를 통째로 교체한다.
-function parseOrderExport(text) {
-  var d;
-  try { d = JSON.parse(String(text || '').trim()); } catch(e) { return null; }
-  if (!d || typeof d !== 'object') return null;
-  var prods = Array.isArray(d.products) ? d.products : Array.isArray(d.orderProducts) ? d.orderProducts : null;
-  if (!prods || !prods.length) return null;
-  prods = prods.filter(function(p){ return p && p.id != null && p.name; }).map(normalizeOrderProduct);
-  if (!prods.length) return null;
-  var ids = {};
-  prods.forEach(function(p){ ids[p.id] = true; });
-  var items = (Array.isArray(d.orderItems) ? d.orderItems : []).filter(function(o){ return o && ids[o.productId]; })
-    .map(function(o){ return {productId:o.productId, qty:Math.max(1, +o.qty || 1), done:!!o.done}; });
-  var hist = (Array.isArray(d.orderHistory) ? d.orderHistory : []).filter(function(h){ return h && h.date; })
-    .map(function(h){
-      var e = {date:h.date, type:h.type === 'clear' ? 'clear' : 'copy', items:Array.isArray(h.items) ? h.items : []};
-      if (h.ts) e.ts = h.ts;
-      return e;
-    }).slice(0, ORDER_HISTORY_MAX);
-  return {products:prods, items:items, history:hist};
-}
-
-function orderImportSummaryHtml(data) {
-  var byCat = {};
-  data.products.forEach(function(p){ byCat[p.category] = (byCat[p.category] || 0) + 1; });
-  var cats = Object.keys(byCat).map(function(c){ return esc(c) + ' ' + byCat[c]; }).join(' · ');
-  var priced = data.products.filter(opHasPrice).length;
-  return '<b>상품 ' + data.products.length + '개</b> (단가 입력 ' + priced + '개)<br>'
-    + '<span class="od-import-cats">' + cats + '</span><br>'
-    + '<b>발주 내역 ' + data.history.length + '건</b> · 현재 발주 목록 ' + data.items.length + '개';
-}
-
-function openOrderImportModal() {
-  showModal(
-    '<div class="md-hd"><div class="md-title">기존 발주앱 데이터 가져오기</div><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
-    + '<div class="mb">'
-    + '<div class="od-import-guide">① 기존 「류마_발주」 앱 → <b>발주 내역</b> 탭 → <b>📤 류마 앱으로 데이터 내보내기</b><br>② 아래에 붙여넣기 → 가져오기</div>'
-    + '<button class="bg" id="oi-paste">📋 클립보드에서 붙여넣기</button>'
-    + '<textarea class="fi od-import-text" id="oi-text" placeholder="여기에 복사한 내용을 붙여넣으세요"></textarea>'
-    + '<div class="od-import-sum" id="oi-sum"></div>'
-    + '<div class="abs">'
-      + '<button class="ab" style="background:var(--surf3);color:var(--text2);" onclick="closeModal()">취소</button>'
-      + '<button class="ab" style="background:var(--red);flex:2;" id="oi-go" disabled>가져오기</button>'
-    + '</div>'
-    + '</div>'
-  );
-  var ta = document.getElementById('oi-text'), sum = document.getElementById('oi-sum'), go = document.getElementById('oi-go');
-  var parsed = null;
-  function check() {
-    var v = ta.value.trim();
-    parsed = v ? parseOrderExport(v) : null;
-    go.disabled = !parsed;
-    sum.className = 'od-import-sum' + (v && !parsed ? ' err' : '');
-    sum.innerHTML = !v ? '' : parsed ? orderImportSummaryHtml(parsed) : '⚠ 올바른 발주 데이터가 아니에요. 내보내기로 복사한 내용 전체를 붙여넣어 주세요.';
-  }
-  ta.addEventListener('input', check);
-  document.getElementById('oi-paste').addEventListener('click', function(){
-    if (!navigator.clipboard || !navigator.clipboard.readText) { showToast('입력칸을 길게 눌러 붙여넣어 주세요'); ta.focus(); return; }
-    navigator.clipboard.readText().then(function(t){ ta.value = t; check(); })
-      .catch(function(){ showToast('입력칸을 길게 눌러 붙여넣어 주세요'); ta.focus(); });
-  });
-  go.addEventListener('click', function(){
-    if (!parsed) return;
-    var data = parsed;
-    showConfirm('발주 데이터 덮어쓰기',
-      '현재 발주 탭의 상품 ' + (S.orderProducts || []).length + '개 · 내역 ' + (S.orderHistory || []).length + '건을\n가져온 데이터(상품 ' + data.products.length + '개 · 내역 ' + data.history.length + '건)로 교체합니다.\n모든 기기에 동기화돼요.',
-      '덮어쓰기', function(){
-        S.orderProducts = data.products;
-        S.orderItems = data.items;
-        S.orderHistory = data.history;
-        S.orderInit = true;
-        orderSearch = ''; orderCollapsed = {}; orderBuiltSub = null;
-        orderSub = 'db';
-        orderChanged();
-        showToast('✅ 상품 ' + data.products.length + '개 · 내역 ' + data.history.length + '건을 가져왔어요');
-      });
-  });
-}
-
 // ── 재고 탭 → 발주 목록 담기 ──
 function addStockItemsToOrder(ids) {
   seedOrderDataIfNeeded();
@@ -693,7 +611,6 @@ document.getElementById('order-body').addEventListener('click', function(e){
   else if (act === 'toggle') toggleOrderProduct(id);
   else if (act === 'edit') openOrderProductModal(id);
   else if (act === 'del') confirmDeleteOrderProduct(id);
-  else if (act === 'import') openOrderImportModal();
   else if (act === 'reorder') reorderFromHistory(idx);
   else if (act === 'hist-del') deleteOrderHistory(idx);
 });

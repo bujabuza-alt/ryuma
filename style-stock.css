@@ -60,8 +60,11 @@
 
 /* ── 카테고리 섹션 (grouped 모드, 접기/펼치기) ──
    scroll-margin-top: 스크롤 타깃으로 사용할 때 오프셋 보정  */
-.sk-list-tools{display:flex;justify-content:flex-end;}
+.sk-list-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;}
 .sk-list-tools .bg{font-size:11px;padding:4px 10px;}
+.sk-view-seg{display:flex;background:var(--surf2);border:1px solid var(--border);border-radius:99px;padding:2px;}
+.sk-view-btn{border:none;background:none;color:var(--text3);font-family:inherit;font-size:11px;font-weight:700;padding:4px 11px;border-radius:99px;cursor:pointer;}
+.sk-view-btn.on{background:var(--surf);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12);}
 .sk-sec{display:flex;flex-direction:column;gap:4px;}
 .sk-section-hd{
   width:100%;display:flex;align-items:center;gap:7px;
@@ -107,6 +110,24 @@
 .sk-sel{position:absolute;inset:0;border:2px solid var(--red);background:rgba(196,18,48,.06);display:none;align-items:center;justify-content:flex-end;padding-right:13px;}
 .sk-sel.show{display:flex;}
 .sk-sel-chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--red);background:rgba(196,18,48,.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--red2);}
+
+/* ── 박스 보기 (2열 사각형 타일) — 행과 같은 HTML을 CSS만으로 재배치 ── */
+#stock-list.view-box .sk-sec-body{background:none;border:none;border-radius:0;overflow:visible;display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+#stock-list.view-box .sk-card{
+  display:grid;grid-template-columns:1fr auto;grid-template-areas:"body body" "qty adj";
+  align-items:end;row-gap:8px;column-gap:4px;
+  background:var(--surf);border:1px solid var(--border);border-radius:10px;
+  padding:9px 8px 8px 12px;min-height:96px;
+}
+#stock-list.view-box .sk-card:last-child{border-bottom:1px solid var(--border);}
+#stock-list.view-box .sk-bar{position:absolute;left:0;top:0;bottom:0;margin:0;}
+#stock-list.view-box .sk-body{grid-area:body;align-self:start;padding-left:0;}
+#stock-list.view-box .sk-name{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3;}
+#stock-list.view-box .sk-sub{flex-wrap:wrap;margin-top:3px;}
+#stock-list.view-box .sk-qty{grid-area:qty;text-align:left;min-width:0;font-size:18px;}
+#stock-list.view-box .sk-adj{grid-area:adj;gap:4px;}
+#stock-list.view-box .sk-adj-btn{width:28px;height:28px;font-size:16px;}
+#stock-list.view-box .sk-sel{border-radius:10px;align-items:flex-end;justify-content:center;padding:0 0 11px;}
 
 /* ── 발주 바 ──
    flex-shrink:0 → #stock 컬럼의 자연스러운 하단 배치
