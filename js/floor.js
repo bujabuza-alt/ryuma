@@ -35,7 +35,7 @@ function renderSidebar() {
       var floorTbls=getRvTableIds(r).map(function(tid){return S.tables.filter(function(t){return t.id===tid;})[0];}).filter(Boolean);
       html += '<div class="ri" data-rid="'+esc(String(r.id))+'">'
         + '<div class="ri-top"><span class="ri-time">'+esc(r.time||'–')+'</span>'
-        + '<span class="ri-name">'+esc(r.nm)+'</span>'+guestVisitBadgeHtml(matchGuestByRecord(custList, r))+'<span class="ri-g">'+esc(String(r.g))+'명</span></div>'
+        + '<span class="ri-name">'+esc(r.nm)+'</span>'+guestVisitBadgeHtml(matchGuestByRecord(custList, r), r.date)+'<span class="ri-g">'+esc(String(r.g))+'명</span></div>'
         + '<div class="ri-sub">'
         + (floorTbls.length ? '<span class="ri-tbl">🪑'+floorTbls.map(function(t){return esc(t.n);}).join('+')+'</span>' : '<span style="color:var(--amber)">미배정</span>')
         + '</div></div>';
@@ -1462,7 +1462,7 @@ function buildInlinePanelHTML(date) {
     rvs.forEach(function(r) {
       html += '<div class="rvtbl-row" data-rid="'+esc(String(r.id))+'">'
         + '<span class="rvtbl-td-time">'+esc(r.time||'–')+'</span>'
-        + '<span class="rvtbl-td-name"><span class="rvtbl-name-txt">'+esc(r.nm||'·')+'</span>'+guestVisitBadgeHtml(matchGuestByRecord(custList, r))+'</span>'
+        + '<span class="rvtbl-td-name"><span class="rvtbl-name-txt">'+esc(r.nm||'·')+'</span>'+guestVisitBadgeHtml(matchGuestByRecord(custList, r), r.date)+'</span>'
         + '<span class="rvtbl-td-g">'+esc(String(r.g))+'명</span>'
         + rvTblCellHtml(r)
         + '<span class="rvtbl-td-tags">'+(r.tags&&r.tags.length?r.tags.map(function(tg){return'<span class="schrv-tag-confirm">'+esc(tg)+'</span>';}).join(''):'')+'</span>'

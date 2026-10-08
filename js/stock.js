@@ -53,6 +53,13 @@ var stockOrderMode  = false;
 var stockSelectedIds = [];
 var stockHistTab    = 'all';   // in detail modal: 'all' | 'in' | 'out'
 var stockSectionObserver = null; // IntersectionObserver — grouped 모드 활성 카테고리 추적
+// grouped 모드에서 펼쳐진 카테고리 (기본은 모두 접힘). 기기별 UI 편의 상태라 localStorage에만 저장
+var stockExpanded = (function() {
+  try { return JSON.parse(localStorage.getItem('stockExpanded') || '{}') || {}; } catch (e) { return {}; }
+})();
+function saveStockExpanded() {
+  try { localStorage.setItem('stockExpanded', JSON.stringify(stockExpanded)); } catch (e) {}
+}
 
 // ── 헬퍼 ──
 function stockStatus(item) {
@@ -117,14 +124,14 @@ function getStockList() {
   var q = stockSearch.trim().toLowerCase();
   if (q) list = list.filter(function(i){ return (i.n||'').toLowerCase().indexOf(q) >= 0; });
 
-  // 정렬
-  list.sort(function(a,b){
-    if (stockSort === 'qty_asc')  return (a.qty||0) - (b.qty||0);
-    if (stockSort === 'qty_desc') return (b.qty||0) - (a.qty||0);
-    if (stockSort === 'recent')   return (b.upd||0) - (a.upd||0);
-    return (a.n||'').localeCompare(b.n||'','ko');
-  });
+  list.sort(stockSortCmp);
   return list;
+}
+function stockSortCmp(a, b) {
+  if (stockSort === 'qty_asc')  return (a.qty||0) - (b.qty||0);
+  if (stockSort === 'qty_desc') return (b.qty||0) - (a.qty||0);
+  if (stockSort === 'recent')   return (b.upd||0) - (a.upd||0);
+  return (a.n||'').localeCompare(b.n||'','ko');
 }
 
 // ── 메인 렌더 ──
@@ -158,6 +165,12 @@ function renderStockCats() {
           if (scrollEl) scrollEl.scrollTo({top:0, behavior:'smooth'});
           updateStockCatActive('전체');
         } else {
+          // 접혀 있으면 펼친 뒤 해당 섹션으로 이동
+          if (!stockExpanded[cat]) {
+            stockExpanded[cat] = true;
+            saveStockExpanded();
+            renderStockList();
+          }
           updateStockCatActive(cat);
           scrollToStockSection(cat);
         }
@@ -211,27 +224,26 @@ function renderStockStats() {
     '<div class="sc"><div class="si" style="background:rgba(196,18,48,.12)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><div class="sl">품절</div><div class="sv" style="color:var(--red2)">'+out+'개</div></div></div>';
 }
 
-// ── 공통 카드 HTML 빌더 ──
-function _buildStockCardHtml(item) {
+// ── 공통 품목 행 HTML 빌더 (한 줄: 상태 바 · 이름 · 수량 · −/+) ──
+// showCat: 필터 모드처럼 여러 카테고리가 섞여 보일 때 카테고리를 함께 표시
+function _buildStockCardHtml(item, showCat) {
   var st = stockStatus(item);
   var isSel = stockOrderMode && stockSelectedIds.indexOf(item.id) >= 0;
+  var minTxt = item.min > 0 ? '최소 '+item.min : '';
   return '<div class="sk-card'+(item.unused?' sk-unused':'')+'" data-id="'+item.id+'">'
     +'<div class="sk-bar '+st+'"></div>'
     +'<div class="sk-body">'
       +'<div class="sk-name">'+esc(item.n)+'</div>'
-      +'<div class="sk-sub"><span class="sk-cat">'+esc(item.cat||'기타')+'</span>'
+      +((showCat || item.unused || minTxt) ? '<div class="sk-sub">'
+        +(showCat ? '<span class="sk-cat">'+esc(item.cat||'기타')+'</span>' : '')
         +(item.unused ? '<span class="sk-unused-badge">미사용</span>' : '')
-        +(item.memo ? '<span>'+esc(item.memo)+'</span>' : '')
-        +(item.upd  ? '<span>'+stockTimeAgo(item.upd)+'</span>' : '')
-      +'</div>'
+        +(minTxt ? '<span>'+minTxt+'</span>' : '')
+      +'</div>' : '')
     +'</div>'
-    +'<div class="sk-right">'
-      +'<div class="sk-qty '+st+'">'+item.qty+'<span class="sk-unit"> '+esc(item.unit||'')+'</span></div>'
-      +(item.min > 0 ? '<div class="sk-min">최소 '+item.min+'</div>' : '<div></div>')
-      +'<div class="sk-adj">'
-        +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="-1" aria-label="1개 빼기">−</button>'
-        +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="1" aria-label="1개 더하기">+</button>'
-      +'</div>'
+    +'<div class="sk-qty '+st+'">'+item.qty+'<span class="sk-unit"> '+esc(item.unit||'')+'</span></div>'
+    +'<div class="sk-adj">'
+      +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="-1" aria-label="1개 빼기">−</button>'
+      +'<button class="sk-adj-btn" data-id="'+item.id+'" data-d="1" aria-label="1개 더하기">+</button>'
     +'</div>'
     +(stockOrderMode ? '<div class="sk-sel'+(isSel?' show':'')+'"><div class="sk-sel-chk">'+(isSel?'✓':'')+'</div></div>' : '')
   +'</div>';
@@ -281,41 +293,62 @@ function renderStockList() {
   }
 }
 
-// ── Grouped 모드: 카테고리 섹션별 그룹 렌더 ──
+// ── Grouped 모드: 카테고리별 접기/펼치기 섹션 렌더 ──
+function _stockSectionHtml(cat, items) {
+  var open = !!stockExpanded[cat];
+  var low = items.filter(function(i){ return stockStatus(i) === 'warn'; }).length;
+  var out = items.filter(function(i){ return stockStatus(i) === 'out'; }).length;
+  return '<div class="sk-sec'+(open?' open':'')+'">'
+    +'<button type="button" class="sk-section-hd" data-cat="'+esc(cat)+'" aria-expanded="'+open+'">'
+      +'<span class="sk-sec-arrow">'+(open?'▼':'▶')+'</span>'
+      +'<span class="sk-sec-name">'+esc(cat)+'</span>'
+      +'<span class="sk-sec-cnt">'+items.length+'</span>'
+      +(low ? '<span class="sk-sec-badge warn">⚠ '+low+'</span>' : '')
+      +(out ? '<span class="sk-sec-badge out">품절 '+out+'</span>' : '')
+    +'</button>'
+    +(open ? '<div class="sk-sec-body">'+items.map(function(item){ return _buildStockCardHtml(item, false); }).join('')+'</div>' : '')
+  +'</div>';
+}
 function _renderStockListGrouped(el) {
   if (!S.inventory) S.inventory = [];
   var catOrder = (S.stockCats && S.stockCats.length) ? S.stockCats : DEFAULT_STOCK_CATS.slice();
-  var allItems = S.inventory.filter(function(i){ return !i.unused; }).sort(function(a,b){
-    return (a.n||'').localeCompare(b.n||'','ko');
-  });
+  var allItems = S.inventory.filter(function(i){ return !i.unused; }).sort(stockSortCmp);
 
-  var html = '';
-  var hasAny = false;
+  var sections = [];
   var knownCats = {};
-
   catOrder.forEach(function(cat) {
     knownCats[cat] = true;
     var items = allItems.filter(function(i){ return i.cat === cat; });
-    if (!items.length) return;
-    hasAny = true;
-    html += '<div class="sk-section-hd" data-cat="'+esc(cat)+'">'+esc(cat)+'</div>';
-    items.forEach(function(item){ html += _buildStockCardHtml(item); });
+    if (items.length) sections.push({cat:cat, items:items});
   });
-
   // catOrder에 없는 카테고리 아이템 → 하단에 모아서 표시
   var orphans = allItems.filter(function(i){ return !knownCats[i.cat]; });
-  if (orphans.length) {
-    hasAny = true;
-    html += '<div class="sk-section-hd" data-cat="기타">기타</div>';
-    orphans.forEach(function(item){ html += _buildStockCardHtml(item); });
-  }
+  if (orphans.length) sections.push({cat:'기타', items:orphans});
 
-  if (!hasAny) {
+  if (!sections.length) {
     el.innerHTML = '<div class="sk-empty">등록된 재고 품목이 없습니다. + 추가 버튼을 눌러 시작하세요.</div>';
     return;
   }
 
-  el.innerHTML = html;
+  var anyOpen = sections.some(function(sec){ return stockExpanded[sec.cat]; });
+  el.innerHTML = '<div class="sk-list-tools"><button type="button" class="bg" id="sk-toggle-all">'+(anyOpen ? '모두 접기' : '모두 펼치기')+'</button></div>'
+    + sections.map(function(sec){ return _stockSectionHtml(sec.cat, sec.items); }).join('');
+
+  el.querySelectorAll('.sk-section-hd').forEach(function(hd){
+    hd.addEventListener('click', function(){
+      var cat = this.getAttribute('data-cat');
+      stockExpanded[cat] = !stockExpanded[cat];
+      if (!stockExpanded[cat]) delete stockExpanded[cat];
+      saveStockExpanded();
+      renderStockList();
+    });
+  });
+  document.getElementById('sk-toggle-all').addEventListener('click', function(){
+    stockExpanded = {};
+    if (!anyOpen) sections.forEach(function(sec){ stockExpanded[sec.cat] = true; });
+    saveStockExpanded();
+    renderStockList();
+  });
   _attachStockCardListeners(el);
   setupStockSectionObserver();
 }
@@ -330,7 +363,7 @@ function _renderStockListFiltered(el) {
     el.innerHTML = '<div class="sk-empty">'+emptyMsg+'</div>';
     return;
   }
-  el.innerHTML = list.map(function(item){ return _buildStockCardHtml(item); }).join('');
+  el.innerHTML = '<div class="sk-sec-body">'+list.map(function(item){ return _buildStockCardHtml(item, true); }).join('')+'</div>';
   _attachStockCardListeners(el);
 }
 
