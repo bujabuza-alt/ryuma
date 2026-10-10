@@ -164,8 +164,26 @@ function calcWorkedHours(inTime, outTime) {
   var outMin = (+op[0]) * 60 + (+op[1]);
   var diff = outMin - inMin;
   if (diff <= 0) return null;
-  var h = Math.floor(diff / 60), m = diff % 60;
+  return fmtWorkedMinutes(diff);
+}
+function workedMinutes(inTime, outTime) {
+  if (!inTime || !outTime) return 0;
+  var ip = inTime.split(':'), op = outTime.split(':');
+  var diff = ((+op[0]) * 60 + (+op[1])) - ((+ip[0]) * 60 + (+ip[1]));
+  return diff > 0 ? diff : 0;
+}
+function fmtWorkedMinutes(min) {
+  var h = Math.floor(min / 60), m = min % 60;
   return h + '시간' + (m ? ' ' + m + '분' : '');
+}
+// 해당 기록의 근무자가 같은 달(기록 날짜 기준)에 근무한 총 시간(분)
+function staffMonthlyMinutes(r) {
+  var ym = (r.date || '').slice(0, 7);
+  if (!ym) return 0;
+  return (S.staffRecords || []).reduce(function(sum, x) {
+    var same = r.staffId ? x.staffId === r.staffId : x.staffName === r.staffName;
+    return same && (x.date || '').slice(0, 7) === ym ? sum + workedMinutes(x.inTime, x.outTime) : sum;
+  }, 0);
 }
 
 // ── 출퇴근 기록 저장/삭제 ──
@@ -298,6 +316,10 @@ function staffRecRowHtml(r) {
     '<span class="stf-rec-name">' + esc(r.staffName || '-') + '</span>' +
     '<span class="stf-rec-time">출근 ' + esc(r.inTime || '-') + ' · 퇴근 ' + esc(r.outTime || '-') + '</span>' +
     (hrs ? '<span class="stf-rec-hours">' + hrs + ' 근무</span>' : '') +
+    '</div>' +
+    '<div class="stf-rec-month">' +
+    '<span class="stf-rec-month-lbl">' + (+(r.date || '').slice(5, 7) || '') + '월 누적</span>' +
+    '<span class="stf-rec-month-val">' + fmtWorkedMinutes(staffMonthlyMinutes(r)) + '</span>' +
     '</div>' +
     '<div class="stf-rec-actions">' +
     '<button type="button" data-act="rec-edit" data-id="' + r.id + '">✏</button>' +
