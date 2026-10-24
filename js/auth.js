@@ -156,6 +156,8 @@ function doEnter(store) {
       // 받은 스냅샷을 실시간 리스너와 같은 경로(applyRemoteSnapshot)로 한 번 더 반영해
       // 로컬 캐시·확인 사항까지 갱신한다 (기존 startFb() 첫 콜백과 동일한 동작).
       applyRemoteSnapshot(newData, store);
+      // 이미지 탭을 열었을 때 바로 보이도록, 화면을 띄운 뒤 조금 있다가 사진 목록을 미리 받아둔다
+      setTimeout(function() { if (store === currentStore) ensureImagesLoaded(); }, 3000);
     }
 
     if (newData && newData.tables && newData.tables.length) {

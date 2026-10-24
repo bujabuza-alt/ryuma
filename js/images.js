@@ -17,6 +17,7 @@ var IMG_THUMB_DIM = 320;  // 목록용 썸네일 최대 가로/세로 픽셀
 var IMG_THUMB_QUALITY = 0.7;
 var IMG_WRITE_REST_DELAY = 15000; // SDK 쓰기가 이 시간 안에 끝나지 않으면 REST로도 저장
 var IMG_FULL_CACHE_MAX = 20;      // 메모리에 들고 있을 원본 장수
+var IMG_LIST_REST_DELAY = 4000;   // 목록 첫 응답이 SDK로 이 시간 안에 안 오면 REST로도 요청
 
 var imgListenRef = null; // 현재 붙어있는 목록(썸네일) 리스너
 var imgLoaded = false;   // 현재 매장의 사진 목록을 서버에서 한 번이라도 받았는지
@@ -26,6 +27,10 @@ var imgFullCacheOrder = [];
 var imgMetaSyncing = false;   // 썸네일이 없는 기존 사진을 변환 중인지
 var imgMetaSyncLeft = 0;      // 변환 남은 장수
 var imgMetaSyncChecked = false; // 이번 실행에서 변환 대상을 확인했는지
+var imgSdkLive = false;  // SDK 목록 리스너가 응답을 한 번이라도 받았는지 (이후 변경은 SDK가 바로 반영)
+var imgRestTimer = null; // 목록 REST 폴백 타이머
+var imgCacheTimer = null; // 목록 기기 캐시 저장 디바운스
+var imgLoadStart = 0;
 
 function imgRef(store) { return fbDb.ref('tableAppImages/' + (store || currentStore)); }
 function imgMetaRef(store) { return fbDb.ref('tableAppImages/_meta/' + (store || currentStore)); }
@@ -45,32 +50,155 @@ function resetImagesState() {
   imgMetaSyncing = false;
   imgMetaSyncLeft = 0;
   imgMetaSyncChecked = false;
+  imgSdkLive = false;
+  clearTimeout(imgRestTimer);
+  clearTimeout(imgCacheTimer);
   if (S) S.images = [];
 }
 
-// 이미지 탭을 처음 열 때 목록(썸네일)을 불러오고, 이후엔 다른 기기의 변경을 실시간 반영
+// 사진 목록을 불러오고, 이후엔 다른 기기의 변경을 실시간 반영 (이미지 탭을 열 때 또는 앱 실행 몇 초 뒤)
+// · 기기에 저장해둔 지난 목록을 먼저 보여준다
+// · 매장 네트워크가 웹소켓을 막거나 느리면 SDK 리스너가 한참 응답이 없으므로, 잠시 뒤 REST로도 받는다
 function ensureImagesLoaded() {
   if (imgListenRef || !currentStore) return;
   var store = currentStore;
   imgLoadError = false;
+  imgLoadStart = Date.now();
+  var sdkFailed = false, restState = 'idle'; // idle | running | failed
+  if (!imgLoaded) imgCacheGet(store).then(function(list) {
+    if (store !== currentStore || imgLoaded || !list || !list.length) return;
+    var have = {};
+    S.images.forEach(function(im) { have[im.id] = true; });
+    S.images = S.images.concat(list.filter(function(im) { return im && im.id && !have[im.id]; }));
+    console.log('사진 목록 ' + list.length + '장 (기기 캐시, ' + (Date.now() - imgLoadStart) + 'ms)');
+    if (currentTab === 'images') renderImagesTab();
+  });
+  function maybeFail() {
+    if (imgLoaded || !sdkFailed || restState !== 'failed' || store !== currentStore) return;
+    imgLoadError = true;
+    if (currentTab === 'images') renderImagesTab();
+  }
+  function viaRest() {
+    if (restState !== 'idle' || imgLoaded) return;
+    restState = 'running';
+    imgRestGet('tableAppImages/_meta/' + store).then(function(v) {
+      if (imgSdkLive || imgLoaded) return; // SDK가 먼저 왔으면 그 값을 쓴다
+      applyImageMeta(store, v, 'REST');
+    }).catch(function(err) {
+      console.error('Image list REST load failed:', err && err.message);
+      restState = 'failed';
+      maybeFail();
+    });
+  }
+  clearTimeout(imgRestTimer);
+  imgRestTimer = setTimeout(viaRest, IMG_LIST_REST_DELAY);
   imgListenRef = imgMetaRef(store);
   imgListenRef.on('value', function(snap) {
     if (store !== currentStore) return;
-    var v = snap.val() || {};
-    S.images = Object.keys(v).map(function(k) { return v[k]; }).filter(function(im) { return im && im.id; });
-    imgLoaded = true;
-    if (!imgMetaSyncChecked) { imgMetaSyncChecked = true; syncMissingImageMeta(store); }
-    if (currentTab === 'images') renderImagesTab();
+    imgSdkLive = true;
+    applyImageMeta(store, snap.val(), 'SDK');
   }, function(err) {
     console.error('Image listener error:', err && err.code, err && err.message);
     if (store !== currentStore) return;
     imgListenRef = null;
-    imgLoadError = true;
-    if (currentTab === 'images') renderImagesTab();
+    imgSdkLive = false;
+    sdkFailed = true;
+    clearTimeout(imgRestTimer);
+    viaRest();
+    maybeFail();
   });
+}
+// 서버에서 받은 목록(SDK/REST 공통)을 반영하고 기기 캐시도 갱신
+function applyImageMeta(store, v, via) {
+  if (store !== currentStore) return;
+  v = v || {};
+  S.images = Object.keys(v).map(function(k) { return v[k]; }).filter(function(im) { return im && im.id; });
+  if (!imgLoaded) console.log('사진 목록 ' + S.images.length + '장 (' + via + ', ' + (Date.now() - imgLoadStart) + 'ms)');
+  imgLoaded = true;
+  imgLoadError = false;
+  clearTimeout(imgRestTimer);
+  saveImageMetaCache(store);
+  if (!imgMetaSyncChecked) { imgMetaSyncChecked = true; syncMissingImageMeta(store); }
+  if (currentTab === 'images') renderImagesTab();
+}
+
+// ── 목록(썸네일) 기기 캐시: IndexedDB ──
+// 앱을 켤 때마다 썸네일 전체를 다시 받기 전까지 빈 화면이던 문제 → 지난 목록을 먼저 보여준다.
+// localStorage는 매장 데이터가 쓰고 있고 용량이 작아 IndexedDB를 쓴다. 실패해도 서버 로딩은 그대로.
+var imgIdbPromise = null;
+function imgIdb() {
+  if (!imgIdbPromise) imgIdbPromise = new Promise(function(resolve, reject) {
+    var req = indexedDB.open('ryuma-img', 1);
+    req.onupgradeneeded = function() { req.result.createObjectStore('meta'); };
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+  return imgIdbPromise;
+}
+function imgCacheGet(store) {
+  return imgIdb().then(function(db) {
+    return new Promise(function(resolve) {
+      var req = db.transaction('meta', 'readonly').objectStore('meta').get(store);
+      req.onsuccess = function() { resolve(Array.isArray(req.result) ? req.result : null); };
+      req.onerror = function() { resolve(null); };
+    });
+  }).catch(function() { return null; });
+}
+function imgCachePut(store, list) {
+  imgIdb().then(function(db) {
+    db.transaction('meta', 'readwrite').objectStore('meta').put(list, store);
+  }).catch(function() {});
+}
+function saveImageMetaCache(store) {
+  clearTimeout(imgCacheTimer);
+  imgCacheTimer = setTimeout(function() {
+    if (store === currentStore && imgLoaded) imgCachePut(store, S.images.slice());
+  }, 1000);
 }
 
 function imgDbBaseUrl() { return (fbApp && fbApp.options && fbApp.options.databaseURL) || ''; }
+function imgRestGet(path) {
+  var base = imgDbBaseUrl();
+  if (!base) return Promise.reject(new Error('no db url'));
+  return fetch(base + '/' + path + '.json').then(function(res) {
+    if (!res.ok) throw new Error('REST GET failed: ' + res.status);
+    return res.json();
+  });
+}
+// 한 경로의 값을 SDK로 받되, delay 안에 응답이 없거나 SDK가 실패하면 REST로도 요청해 먼저 온 쪽을 쓴다.
+// 값이 없으면(null) 실패로 본다.
+function imgGet(path, delay) {
+  return new Promise(function(resolve, reject) {
+    var settled = false, sdkFailed = false, restState = 'idle'; // idle | running | failed
+    function ok(v) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(restTimer);
+      resolve(v);
+    }
+    function maybeReject() {
+      if (settled || !sdkFailed || restState !== 'failed') return;
+      settled = true;
+      reject(new Error('load failed: ' + path));
+    }
+    function restFailed() { restState = 'failed'; maybeReject(); }
+    function viaRest() {
+      if (restState !== 'idle') return;
+      restState = 'running';
+      imgRestGet(path).then(function(v) { if (v) ok(v); else restFailed(); }).catch(restFailed);
+    }
+    function sdkFail() {
+      sdkFailed = true;
+      clearTimeout(restTimer);
+      viaRest();
+      maybeReject();
+    }
+    var restTimer = setTimeout(viaRest, delay);
+    fbDb.ref(path).once('value').then(function(snap) {
+      if (snap.val()) ok(snap.val()); else sdkFail();
+    }).catch(sdkFail);
+  });
+}
 
 // 여러 경로를 한 번에 쓰기 (원본+목록을 함께 바꾸므로 둘이 어긋나지 않는다)
 // 매장 네트워크가 웹소켓만 막는 경우 SDK 쓰기가 끝나지 않으므로, 일정 시간 뒤 REST로도 같은
@@ -137,41 +265,9 @@ function cacheFullImage(id, dataUrl) {
 function loadFullImage(id) {
   if (imgFullCache[id]) return Promise.resolve(imgFullCache[id]);
   var store = currentStore;
-  return new Promise(function(resolve, reject) {
-    var settled = false, sdkFailed = false, restState = 'idle'; // idle | running | failed
-    function ok(dataUrl) {
-      if (settled) return;
-      settled = true;
-      clearTimeout(restTimer);
-      if (store === currentStore) cacheFullImage(id, dataUrl);
-      resolve(dataUrl);
-    }
-    function maybeReject() {
-      if (settled || !sdkFailed || restState !== 'failed') return;
-      settled = true;
-      reject(new Error('image load failed'));
-    }
-    function restFailed() { restState = 'failed'; maybeReject(); }
-    function viaRest() {
-      if (restState !== 'idle') return;
-      var base = imgDbBaseUrl();
-      if (!base) { restFailed(); return; }
-      restState = 'running';
-      fetch(base + '/' + imgFullPath(store, id) + '/dataUrl.json').then(function(res) {
-        if (!res.ok) throw new Error('REST GET failed: ' + res.status);
-        return res.json();
-      }).then(function(v) { if (v) ok(v); else restFailed(); }).catch(restFailed);
-    }
-    function sdkFail() {
-      sdkFailed = true;
-      clearTimeout(restTimer);
-      viaRest();
-      maybeReject();
-    }
-    var restTimer = setTimeout(viaRest, 8000);
-    imgRef(store).child(id).child('dataUrl').once('value').then(function(snap) {
-      if (snap.val()) ok(snap.val()); else sdkFail();
-    }).catch(sdkFail);
+  return imgGet(imgFullPath(store, id) + '/dataUrl', 8000).then(function(dataUrl) {
+    if (store === currentStore) cacheFullImage(id, dataUrl);
+    return dataUrl;
   });
 }
 
@@ -215,9 +311,8 @@ function syncMissingImageMeta(store) {
   });
 }
 function buildMetaFor(store, id) {
-  return imgRef(store).child(id).once('value').then(function(snap) {
-    var im = snap.val();
-    if (!im || !im.dataUrl) return;
+  return imgGet(imgFullPath(store, id), 8000).then(function(im) {
+    if (!im.dataUrl) return;
     return makeThumbFromDataUrl(im.dataUrl).catch(function() { return ''; }).then(function(thumb) {
       var meta = { id: id, name: im.name || '', memo: im.memo || '', cat: im.cat || '', ts: im.ts || Date.now(), thumb: thumb };
       var upd = {};
@@ -470,7 +565,7 @@ function handleImageUpload(files) {
         var full = { id: id, name: file.name, dataUrl: out.full, memo: '', cat: '', ts: ts };
         var meta = { id: id, name: file.name, memo: '', cat: '', ts: ts, thumb: out.thumb };
         cacheFullImage(id, out.full);
-        if (!imgListenRef) S.images.push(meta); // 리스너가 붙어 있으면 SDK가 바로 목록에 반영한다
+        if (!imgSdkLive) S.images.push(meta); // SDK 리스너가 살아 있으면 SDK가 바로 목록에 반영한다
         if (currentTab === 'images') renderImagesTab();
         var upd = {};
         upd[imgFullPath(store, id)] = full;
