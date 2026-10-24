@@ -22,6 +22,8 @@ var IMG_LIST_REST_DELAY = 4000;   // 목록 첫 응답이 SDK로 이 시간 안�
 var imgListenRef = null; // 현재 붙어있는 목록(썸네일) 리스너
 var imgLoaded = false;   // 현재 매장의 사진 목록을 서버에서 한 번이라도 받았는지
 var imgLoadError = false;
+var imgDenied = false;   // Firebase 규칙이 사진 경로(tableAppImages)를 막고 있는지
+var IMG_DENIED_MSG = '사진 저장소 접근 권한이 없습니다. Firebase 규칙에서 tableAppImages를 허용해주세요.';
 var imgFullCache = {};   // id → 원본 dataUrl
 var imgFullCacheOrder = [];
 var imgMetaSyncing = false;   // 썸네일이 없는 기존 사진을 변환 중인지
@@ -45,6 +47,7 @@ function resetImagesState() {
   imgListenRef = null;
   imgLoaded = false;
   imgLoadError = false;
+  imgDenied = false;
   imgFullCache = {};
   imgFullCacheOrder = [];
   imgMetaSyncing = false;
@@ -63,6 +66,7 @@ function ensureImagesLoaded() {
   if (imgListenRef || !currentStore) return;
   var store = currentStore;
   imgLoadError = false;
+  imgDenied = false;
   imgLoadStart = Date.now();
   var sdkFailed = false, restState = 'idle'; // idle | running | failed
   if (!imgLoaded) imgCacheGet(store).then(function(list) {
@@ -86,6 +90,7 @@ function ensureImagesLoaded() {
       applyImageMeta(store, v, 'REST');
     }).catch(function(err) {
       console.error('Image list REST load failed:', err && err.message);
+      if (imgIsDenied(err)) imgDenied = true;
       restState = 'failed';
       maybeFail();
     });
@@ -100,6 +105,7 @@ function ensureImagesLoaded() {
   }, function(err) {
     console.error('Image listener error:', err && err.code, err && err.message);
     if (store !== currentStore) return;
+    if (imgIsDenied(err)) imgDenied = true;
     imgListenRef = null;
     imgSdkLive = false;
     sdkFailed = true;
@@ -156,12 +162,15 @@ function saveImageMetaCache(store) {
   }, 1000);
 }
 
+// 권한 거부: SDK는 PERMISSION_DENIED, REST는 401/403
+function imgIsDenied(err) { return !!err && (err.code === 'PERMISSION_DENIED' || err.status === 401 || err.status === 403); }
+function imgRestError(what, res) { var e = new Error(what + ' failed: ' + res.status); e.status = res.status; return e; }
 function imgDbBaseUrl() { return (fbApp && fbApp.options && fbApp.options.databaseURL) || ''; }
 function imgRestGet(path) {
   var base = imgDbBaseUrl();
   if (!base) return Promise.reject(new Error('no db url'));
   return fetch(base + '/' + path + '.json').then(function(res) {
-    if (!res.ok) throw new Error('REST GET failed: ' + res.status);
+    if (!res.ok) throw imgRestError('REST GET', res);
     return res.json();
   });
 }
@@ -212,7 +221,7 @@ function imgRestPatch(updates) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updates)
   }).then(function(res) {
-    if (!res.ok) throw new Error('REST PATCH failed: ' + res.status);
+    if (!res.ok) throw imgRestError('REST PATCH', res);
   });
 }
 function imgWrite(updates) {
@@ -233,13 +242,14 @@ function imgWrite(updates) {
       console.error('Image save failed:', err && err.code, err && err.message);
       clearTimeout(restTimer);
       if (settled) return;
-      imgRestPatch(updates).then(done).catch(function() {
+      imgRestPatch(updates).then(done).catch(function(restErr) {
         settled = true;
+        if (imgIsDenied(restErr)) err.denied = true;
         reject(err);
       });
     });
   }).catch(function(err) {
-    showToast('사진 저장에 실패했습니다. 네트워크를 확인해주세요.');
+    showToast(imgIsDenied(err) || (err && err.denied) ? IMG_DENIED_MSG : '사진 저장에 실패했습니다. 네트워크를 확인해주세요.');
     throw err;
   });
 }
@@ -402,6 +412,12 @@ function getImageList() {
   return list;
 }
 
+// 탭을 열 때: 앞서 목록 불러오기에 실패했으면 다시 시도
+function openImagesTab() {
+  imgLoadError = false;
+  renderImagesTab();
+}
+
 function renderImagesTab() {
   var grid = document.getElementById('img-grid');
   var cntEl = document.getElementById('img-count');
@@ -409,15 +425,18 @@ function renderImagesTab() {
   if (!S.images) S.images = [];
   if (!S.imageCats || !S.imageCats.length) S.imageCats = DEFAULT_IMAGE_CATS.slice();
   renderImageCats();
-  if (!imgLoaded) ensureImagesLoaded();
+  // 실패한 뒤엔 다시 그릴 때마다 재시도하지 않는다 (탭을 다시 열면 openImagesTab에서 재시도)
+  if (!imgLoaded && !imgLoadError) ensureImagesLoaded();
   // 목록을 받기 전이라도 방금 저장한 사진은 바로 보여준다
   if (!imgLoaded && !S.images.length) {
     if (cntEl) cntEl.textContent = '';
-    grid.innerHTML = '<div class="img-empty">' + (imgLoadError ? '사진을 불러오지 못했습니다. 네트워크 확인 후 탭을 다시 열어주세요.' : '사진 불러오는 중…') + '</div>';
+    grid.innerHTML = '<div class="img-empty">' + (imgLoadError ? (imgDenied ? IMG_DENIED_MSG : '사진을 불러오지 못했습니다. 네트워크 확인 후 탭을 다시 열어주세요.') : '사진 불러오는 중…') + '</div>';
     return;
   }
   var list = getImageList();
-  if (cntEl) cntEl.textContent = (imgLoaded ? '총 ' + S.images.length + '장' : '사진 불러오는 중…') + (imgMetaSyncLeft > 0 ? ' · 기존 사진 목록 정리 중 (' + imgMetaSyncLeft + '장 남음)' : '');
+  // 방금 올린 사진·기기 캐시만 보이는 상태에서 목록을 못 받았으면 그 원인을 개수 자리에 띄운다
+  var loadingText = imgLoadError ? (imgDenied ? IMG_DENIED_MSG : '사진 목록을 불러오지 못했습니다') : '사진 불러오는 중…';
+  if (cntEl) cntEl.textContent = (imgLoaded ? '총 ' + S.images.length + '장' : loadingText) + (imgMetaSyncLeft > 0 ? ' · 기존 사진 목록 정리 중 (' + imgMetaSyncLeft + '장 남음)' : '');
   if (!list.length) {
     grid.innerHTML = '<div class="img-empty">' +
       (imgSearch.trim() ? '검색 결과가 없습니다.' : '저장된 이미지가 없습니다. 상단의 업로드 버튼으로 추가하세요.') +
