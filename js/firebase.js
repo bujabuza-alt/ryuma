@@ -130,7 +130,12 @@ function loadData() {
     if (!S.staffSchedule) S.staffSchedule = [];
     S.dailyMemos = (d.dailyMemos && typeof d.dailyMemos === 'object') ? d.dailyMemos : {};
     S.weeklyMemos = (d.weeklyMemos && typeof d.weeklyMemos === 'object') ? d.weeklyMemos : {};
-  } catch(e) { S.tags = DEFAULT_TAGS.slice(); S.dailyMemos = S.dailyMemos || {}; S.weeklyMemos = S.weeklyMemos || {}; }
+    S.mealOptions = normMealOptions(d.mealOptions);
+    S.dailyMeals = normDailyMeals(d.dailyMeals);
+  } catch(e) {
+    S.tags = DEFAULT_TAGS.slice(); S.dailyMemos = S.dailyMemos || {}; S.weeklyMemos = S.weeklyMemos || {};
+    S.mealOptions = normMealOptions(S.mealOptions); S.dailyMeals = normDailyMeals(S.dailyMeals);
+  }
 }
 
 // ── 데이터 백업(파일로 내보내기/가져오기) ──
@@ -166,6 +171,8 @@ function exportBackupToFile() {
     staffSchedule: S.staffSchedule || [],
     dailyMemos: S.dailyMemos || {},
     weeklyMemos: S.weeklyMemos || {},
+    mealOptions: S.mealOptions || {},
+    dailyMeals: S.dailyMeals || {},
     orderInit: !!S.orderInit,
     orderProducts: S.orderProducts || [],
     orderItems: S.orderItems || [],
@@ -217,6 +224,8 @@ function importBackupFromFile(file) {
     if (Array.isArray(data.staffSchedule)) S.staffSchedule = data.staffSchedule;
     if (data.dailyMemos && typeof data.dailyMemos === 'object') S.dailyMemos = data.dailyMemos;
     if (data.weeklyMemos && typeof data.weeklyMemos === 'object') S.weeklyMemos = data.weeklyMemos;
+    if (data.mealOptions) S.mealOptions = normMealOptions(data.mealOptions);
+    if (data.dailyMeals) S.dailyMeals = normDailyMeals(data.dailyMeals);
     applyOrderData(data);
 
     if (data.confirmItems && data.confirmItems.cats && data.confirmItems.cats.length) {
@@ -291,6 +300,8 @@ function doActualSave() {
       staffSchedule: S.staffSchedule || [],
       dailyMemos: S.dailyMemos || {},
       weeklyMemos: S.weeklyMemos || {},
+      mealOptions: S.mealOptions || {},
+      dailyMeals: S.dailyMeals || {},
       _ts: ts
     };
     if (S._staffLogsMigrated) p._staffLogsMigrated = S._staffLogsMigrated;
@@ -407,6 +418,9 @@ function applyRemoteSnapshot(d, listenStore) {
   if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
   if (d.dailyMemos && typeof d.dailyMemos === 'object') S.dailyMemos = d.dailyMemos;
   if (d.weeklyMemos && typeof d.weeklyMemos === 'object') S.weeklyMemos = d.weeklyMemos;
+  // 식사 선택 항목: 서버 값이 기준 (항목을 모두 지우면 Firebase에서 키가 사라지므로 없으면 빈 값)
+  S.mealOptions = normMealOptions(d.mealOptions);
+  S.dailyMeals = normDailyMeals(d.dailyMeals);
   applyOrderData(d);
   if (d.confirmItems && d.confirmItems.cats && d.confirmItems.cats.length) {
     try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(d.confirmItems)); } catch(e) {}

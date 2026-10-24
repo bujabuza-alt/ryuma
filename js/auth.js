@@ -21,7 +21,7 @@ function doEnter(store) {
   lastSavedTs = 0;  // 매장 전환 시 반드시 초기화
   clearTimeout(fbReconnectTimer); fbReconnectTimer = null;
   fbRef = fbDb.ref('tableApp/' + store);
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{},orderProducts:[],orderItems:[],orderHistory:[],orderInit:false};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{},mealOptions:{meal:[],soup:[],side:[]},dailyMeals:{},orderProducts:[],orderItems:[],orderHistory:[],orderInit:false};
   cardCache = {};
   stockTab = '전체'; stockChip = 'all'; stockSearch = ''; stockSort = 'name';
   stockOrderMode = false; stockSelectedIds = [];
@@ -116,6 +116,8 @@ function doEnter(store) {
       if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
       if (d.dailyMemos && typeof d.dailyMemos === 'object') S.dailyMemos = d.dailyMemos;
       if (d.weeklyMemos && typeof d.weeklyMemos === 'object') S.weeklyMemos = d.weeklyMemos;
+      S.mealOptions = normMealOptions(d.mealOptions);
+      S.dailyMeals = normDailyMeals(d.dailyMeals);
       applyOrderData(d);
     }
 
@@ -204,7 +206,7 @@ function logout() {
   serverLoaded = false;
   resetImagesState();
   currentStore = null;
-  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{},orderProducts:[],orderItems:[],orderHistory:[],orderInit:false};
+  S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{},mealOptions:{meal:[],soup:[],side:[]},dailyMeals:{},orderProducts:[],orderItems:[],orderHistory:[],orderInit:false};
   cardCache = {};
   editMode = false;
   staffTopTab = 'schedule'; staffSubTab = 'logs';
@@ -229,11 +231,8 @@ function openCfg() {
     '<input type="file" id="data-import-input" accept=".txt,.json,application/json" style="display:none">' +
     '<div class="divider"></div>' +
     '<div class="ss-label">노션 백업</div>' +
-    '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">예약·손님 데이터를 노션에 저장합니다</div>' +
-    '<div style="display:flex;gap:7px">' +
-    '<button class="ab" style="background:#2e2e2e;flex:1;display:flex;align-items:center;justify-content:center;gap:5px" id="btn-backup">📋 예약 백업</button>' +
-    '<button class="ab" style="background:#2e2e2e;flex:1;display:flex;align-items:center;justify-content:center;gap:5px" id="btn-cust-backup">👤 손님 백업</button>' +
-    '</div>' +
+    '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">예약 데이터를 노션에 저장합니다</div>' +
+    '<button class="ab" style="background:#2e2e2e;width:100%;display:flex;align-items:center;justify-content:center;gap:5px" id="btn-backup">📋 예약 백업</button>' +
     '<div id="backup-status" style="font-size:11px;text-align:center;min-height:16px;margin-top:4px"></div>' +
     '<div class="divider"></div>' +
     '<div class="ss-label">Gemini API (네이버 예약 가져오기)</div>' +
@@ -258,9 +257,6 @@ function openCfg() {
   });
   document.getElementById('btn-backup').addEventListener('click', function() {
     runNotionBackup();
-  });
-  document.getElementById('btn-cust-backup').addEventListener('click', function() {
-    runNotionCustBackup('backup-status');
   });
   document.getElementById('btn-gemini-key').addEventListener('click', function() {
     closeModal(); setTimeout(openGeminiKeyInput, 150);

@@ -249,7 +249,14 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 #cust{flex:1;min-width:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;display:none;flex-direction:column;gap:8px;}
 #cust.on{display:flex;}
 /* 손님 / 취소 필터 Pills */
-#cust-filter-row{display:flex;gap:5px;flex-shrink:0;}
+#cust-filter-row{display:flex;gap:5px;flex-shrink:0;align-items:center;}
+#cust-total{margin-left:auto;font-size:12px;font-weight:700;color:var(--text2);white-space:nowrap;}
+#cust-groups{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px;flex-shrink:0;}
+#cust-groups::-webkit-scrollbar{display:none;}
+#cust-groups .scat{flex-shrink:0;}
+.cust-group-hd{display:flex;align-items:center;justify-content:space-between;padding:8px 4px 2px;font-size:12px;font-weight:800;color:var(--text2);border-bottom:1px solid var(--border);}
+.cust-group-hd:first-child{padding-top:0;}
+.cust-group-cnt{font-size:11px;font-weight:700;color:var(--text3);}
 .cust-fpill{border:1px solid var(--border2);background:var(--surf2);color:var(--text2);border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .cust-fpill.on{border-color:var(--red);background:rgba(196,18,48,.12);color:var(--red2);}
 #custlist{display:flex;flex-direction:column;gap:6px;}
@@ -973,6 +980,63 @@ body.light .schrv-tag-call { color: #c03060; }
   outline: none;
   border-color: var(--indigo);
 }
+/* 당일 식사 선택 (인라인 패널 내부) */
+.schcal-meals {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.schcal-meal-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.schcal-meal-label {
+  flex: 0 0 64px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text3);
+  padding-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.schcal-meal-multi {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text3);
+  opacity: .8;
+}
+.schcal-meal-opts {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.schcal-meal-opt {
+  padding: 5px 11px;
+  font-size: 12px;
+}
+.schcal-meal-empty {
+  font-size: 11px;
+  color: var(--text3);
+  padding-top: 6px;
+}
+.schcal-meal-cfg {
+  flex-shrink: 0;
+  min-width: 30px;
+  min-height: 30px;
+  border: none;
+  background: none;
+  color: var(--text3);
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
 .schcal-inline-panel {
   overflow: hidden;
   max-height: 0;
@@ -982,7 +1046,7 @@ body.light .schrv-tag-call { color: #c03060; }
   transition: max-height 0.32s ease, opacity 0.24s ease, margin-top 0.32s ease, margin-bottom 0.32s ease;
 }
 .schcal-inline-panel.open {
-  max-height: 480px;
+  max-height: 760px;
   opacity: 1;
   margin-top: 6px;
   margin-bottom: 4px;
