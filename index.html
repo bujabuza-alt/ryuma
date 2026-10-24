@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="류마">
 <title>류마 관리</title>
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://ryuma-reservation-default-rtdb.firebaseio.com">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -225,9 +227,8 @@
 </div>
 <div id="mo"><div class="md" id="mdc"></div></div>
 <div id="mo2"><div class="md" id="mdc2"></div></div>
- 
-<!-- SheetJS: xlsx 파일 불러오기 지원 -->
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+<!-- SheetJS(xlsx 불러오기)는 용량이 커서(약 900KB) 실행 속도를 위해 필요할 때만 불러온다 (js/floor.js) -->
 <script src="js/globals.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/firebase.js"></script>

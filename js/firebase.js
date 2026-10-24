@@ -2,6 +2,9 @@
 var isSyncingFromRemote = false; // prevent listener→syncToday→saveData feedback loop
 var saveErrorModalOpen = false;
 var pendingSaveAfterReconnect = false;
+// 매장 진입 후 서버(Firebase) 데이터를 처음 받아 적용했는지 여부.
+// 로컬 캐시로 화면을 먼저 띄운 동안에는 오래된 캐시가 서버를 덮어쓰지 않도록 저장을 막는다.
+var serverLoaded = false;
 
 // ── Firebase 실시간 연결 상태 추적 ──
 // navigator.onLine은 OS 네트워크 인터페이스 상태만 알려줄 뿐, 와이파이는 켜져 있는데
@@ -104,7 +107,6 @@ function loadData() {
     if (Array.isArray(d.inventory)) S.inventory = d.inventory;
     if (Array.isArray(d.stockCats)) S.stockCats = d.stockCats;
     if (Array.isArray(d.stockUnits)) S.stockUnits = d.stockUnits;
-    if (Array.isArray(d.images)) S.images = d.images;
     if (Array.isArray(d.imageCats)) S.imageCats = d.imageCats;
     if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
     if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
@@ -238,6 +240,7 @@ function importBackupFromFile(file) {
 }
 var saveDirty = false; // saveData() 예약(디바운스 대기) 중이면 true — flushPendingSave가 참조
 function saveData() {
+  if (!serverLoaded) return; // 서버 데이터 적용 전(로컬 캐시 표시 중)에는 저장하지 않음
   saveDirty = true;
   clearTimeout(saveTimer);
   showBadge('saving');
@@ -279,7 +282,6 @@ function doActualSave() {
       inventory: S.inventory || [],
       stockCats: S.stockCats || [],
       stockUnits: S.stockUnits || [],
-      images: S.images || [],
       imageCats: S.imageCats || [],
       staffActive: S.staffActive || [],
       staffResigned: S.staffResigned || [],
@@ -373,62 +375,70 @@ function startFb() {
   fbRef.off();
   var listenStore = currentStore; // 이 리스너가 등록된 매장 기억
   fbRef.on('value', function(snap) {
-    clearTimeout(fbReconnectTimer);
-    var d = snap.val();
-    if (!d) return;
-    if (!S) return;
-    if (listenStore !== currentStore) return; // 매장 바뀌었으면 무시
-    if (d._ts && d._ts === lastSavedTs) return;
-    if (d._ts && lastSavedTs && d._ts < lastSavedTs - 1000) return;
-    if (d.tables && d.tables.length) S.tables = d.tables;
-    if (d.waits)  S.waits = d.waits;
-    if (d.ress)   S.ress  = d.ress;
-    if (d.daily)  S.daily = d.daily;
-    if (d.customers) S.customers = d.customers;
-    if (d.tags && d.tags.length) S.tags = d.tags;
-    if (Array.isArray(d.inventory)) S.inventory = d.inventory;
-    if (Array.isArray(d.stockCats) && d.stockCats.length) S.stockCats = d.stockCats;
-    if (Array.isArray(d.stockUnits) && d.stockUnits.length) S.stockUnits = d.stockUnits;
-    if (Array.isArray(d.images)) S.images = d.images;
-    if (Array.isArray(d.imageCats) && d.imageCats.length) S.imageCats = d.imageCats;
-    if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
-    if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
-    if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
-    if (Array.isArray(d.staffRecords)) S.staffRecords = d.staffRecords;
-    if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
-    if (Array.isArray(d.staffSchedule)) S.staffSchedule = d.staffSchedule;
-    if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
-    if (d.dailyMemos && typeof d.dailyMemos === 'object') S.dailyMemos = d.dailyMemos;
-    if (d.weeklyMemos && typeof d.weeklyMemos === 'object') S.weeklyMemos = d.weeklyMemos;
-    applyOrderData(d);
-    if (d.confirmItems && d.confirmItems.cats && d.confirmItems.cats.length) {
-      try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(d.confirmItems)); } catch(e) {}
-      if (typeof renderConfirmItems === 'function') renderConfirmItems();
-    }
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {}
-    S.tables.forEach(function(t){ cardCache[t.id]=''; });
-    isSyncingFromRemote = true;
-    syncToday(); renderAll();
-    isSyncingFromRemote = false;
-    if (currentTab === 'stock') renderStock();
-    if (currentTab === 'order') renderOrderTab();
-    if (currentTab === 'images') renderImagesTab();
-    if (currentTab === 'staff') renderStaffTab();
+    applyRemoteSnapshot(snap.val(), listenStore);
   }, function(err) {
-    var code = (err && err.code) || '';
-    showBadge('err');
-    setTimeout(function(){ showBadge(''); }, 8000);
-    console.error('Firebase listener error:', code, err && err.message);
-    // PERMISSION_DENIED는 재시도해도 해결되지 않으므로 루프를 멈춤
-    if (code === 'PERMISSION_DENIED') {
-      console.warn('Firebase: 쓰기 권한 없음 — Firebase 콘솔에서 보안 규칙을 확인하세요.');
-      return;
-    }
-    clearTimeout(fbReconnectTimer);
-    fbReconnectTimer = setTimeout(function() {
-      if (currentStore === listenStore) startFb();
-    }, 10000);
+    handleFbListenError(err, listenStore);
   });
+}
+// 서버에서 받은 매장 데이터 스냅샷을 화면 상태(S)에 반영
+function applyRemoteSnapshot(d, listenStore) {
+  clearTimeout(fbReconnectTimer);
+  if (!d) return;
+  if (!S) return;
+  if (listenStore !== currentStore) return; // 매장 바뀌었으면 무시
+  if (d._ts && d._ts === lastSavedTs) return;
+  if (d._ts && lastSavedTs && d._ts < lastSavedTs - 1000) return;
+  if (d.tables && d.tables.length) S.tables = d.tables;
+  if (d.waits)  S.waits = d.waits;
+  if (d.ress)   S.ress  = d.ress;
+  if (d.daily)  S.daily = d.daily;
+  if (d.customers) S.customers = d.customers;
+  if (d.tags && d.tags.length) S.tags = d.tags;
+  if (Array.isArray(d.inventory)) S.inventory = d.inventory;
+  if (Array.isArray(d.stockCats) && d.stockCats.length) S.stockCats = d.stockCats;
+  if (Array.isArray(d.stockUnits) && d.stockUnits.length) S.stockUnits = d.stockUnits;
+  if (Array.isArray(d.imageCats) && d.imageCats.length) S.imageCats = d.imageCats;
+  if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
+  if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
+  if (Array.isArray(d.staffLogs)) S.staffLogs = d.staffLogs;
+  if (Array.isArray(d.staffRecords)) S.staffRecords = d.staffRecords;
+  if (Array.isArray(d.staffFavTimes)) S.staffFavTimes = d.staffFavTimes;
+  if (Array.isArray(d.staffSchedule)) S.staffSchedule = d.staffSchedule;
+  if (d._staffLogsMigrated) S._staffLogsMigrated = d._staffLogsMigrated;
+  if (d.dailyMemos && typeof d.dailyMemos === 'object') S.dailyMemos = d.dailyMemos;
+  if (d.weeklyMemos && typeof d.weeklyMemos === 'object') S.weeklyMemos = d.weeklyMemos;
+  applyOrderData(d);
+  if (d.confirmItems && d.confirmItems.cats && d.confirmItems.cats.length) {
+    try { localStorage.setItem('confirm_items_v1_' + (currentStore||''), JSON.stringify(d.confirmItems)); } catch(e) {}
+    if (typeof renderConfirmItems === 'function') renderConfirmItems();
+  }
+  // 사진은 별도 경로(tableAppImages)로 옮겨졌다. 아직 이전되지 않은 사진 배열이 남아있으면
+  // 로컬 캐시에 넣지 않는다 (localStorage 용량 초과로 캐시 저장 자체가 실패하는 것 방지).
+  delete d.images;
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch(e) {}
+  S.tables.forEach(function(t){ cardCache[t.id]=''; });
+  isSyncingFromRemote = true;
+  syncToday(); renderAll();
+  isSyncingFromRemote = false;
+  if (currentTab === 'stock') renderStock();
+  if (currentTab === 'order') renderOrderTab();
+  if (currentTab === 'images') renderImagesTab();
+  if (currentTab === 'staff') renderStaffTab();
+}
+function handleFbListenError(err, listenStore) {
+  var code = (err && err.code) || '';
+  showBadge('err');
+  setTimeout(function(){ showBadge(''); }, 8000);
+  console.error('Firebase listener error:', code, err && err.message);
+  // PERMISSION_DENIED는 재시도해도 해결되지 않으므로 루프를 멈춤
+  if (code === 'PERMISSION_DENIED') {
+    console.warn('Firebase: 쓰기 권한 없음 — Firebase 콘솔에서 보안 규칙을 확인하세요.');
+    return;
+  }
+  clearTimeout(fbReconnectTimer);
+  fbReconnectTimer = setTimeout(function() {
+    if (currentStore === listenStore) startFb();
+  }, 10000);
 }
 function showBadge(s) {
   var el = document.getElementById('badge');

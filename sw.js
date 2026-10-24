@@ -1,14 +1,14 @@
 // ── Service Worker ────────────────────────────────────────
 // 모든 로컬 파일 → 네트워크 우선, 오프라인 시 캐시 폴백
 // CACHE_NAME을 올려서 기존 캐시(v1) 강제 삭제
-var CACHE_NAME = 'table-app-v8';
+var CACHE_NAME = 'table-app-v9';
 
 // ── 설치 ─────────────────────────────────────────────────
 self.addEventListener('install', function(event) {
   self.skipWaiting(); // 즉시 활성화
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(['./manifest.json']).catch(function() {});
+      return cache.addAll(['./manifest.json', './img/logo-black.png']).catch(function() {});
     })
   );
 });
