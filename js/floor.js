@@ -1333,14 +1333,17 @@ function buildInlinePanelHTML(date) {
 }
 
 // ── 당일 식사 선택 (식사 / 런치 국물 / 런치 반찬) ──
-// 선택지 목록: S.mealOptions = {meal:[…], soup:[…], side:[…]} (⚙에서 추가·삭제)
-// 날짜별 선택: S.dailyMeals = {'YYYY-MM-DD': {meal:[…], soup:[…], side:[…]}}
+// 세 항목을 가로 한 줄에 드롭다운으로 두고, 항목마다 하나만 골라 보여준다.
+// 선택지 목록: S.mealOptions = {meal:[…], soup:[…], side:[…]} (드롭다운의 추가/관리에서 추가·삭제)
+// 날짜별 선택: S.dailyMeals = {'YYYY-MM-DD': {meal:[값], soup:[값], side:[값]}}
+// (예전 버전에서 반찬을 여러 개 고른 기록은 첫 번째 것만 보여준다)
 // 선택지를 지워도 이미 고른 날짜의 기록은 남겨둔다.
 var MEAL_CATS = [
-  {key:'meal', label:'식사',      multi:false},
-  {key:'soup', label:'런치 국물', multi:false},
-  {key:'side', label:'런치 반찬', multi:true}
+  {key:'meal', label:'식사'},
+  {key:'soup', label:'런치 국물'},
+  {key:'side', label:'런치 반찬'}
 ];
+var MEAL_SEL_ADD = '__add__', MEAL_SEL_MGR = '__mgr__';
 function toStrList(v) {
   var arr = Array.isArray(v) ? v : (v && typeof v === 'object') ? Object.keys(v).map(function(k){ return v[k]; }) : [];
   return arr.filter(function(x){ return typeof x === 'string' && x; });
@@ -1373,37 +1376,41 @@ function buildMealSelectHTML(date) {
   var html = '<div class="schcal-meals">';
   MEAL_CATS.forEach(function(c) {
     var opts = S.mealOptions[c.key] || [];
-    var sel = day[c.key] || [];
+    var cur = (day[c.key] || [])[0] || '';
     // 선택지에서 지운 항목이라도 이 날짜에 골라둔 것은 계속 보여준다
-    var shown = opts.concat(sel.filter(function(v){ return opts.indexOf(v) < 0; }));
-    html += '<div class="schcal-meal-row">'
-      + '<div class="schcal-meal-label">'+esc(c.label)+(c.multi?'<span class="schcal-meal-multi">복수</span>':'')+'</div>'
-      + '<div class="schcal-meal-opts">'
-      + (shown.length
-        ? shown.map(function(v){
-            return '<button type="button" class="scat schcal-meal-opt'+(sel.indexOf(v)>=0?' on':'')+'" data-date="'+esc(date)+'" data-mcat="'+c.key+'" data-val="'+esc(v)+'">'+esc(v)+'</button>';
-          }).join('')
-        : '<span class="schcal-meal-empty">⚙에서 항목을 추가하세요</span>')
-      + '</div>'
-      + '<button type="button" class="schcal-meal-cfg" data-mcat="'+c.key+'" title="'+esc(c.label)+' 항목 관리" aria-label="'+esc(c.label)+' 항목 관리">⚙</button>'
-      + '</div>';
+    var shown = cur && opts.indexOf(cur) < 0 ? opts.concat([cur]) : opts;
+    html += '<label class="schcal-meal-item">'
+      + '<span class="schcal-meal-label">'+esc(c.label)+'</span>'
+      + '<select class="schcal-meal-sel'+(cur?' has':'')+'" data-date="'+esc(date)+'" data-mcat="'+c.key+'">'
+      + '<option value="">선택</option>'
+      + shown.map(function(v){ return '<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'; }).join('')
+      + '<option value="'+MEAL_SEL_ADD+'">＋ 항목 추가</option>'
+      + (opts.length ? '<option value="'+MEAL_SEL_MGR+'">⚙ 항목 관리</option>' : '')
+      + '</select>'
+      + '</label>';
   });
   return html + '</div>';
 }
-function toggleDayMeal(date, catKey, val) {
-  var cat = MEAL_CATS.filter(function(c){ return c.key === catKey; })[0];
-  if (!cat || !date) return;
+function setDayMeal(date, catKey, val) {
+  if (!date || !MEAL_CATS.some(function(c){ return c.key === catKey; })) return;
   if (!S.dailyMeals) S.dailyMeals = {};
   var day = S.dailyMeals[date] || {};
-  var sel = (day[catKey] || []).slice();
-  var i = sel.indexOf(val);
-  if (i >= 0) sel.splice(i, 1);
-  else if (cat.multi) sel.push(val);
-  else sel = [val];
-  if (sel.length) day[catKey] = sel; else delete day[catKey];
+  if (val) day[catKey] = [val]; else delete day[catKey];
   if (Object.keys(day).length) S.dailyMeals[date] = day; else delete S.dailyMeals[date];
   saveData();
   renderSchedView();
+}
+// 드롭다운에서 바로 새 항목을 추가하고 그 항목을 선택
+function addMealOptAndSelect(date, catKey) {
+  var cat = MEAL_CATS.filter(function(c){ return c.key === catKey; })[0];
+  if (!cat) return;
+  var v = prompt('새 '+cat.label+' 항목');
+  v = (v || '').trim();
+  if (!v) { renderSchedView(); return; }
+  if (!S.mealOptions) S.mealOptions = normMealOptions(null);
+  var opts = S.mealOptions[catKey] || (S.mealOptions[catKey] = []);
+  if (opts.indexOf(v) < 0) opts.push(v);
+  setDayMeal(date, catKey, v);
 }
 // 선택지 관리 모달 (추가·삭제)
 function openMealOptMgr(catKey) {
@@ -1637,17 +1644,16 @@ function renderSchedView() {
     });
   });
 
-  // 당일 식사 선택 칩 / 항목 관리
-  gEl.querySelectorAll('.schcal-meal-opt').forEach(function(el) {
-    el.addEventListener('click', function(e) {
-      e.stopPropagation();
-      toggleDayMeal(this.getAttribute('data-date'), this.getAttribute('data-mcat'), this.getAttribute('data-val'));
-    });
+  // 당일 식사 선택 (드롭다운: 선택 / 항목 추가 / 항목 관리)
+  gEl.querySelectorAll('.schcal-meal-item').forEach(function(el) {
+    el.addEventListener('click', function(e) { e.stopPropagation(); });
   });
-  gEl.querySelectorAll('.schcal-meal-cfg').forEach(function(el) {
-    el.addEventListener('click', function(e) {
-      e.stopPropagation();
-      openMealOptMgr(this.getAttribute('data-mcat'));
+  gEl.querySelectorAll('.schcal-meal-sel').forEach(function(el) {
+    el.addEventListener('change', function() {
+      var d = this.getAttribute('data-date'), cat = this.getAttribute('data-mcat'), v = this.value;
+      if (v === MEAL_SEL_ADD) addMealOptAndSelect(d, cat);
+      else if (v === MEAL_SEL_MGR) { renderSchedView(); openMealOptMgr(cat); }
+      else setDayMeal(d, cat, v);
     });
   });
 
