@@ -144,6 +144,20 @@ function deleteCustomer(phone) {
   renderCustTab();
 }
 // ── 손님 정보 불러오기 (CSV / XLSX / JSON / Notion API) ──
+// SheetJS는 약 900KB라 앱 실행 시 로딩을 막지 않도록 XLSX 파일을 불러올 때만 받는다.
+var _xlsxLibPromise = null;
+function loadXlsxLib() {
+  if (typeof XLSX !== 'undefined') return Promise.resolve();
+  if (_xlsxLibPromise) return _xlsxLibPromise;
+  _xlsxLibPromise = new Promise(function(resolve, reject) {
+    var sc = document.createElement('script');
+    sc.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
+    sc.onload = function() { resolve(); };
+    sc.onerror = function() { _xlsxLibPromise = null; sc.remove(); reject(new Error('XLSX load failed')); };
+    document.head.appendChild(sc);
+  });
+  return _xlsxLibPromise;
+}
 // 필수 필드 검증: 이름, 전화번호, (방문 날짜 또는 첫 방문 중 하나)
 function _custImportValidate(item) {
   var errs = [];
@@ -293,18 +307,23 @@ function openCustImport() {
 
     // ── XLSX / XLS ──
     if (fname.endsWith('.xlsx') || fname.endsWith('.xls')) {
-      if (typeof XLSX === 'undefined') { statusEl.textContent = 'XLSX 라이브러리 로딩 중… 잠시 후 다시 시도하세요.'; return; }
-      var arrReader = new FileReader();
-      arrReader.onload = function(e) {
-        try {
-          var wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-          var ws = wb.Sheets[wb.SheetNames[0]];
-          var rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-          var imported = rows.map(_normalizeRow);
-          _applyImportedCustomers(imported, statusEl);
-        } catch(err) { statusEl.textContent = 'XLSX 오류: ' + err.message; }
-      };
-      arrReader.readAsArrayBuffer(file);
+      statusEl.textContent = 'XLSX 라이브러리 로딩 중…';
+      loadXlsxLib().then(function() {
+        statusEl.textContent = '';
+        var arrReader = new FileReader();
+        arrReader.onload = function(e) {
+          try {
+            var wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+            var ws = wb.Sheets[wb.SheetNames[0]];
+            var rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+            var imported = rows.map(_normalizeRow);
+            _applyImportedCustomers(imported, statusEl);
+          } catch(err) { statusEl.textContent = 'XLSX 오류: ' + err.message; }
+        };
+        arrReader.readAsArrayBuffer(file);
+      }).catch(function() {
+        statusEl.textContent = 'XLSX 라이브러리를 불러오지 못했습니다. 네트워크를 확인하세요.';
+      });
       return;
     }
 

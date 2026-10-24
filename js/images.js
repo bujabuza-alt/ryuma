@@ -6,6 +6,81 @@ var IMG_QUALITY = 0.78;
 var IMG_MAX_COUNT = 150;  // Firebase/로컬 저장 용량 보호를 위한 최대 보관 장수
 var DEFAULT_IMAGE_CATS = ['메뉴','매장','기타'];
 
+// ── 사진 저장 위치: tableAppImages/{매장}/{사진 id} ──
+// 사진(base64)은 용량이 커서 매장 데이터(tableApp/{매장})와 같이 두면 앱을 켤 때마다,
+// 그리고 무엇이든 저장할 때마다 사진 전체를 주고받게 된다. 그래서 별도 경로에 사진 1장당
+// 노드 1개로 저장하고, 이미지 탭을 열 때만 불러온다. (분류 목록 imageCats는 작아서 매장 데이터에 둔다)
+var imgListenRef = null; // 현재 붙어있는 사진 리스너
+var imgLoaded = false;   // 현재 매장의 사진을 서버에서 한 번이라도 받았는지
+var imgLoadError = false;
+
+function imgRef(store) { return fbDb.ref('tableAppImages/' + (store || currentStore)); }
+// Firebase 키에 쓸 수 없는 문자( . # $ [ ] / )는 바꿔서 사용
+function imgKey(id) { return String(id || uid()).replace(/[.#$\[\]\/]/g, '_'); }
+
+// 매장 전환/로그아웃 시 사진 리스너와 상태 초기화
+function resetImagesState() {
+  if (imgListenRef) imgListenRef.off();
+  imgListenRef = null;
+  imgLoaded = false;
+  imgLoadError = false;
+  if (S) S.images = [];
+}
+
+// 이미지 탭을 처음 열 때 사진을 불러오고, 이후엔 다른 기기의 변경을 실시간 반영
+function ensureImagesLoaded() {
+  if (imgListenRef || !currentStore) return;
+  var store = currentStore;
+  imgLoadError = false;
+  imgListenRef = imgRef(store);
+  imgListenRef.on('value', function(snap) {
+    if (store !== currentStore) return;
+    var v = snap.val() || {};
+    S.images = Object.keys(v).map(function(k) { return v[k]; }).filter(function(im) { return im && im.dataUrl; });
+    imgLoaded = true;
+    if (currentTab === 'images') renderImagesTab();
+  }, function(err) {
+    console.error('Image listener error:', err && err.code, err && err.message);
+    if (store !== currentStore) return;
+    imgListenRef = null;
+    imgLoadError = true;
+    if (currentTab === 'images') renderImagesTab();
+  });
+}
+
+// 사진 쓰기 실패 알림 (오프라인이면 SDK가 대기열에 넣었다가 연결되면 저장한다)
+function imgWrite(promise) {
+  return promise.catch(function(err) {
+    console.error('Image save failed:', err && err.code, err && err.message);
+    showToast('사진 저장에 실패했습니다. 네트워크를 확인해주세요.');
+  });
+}
+
+// 구버전 구조(tableApp/{매장}/images 배열)에 남아있는 사진을 새 경로로 옮긴다.
+// 새 경로 쓰기가 성공한 뒤에만 옛 위치를 지우므로, 중간에 실패해도 사진이 사라지지 않고
+// 다음 실행 때 다시 시도한다. 같은 id는 덮어쓰기만 하므로 여러 번 실행돼도 안전하다.
+function migrateImagesOut(store, images) {
+  var arr = Array.isArray(images) ? images : Object.keys(images || {}).map(function(k) { return images[k]; });
+  var upd = {};
+  arr.forEach(function(im) {
+    if (!im || !im.dataUrl) return;
+    var key = imgKey(im.id);
+    var copy = {};
+    Object.keys(im).forEach(function(k) { if (im[k] !== undefined) copy[k] = im[k]; });
+    copy.id = key;
+    upd[key] = copy;
+  });
+  var oldRef = fbDb.ref('tableApp/' + store + '/images');
+  var p = Object.keys(upd).length ? imgRef(store).update(upd) : Promise.resolve();
+  p.then(function() {
+    return oldRef.remove();
+  }).then(function() {
+    console.log('사진 이전 완료: tableApp/' + store + '/images → tableAppImages/' + store + ' (' + Object.keys(upd).length + '장)');
+  }).catch(function(err) {
+    console.error('사진 이전 실패 (다음 실행 때 다시 시도):', err && err.message);
+  });
+}
+
 // 업로드한 이미지를 캔버스로 축소·재압축하여 dataURL로 반환
 function compressImageFile(file) {
   return new Promise(function(resolve, reject) {
@@ -55,6 +130,12 @@ function renderImagesTab() {
   if (!S.images) S.images = [];
   if (!S.imageCats || !S.imageCats.length) S.imageCats = DEFAULT_IMAGE_CATS.slice();
   renderImageCats();
+  if (!imgLoaded) {
+    ensureImagesLoaded();
+    if (cntEl) cntEl.textContent = '';
+    grid.innerHTML = '<div class="img-empty">' + (imgLoadError ? '사진을 불러오지 못했습니다. 네트워크 확인 후 탭을 다시 열어주세요.' : '사진 불러오는 중…') + '</div>';
+    return;
+  }
   var list = getImageList();
   if (cntEl) cntEl.textContent = '총 ' + S.images.length + '장';
   if (!list.length) {
@@ -150,8 +231,11 @@ function renameImageCat(idx) {
   v = v.trim();
   if (!v || v === oldName) return;
   if (S.imageCats.indexOf(v) >= 0) { showToast('이미 있는 분류입니다'); return; }
+  if (!imgLoaded) { showToast('사진을 불러온 뒤 다시 시도해주세요'); return; }
   S.imageCats[idx] = v;
-  (S.images||[]).forEach(function(im) { if (im.cat === oldName) im.cat = v; });
+  var upd = {};
+  (S.images||[]).forEach(function(im) { if (im.cat === oldName) { im.cat = v; upd[im.id + '/cat'] = v; } });
+  if (Object.keys(upd).length) imgWrite(imgRef().update(upd));
   if (imgCatTab === oldName) imgCatTab = v;
   saveData();
   renderImageCatMgrModal();
@@ -161,13 +245,16 @@ function renameImageCat(idx) {
 function removeImageCat(idx) {
   if (!S.imageCats) return;
   var name = S.imageCats[idx];
+  if (!imgLoaded) { showToast('사진을 불러온 뒤 다시 시도해주세요'); return; }
   var cnt = (S.images||[]).filter(function(im) { return im.cat === name; }).length;
   var msg = cnt > 0
     ? '"' + name + '" 분류를 삭제할까요?\n이 분류를 사용 중인 이미지 ' + cnt + '장은 "미분류"로 표시됩니다.'
     : '"' + name + '" 분류를 삭제할까요?';
   if (!confirm(msg)) return;
   S.imageCats.splice(idx, 1);
-  (S.images||[]).forEach(function(im) { if (im.cat === name) im.cat = ''; });
+  var upd = {};
+  (S.images||[]).forEach(function(im) { if (im.cat === name) { im.cat = ''; upd[im.id + '/cat'] = ''; } });
+  if (Object.keys(upd).length) imgWrite(imgRef().update(upd));
   if (imgCatTab === name) imgCatTab = '전체';
   saveData();
   renderImageCatMgrModal();
@@ -176,6 +263,7 @@ function removeImageCat(idx) {
 
 function handleImageUpload(files) {
   if (!files || !files.length) return;
+  if (!imgLoaded) { showToast('사진을 불러오는 중입니다. 잠시 후 다시 시도해주세요'); return; }
   if (!S.images) S.images = [];
   if (S.images.length >= IMG_MAX_COUNT) {
     alert('최대 ' + IMG_MAX_COUNT + '장까지 저장할 수 있습니다. 기존 이미지를 삭제한 뒤 다시 시도하세요.');
@@ -194,7 +282,9 @@ function handleImageUpload(files) {
       return;
     }
     compressImageFile(file).then(function(dataUrl) {
-      S.images.push({ id: uid(), name: file.name, dataUrl: dataUrl, memo: '', ts: Date.now() });
+      var im = { id: imgKey(uid()), name: file.name, dataUrl: dataUrl, memo: '', ts: Date.now() };
+      S.images.push(im);
+      imgWrite(imgRef().child(im.id).set(im));
       added++;
       remaining--;
       if (remaining === 0) finish();
@@ -205,7 +295,6 @@ function handleImageUpload(files) {
   });
   function finish() {
     if (added > 0) {
-      saveData();
       renderImagesTab();
       showToast(added + '장의 이미지가 저장되었습니다');
     }
@@ -215,7 +304,7 @@ function handleImageUpload(files) {
 function deleteImage(id) {
   if (!confirm('이 이미지를 삭제하시겠습니까?')) return;
   S.images = (S.images||[]).filter(function(im) { return im.id !== id; });
-  saveData();
+  imgWrite(imgRef().child(id).remove());
   renderImagesTab();
   closeModal();
 }
@@ -226,7 +315,7 @@ function renameImage(id) {
   var next = (prompt('이미지 이름 변경', im.name) || '').trim();
   if (!next || next === im.name) return;
   im.name = next;
-  saveData();
+  imgWrite(imgRef().child(id).update({ name: next }));
   renderImagesTab();
   openImageViewer(id);
   showToast('이름이 변경되었습니다');
@@ -284,7 +373,7 @@ function openImageViewer(id) {
   document.getElementById('img-memo-save').addEventListener('click', function() {
     im.memo = document.getElementById('img-memo-input').value.trim();
     im.cat = document.getElementById('img-cat-select').value;
-    saveData();
+    imgWrite(imgRef().child(id).update({ memo: im.memo, cat: im.cat }));
     closeModal();
     renderImagesTab();
     showToast('저장되었습니다');

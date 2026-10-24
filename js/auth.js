@@ -16,6 +16,8 @@ function doEnter(store) {
   STORAGE_KEY  = 'tv5_' + store;
   if (fbRef) fbRef.off();
   fbRef = null;
+  serverLoaded = false;
+  resetImagesState();
   lastSavedTs = 0;  // 매장 전환 시 반드시 초기화
   clearTimeout(fbReconnectTimer); fbReconnectTimer = null;
   fbRef = fbDb.ref('tableApp/' + store);
@@ -47,10 +49,41 @@ function doEnter(store) {
   showBadge('saving');
   document.getElementById('badge').textContent = '불러오는 중…';
 
-  // ── 새 경로(tableApp/store) 확인 후 비어있으면 구버전(tableApp) 마이그레이션 ──
-  fbRef.once('value').then(function(newSnap) {
-    var newData = newSnap.val();
+  // ── 로컬 캐시가 있으면 화면부터 바로 띄운다 ──
+  // 서버 응답을 기다리는 동안 빈 화면 대신 마지막으로 본 데이터를 보여준다.
+  // 서버 데이터가 도착하면(아래 첫 스냅샷) 그 값으로 덮어쓴다. 그 전까지는 saveData()가
+  // 막혀 있어서(serverLoaded=false) 오래된 캐시가 서버를 덮어쓰는 일은 없다.
+  var shownFromCache = false;
+  try {
+    var cached = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (cached && Array.isArray(cached.tables) && cached.tables.length) {
+      loadData();
+      shownFromCache = true;
+      syncToday();
+      switchTab('floor');
+      document.getElementById('wrap').style.display = '';
+      document.getElementById('badge').textContent = '불러오는 중…';
+    }
+  } catch(e) { shownFromCache = false; }
 
+  // ── 실시간 리스너 하나로 첫 로딩과 이후 동기화를 모두 처리 ──
+  // (과거엔 once('value')로 전체 데이터를 받은 뒤 on('value')를 새로 붙여 같은 데이터를
+  //  한 번 더 내려받았다 → 실행할 때마다 다운로드가 두 배였다.)
+  var gotFirst = false;
+  fbRef.on('value', function(snap) {
+    if (store !== currentStore) return;
+    if (gotFirst) { applyRemoteSnapshot(snap.val(), store); return; }
+    gotFirst = true;
+    onFirstSnapshot(snap.val());
+  }, function(err) {
+    if (!gotFirst && store === currentStore) {
+      gotFirst = true;
+      bootOffline();
+    }
+    handleFbListenError(err, store);
+  });
+
+  function onFirstSnapshot(newData) {
     // 이 기기의 로컬 캐시를 먼저 baseline으로 채워둔다. 아래 applyData()가
     // 방금 받아온 서버(Firebase)의 실제 값으로 다시 덮어써서, 이 기기의
     // 로컬 캐시가 오래됐거나 비어있어도(신규 기기 등) 서버 값이 항상 이기도록 한다.
@@ -58,6 +91,9 @@ function doEnter(store) {
     // 서버에 있던 최신 태그/데이터가 이 기기의 오래된 로컬 캐시로 되돌려써진 뒤
     // 저장 시 서버까지 덮어써버리는 데이터 유실 버그가 있었다.)
     loadData();
+
+    // 매장 데이터 안에 남아있는 사진(구버전 구조)을 별도 경로로 옮긴다
+    if (newData && newData.images) migrateImagesOut(store, newData.images);
 
     function applyData(d) {
       if (!d) return;
@@ -70,7 +106,6 @@ function doEnter(store) {
       if (Array.isArray(d.inventory)) S.inventory = d.inventory;
       if (Array.isArray(d.stockCats) && d.stockCats.length) S.stockCats = d.stockCats;
       if (Array.isArray(d.stockUnits) && d.stockUnits.length) S.stockUnits = d.stockUnits;
-      if (Array.isArray(d.images)) S.images = d.images;
       if (Array.isArray(d.imageCats) && d.imageCats.length) S.imageCats = d.imageCats;
       if (Array.isArray(d.staffActive)) S.staffActive = d.staffActive;
       if (Array.isArray(d.staffResigned)) S.staffResigned = d.staffResigned;
@@ -85,6 +120,8 @@ function doEnter(store) {
     }
 
     function boot() {
+      // 서버 데이터 적용 완료 → 이제부터 저장 허용
+      serverLoaded = true;
       // ── localStorage 구버전 키(tv5)도 확인 ──
       try {
         var oldLocal = JSON.parse(localStorage.getItem('tv5') || 'null');
@@ -110,10 +147,13 @@ function doEnter(store) {
       seedOrderDataIfNeeded();
       showBadge('');
       syncToday();
-      // 진입 시 항상 홈 탭으로 이동
-      switchTab('floor');
-      startFb();
+      // 진입 시 항상 홈 탭으로 이동 (캐시로 먼저 띄웠다면 그 사이 사용자가 옮긴 탭 유지)
+      if (!shownFromCache) switchTab('floor');
+      else renderAll();
       document.getElementById('wrap').style.display = '';
+      // 받은 스냅샷을 실시간 리스너와 같은 경로(applyRemoteSnapshot)로 한 번 더 반영해
+      // 로컬 캐시·확인 사항까지 갱신한다 (기존 startFb() 첫 콜백과 동일한 동작).
+      applyRemoteSnapshot(newData, store);
     }
 
     if (newData && newData.tables && newData.tables.length) {
@@ -139,22 +179,30 @@ function doEnter(store) {
         boot();
       }).catch(function() { boot(); });
     }
-  }).catch(function() {
+  }
+
+  // 서버 연결 자체가 실패한 경우: 로컬 캐시로 동작 (기존과 동일)
+  function bootOffline() {
     loadData();
     var init = store === 'covent' ? INIT_COVENT : INIT_PARAGON;
     if (!S.tables.length) S.tables = init.map(mkTable);
     if (!S.daily) S.daily = [];
     if (!S.tags || !S.tags.length) S.tags = DEFAULT_TAGS.slice();
+    serverLoaded = true;
     showBadge('');
-    syncToday(); switchTab('floor'); startFb();
+    syncToday();
+    if (!shownFromCache) switchTab('floor');
+    else renderAll();
     document.getElementById('wrap').style.display = '';
-  });
+  }
 }
 function logout() {
   clearTimeout(saveTimer);
   pendingSaveAfterReconnect = false;
   closeSaveErrorModal();
   if (fbRef) { fbRef.off(); fbRef = null; }
+  serverLoaded = false;
+  resetImagesState();
   currentStore = null;
   S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{},orderProducts:[],orderItems:[],orderHistory:[],orderInit:false};
   cardCache = {};
