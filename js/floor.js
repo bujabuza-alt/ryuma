@@ -143,289 +143,6 @@ function deleteCustomer(phone) {
   saveData();
   renderCustTab();
 }
-// ── 손님 정보 불러오기 (CSV / XLSX / JSON / Notion API) ──
-// SheetJS는 약 900KB라 앱 실행 시 로딩을 막지 않도록 XLSX 파일을 불러올 때만 받는다.
-var _xlsxLibPromise = null;
-function loadXlsxLib() {
-  if (typeof XLSX !== 'undefined') return Promise.resolve();
-  if (_xlsxLibPromise) return _xlsxLibPromise;
-  _xlsxLibPromise = new Promise(function(resolve, reject) {
-    var sc = document.createElement('script');
-    sc.src = 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';
-    sc.onload = function() { resolve(); };
-    sc.onerror = function() { _xlsxLibPromise = null; sc.remove(); reject(new Error('XLSX load failed')); };
-    document.head.appendChild(sc);
-  });
-  return _xlsxLibPromise;
-}
-// 필수 필드 검증: 이름, 전화번호, (방문 날짜 또는 첫 방문 중 하나)
-function _custImportValidate(item) {
-  var errs = [];
-  if (!item.name || !item.name.trim()) errs.push('이름 누락');
-  if (!item.phone || !item.phone.trim()) errs.push('전화번호 누락');
-  if (!(item.visitDate && item.visitDate.trim()) && !(item.firstVisit && item.firstVisit.trim())) errs.push('방문 날짜(또는 첫 방문) 누락');
-  return errs;
-}
-
-// CSV 한 줄 파싱 (쉼표·따옴표로 감싼 필드, 이스케이프된 "" 지원)
-function _parseCsvLine(line) {
-  var out = [], cur = '', inQuotes = false;
-  for (var i = 0; i < line.length; i++) {
-    var ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (line[i+1] === '"') { cur += '"'; i++; }
-        else inQuotes = false;
-      } else cur += ch;
-    } else {
-      if (ch === '"') inQuotes = true;
-      else if (ch === ',') { out.push(cur); cur = ''; }
-      else cur += ch;
-    }
-  }
-  out.push(cur);
-  return out;
-}
-
-// CSV/XLSX/JSON 행 → 고객 객체 정규화
-function _normalizeRow(row) {
-  return {
-    name:       (row['이름'] || row['name'] || row['성명'] || '').trim(),
-    phone:      (row['전화번호'] || row['phone'] || row['연락처'] || row['휴대폰'] || '').trim(),
-    visitDate:  (row['방문 날짜'] || row['방문날짜'] || row['visit_date'] || row['visitDate'] || row['날짜'] || '').trim(),
-    firstVisit: (row['첫 방문'] || row['첫방문'] || row['first_visit'] || row['firstVisit'] || '').trim(),
-    lastVisit:  (row['마지막 방문'] || row['마지막방문'] || row['last_visit'] || row['lastVisit'] || '').trim(),
-    visitCount: (row['방문 횟수'] || row['방문횟수'] || row['visit_count'] || row['visitCount'] || '').trim(),
-    memo:       (row['메모'] || row['memo'] || row['특이사항'] || '').trim()
-  };
-}
-
-// 검증 오류가 없는 항목 필터 후 기존 고객에 병합 저장
-function _applyImportedCustomers(imported, statusEl) {
-  var valid = [], skipped = 0;
-  imported.forEach(function(item) {
-    var errs = _custImportValidate(item);
-    if (errs.length) { skipped++; return; }
-    valid.push(item);
-  });
-  if (!valid.length) {
-    statusEl.textContent = '유효한 데이터가 없습니다. 이름·전화번호·방문 날짜(또는 첫 방문)를 확인하세요. (건너뜀: ' + skipped + '건)';
-    return;
-  }
-  if (!S.customers) S.customers = [];
-  var existingPhones = {};
-  S.customers.forEach(function(c){ if (!c.deleted) existingPhones[c.phone] = true; });
-  var added = 0;
-  valid.forEach(function(item) {
-    if (!existingPhones[item.phone]) {
-      S.customers.push({
-        phone: item.phone, name: item.name, memo: item.memo,
-        visitDate: item.visitDate,
-        impFirst: item.firstVisit, impLast: item.lastVisit,
-        impCount: item.visitCount ? (parseInt(item.visitCount, 10) || 0) : 0
-      });
-      existingPhones[item.phone] = true;
-      added++;
-    }
-  });
-  saveData();
-  closeModal();
-  renderCustTab();
-  var msg = added + '명 추가 완료';
-  if (skipped) msg += ' (필수 항목 누락으로 ' + skipped + '건 건너뜀)';
-  alert(msg);
-}
-
-// 손님 불러오기 예시 CSV 다운로드 (엑셀에서 열어 형식 확인 후 채워서 재업로드)
-function downloadCustImportSample() {
-  var BOM = '\uFEFF';
-  var header = '이름,전화번호,첫 방문,마지막 방문,방문 횟수,메모\n';
-  var rows = [
-    ['홍길동', '010-1234-5678', '2024-01-15', '2024-06-20', '5', '창가 자리 선호'],
-    ['김영희', '010-9876-5432', '2024-03-02', '2024-03-02', '1', '']
-  ].map(function(r) {
-    return r.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',');
-  }).join('\n');
-  var blob = new Blob([BOM + header + rows], {type: 'text/csv;charset=utf-8'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url; a.download = '손님_불러오기_예시.csv'; a.click();
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-}
-
-function openCustImport() {
-  var notionToken = (typeof getNotionToken === 'function') ? getNotionToken() : (localStorage.getItem('ryuma_notion_token') || '');
-  showModal(
-    '<div class="md-hd"><span class="md-title">손님 정보 불러오기</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
-    +'<div class="mb">'
-    +'<div style="font-size:12px;color:var(--text2);line-height:1.6;background:var(--surf2);border-radius:8px;padding:9px 11px;margin-bottom:10px">'
-    +'<b>지원 형식:</b> CSV · XLSX · JSON<br>'
-    +'<b>필수 열:</b> 이름, 전화번호 (+ 첫 방문 또는 방문 날짜 중 하나)<br>'
-    +'<b>선택 열:</b> 마지막 방문, 방문 횟수, 메모'
-    +'<div style="overflow-x:auto;margin-top:8px;border-radius:6px;border:1px solid var(--border)">'
-      +'<table style="border-collapse:collapse;width:100%;font-size:10.5px;white-space:nowrap">'
-        +'<tr style="background:var(--surf3)">'
-          +'<th style="padding:4px 7px;text-align:left">이름</th>'
-          +'<th style="padding:4px 7px;text-align:left">전화번호</th>'
-          +'<th style="padding:4px 7px;text-align:left">첫 방문</th>'
-          +'<th style="padding:4px 7px;text-align:left">마지막 방문</th>'
-          +'<th style="padding:4px 7px;text-align:left">방문 횟수</th>'
-          +'<th style="padding:4px 7px;text-align:left">메모</th>'
-        +'</tr>'
-        +'<tr>'
-          +'<td style="padding:4px 7px">홍길동</td>'
-          +'<td style="padding:4px 7px">010-1234-5678</td>'
-          +'<td style="padding:4px 7px">2024-01-15</td>'
-          +'<td style="padding:4px 7px">2024-06-20</td>'
-          +'<td style="padding:4px 7px">5</td>'
-          +'<td style="padding:4px 7px">창가 자리 선호</td>'
-        +'</tr>'
-      +'</table>'
-    +'</div>'
-    +'</div>'
-    +'<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-bottom:8px" id="cust-import-sample-btn">📄 예시 엑셀(CSV) 다운로드</button>'
-    +'<input type="file" id="cust-import-file" accept=".csv,.xlsx,.xls,.json,.txt" style="width:100%;padding:8px;border:1px solid var(--border2);border-radius:8px;background:var(--surf2);color:var(--text);font-family:inherit;font-size:12px;cursor:pointer;margin-bottom:6px">'
-    +'<div id="cust-import-status" style="font-size:11px;color:var(--red);min-height:16px;text-align:center;margin-bottom:6px"></div>'
-    +'<button class="ab" style="background:var(--blue);width:100%;margin-bottom:8px" id="cust-import-btn">파일 불러오기</button>'
-    +(notionToken
-      ? '<button class="ab" style="background:#2e2e2e;width:100%" id="cust-notion-import-btn">☁ Notion에서 손님 가져오기</button>'
-        +'<input class="fi" id="cust-notion-db-id" placeholder="Notion DB ID (손님 데이터베이스)" style="margin-top:6px;font-size:12px">'
-      : '<div style="font-size:11px;color:var(--text3);text-align:center">⚙ 설정에서 Notion 토큰을 등록하면 Notion DB 불러오기도 사용 가능합니다.</div>'
-    )
-    +'</div>'
-  );
-
-  // ── 파일 불러오기 (CSV / XLSX / JSON) ──
-  document.getElementById('cust-import-sample-btn').addEventListener('click', downloadCustImportSample);
-
-  document.getElementById('cust-import-btn').addEventListener('click', function() {
-    var fileInput = document.getElementById('cust-import-file');
-    var statusEl  = document.getElementById('cust-import-status');
-    if (!fileInput.files.length) { statusEl.textContent = '파일을 선택하세요'; return; }
-    var file = fileInput.files[0];
-    var fname = file.name.toLowerCase();
-
-    // ── XLSX / XLS ──
-    if (fname.endsWith('.xlsx') || fname.endsWith('.xls')) {
-      statusEl.textContent = 'XLSX 라이브러리 로딩 중…';
-      loadXlsxLib().then(function() {
-        statusEl.textContent = '';
-        var arrReader = new FileReader();
-        arrReader.onload = function(e) {
-          try {
-            var wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-            var ws = wb.Sheets[wb.SheetNames[0]];
-            var rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-            var imported = rows.map(_normalizeRow);
-            _applyImportedCustomers(imported, statusEl);
-          } catch(err) { statusEl.textContent = 'XLSX 오류: ' + err.message; }
-        };
-        arrReader.readAsArrayBuffer(file);
-      }).catch(function() {
-        statusEl.textContent = 'XLSX 라이브러리를 불러오지 못했습니다. 네트워크를 확인하세요.';
-      });
-      return;
-    }
-
-    // ── CSV / JSON ──
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var text = e.target.result.replace(/^﻿/, '');
-      var imported = [];
-      try {
-        if (fname.endsWith('.json')) {
-          var data = JSON.parse(text);
-          if (!Array.isArray(data)) throw new Error('JSON 배열 형식이 아닙니다');
-          imported = data.map(_normalizeRow);
-        } else {
-          // CSV: 첫 줄을 헤더로 파싱 (따옴표로 감싼 필드 지원)
-          var lines = text.split(/\r?\n/);
-          if (!lines.length) { statusEl.textContent = '빈 파일입니다'; return; }
-          var headers = _parseCsvLine(lines[0]).map(function(h){ return h.trim(); });
-          for (var i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
-            var parts = _parseCsvLine(lines[i]);
-            var row = {};
-            headers.forEach(function(h, idx){ row[h] = (parts[idx]||'').trim(); });
-            imported.push(_normalizeRow(row));
-          }
-        }
-        _applyImportedCustomers(imported, statusEl);
-      } catch(err) { statusEl.textContent = '오류: ' + err.message; }
-    };
-    reader.readAsText(file, 'utf-8');
-  });
-
-  // ── Notion DB 불러오기 ──
-  var notionBtn = document.getElementById('cust-notion-import-btn');
-  if (notionBtn) {
-    notionBtn.addEventListener('click', function() {
-      var statusEl = document.getElementById('cust-import-status');
-      var dbIdEl   = document.getElementById('cust-notion-db-id');
-      var dbId     = (dbIdEl ? dbIdEl.value.trim() : '') || NOTION_CUST_DB_ID || '';
-      if (!dbId) { statusEl.textContent = 'Notion 손님 DB ID를 입력하세요'; return; }
-      var token = (typeof getNotionToken === 'function') ? getNotionToken() : localStorage.getItem('ryuma_notion_token');
-      if (!token) { statusEl.textContent = 'Notion 토큰이 없습니다. 설정에서 등록하세요.'; return; }
-      statusEl.style.color = 'var(--text2)';
-      statusEl.textContent = 'Notion에서 불러오는 중…';
-      notionBtn.disabled = true;
-
-      // Notion 데이터베이스 쿼리 (페이지당 최대 100건, 페이지네이션 처리)
-      function fetchNotionPage(cursor) {
-        var body = {page_size: 100};
-        if (cursor) body.start_cursor = cursor;
-        return fetch('https://api.notion.com/v1/databases/' + dbId + '/query', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + token,
-            'Notion-Version': '2022-06-28',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(body)
-        }).then(function(r){
-          if (r.status === 401) { localStorage.removeItem('ryuma_notion_token'); throw new Error('Notion 토큰이 만료됐습니다. 설정에서 재등록하세요.'); }
-          if (!r.ok) throw new Error('Notion API 오류: ' + r.status);
-          return r.json();
-        });
-      }
-
-      // 모든 페이지 순차 수집
-      var allRows = [];
-      function collectAll(cursor) {
-        fetchNotionPage(cursor).then(function(data) {
-          (data.results || []).forEach(function(page) {
-            var props = page.properties || {};
-            function getText(p) {
-              if (!p) return '';
-              if (p.type === 'title') return (p.title||[]).map(function(t){return t.plain_text||'';}).join('').trim();
-              if (p.type === 'rich_text') return (p.rich_text||[]).map(function(t){return t.plain_text||'';}).join('').trim();
-              if (p.type === 'phone_number') return (p.phone_number||'').trim();
-              if (p.type === 'date') return p.date ? (p.date.start||'').trim() : '';
-              return '';
-            }
-            allRows.push({
-              name:      getText(props['이름'] || props['name'] || props['Name']),
-              phone:     getText(props['전화번호'] || props['연락처'] || props['phone'] || props['Phone']),
-              visitDate: getText(props['방문 날짜'] || props['방문날짜'] || props['visit_date'] || props['날짜']),
-              memo:      getText(props['메모'] || props['memo'] || props['특이사항'])
-            });
-          });
-          if (data.has_more && data.next_cursor) {
-            collectAll(data.next_cursor);
-          } else {
-            notionBtn.disabled = false;
-            _applyImportedCustomers(allRows, statusEl);
-          }
-        }).catch(function(err) {
-          notionBtn.disabled = false;
-          statusEl.style.color = 'var(--red)';
-          statusEl.textContent = err.message;
-        });
-      }
-      collectAll(null);
-    });
-  }
-}
 function openRvActionMenu() {
   showModal('<div class="md-hd"><span class="md-title">예약 추가</span><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
     +'<div class="mb">'
@@ -435,16 +152,117 @@ function openRvActionMenu() {
   document.getElementById('rv-menu-new').addEventListener('click', function(){ closeModal(); setTimeout(openAddRv, 100); });
   document.getElementById('rv-menu-img').addEventListener('click', function(){ closeModal(); setTimeout(openNaverImport, 100); });
 }
+// ── 손님 목록 정렬·묶음 ──
+// 정렬 기준별로 손님을 묶어 탭으로 보여준다: 방문 횟수 → 횟수별, 최근 방문 → 월별, 이름 → ㄱㄴㄷ별.
+// custSortRev가 true면 묶음 순서와 묶음 안의 순서를 모두 거꾸로 보여준다. (기기별로 기억)
+var custSortRev = false;
+var custGroupTab = '전체';
+var CUST_SORT_PREF_KEY = 'ryuma_cust_sort';
+var HANGUL_CHO = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+var HANGUL_CHO_MERGE = {'ㄲ':'ㄱ','ㄸ':'ㄷ','ㅃ':'ㅂ','ㅆ':'ㅅ','ㅉ':'ㅈ'}; // 된소리는 예사소리 묶음에 포함
+var CUST_NAME_GROUPS = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','A-Z','기타'];
+var CUST_SORT_DIR_LABELS = {
+  visits: ['많은 순','적은 순'],
+  recent: ['최신 순','오래된 순'],
+  name:   ['ㄱ→ㅎ','ㅎ→ㄱ']
+};
+
+function loadCustSortPref() {
+  try {
+    var p = JSON.parse(localStorage.getItem(CUST_SORT_PREF_KEY) || '{}');
+    var sortEl = document.getElementById('custsort');
+    if (sortEl && CUST_SORT_DIR_LABELS[p.by]) sortEl.value = p.by;
+    custSortRev = !!p.rev;
+  } catch(e) {}
+}
+function saveCustSortPref() {
+  var sortEl = document.getElementById('custsort');
+  try { localStorage.setItem(CUST_SORT_PREF_KEY, JSON.stringify({by: sortEl ? sortEl.value : 'visits', rev: custSortRev})); } catch(e) {}
+}
+function setCustSort() {
+  custGroupTab = '전체';
+  saveCustSortPref();
+  renderCustTab();
+}
+function toggleCustSortDir() {
+  custSortRev = !custSortRev;
+  saveCustSortPref();
+  renderCustTab();
+}
+
+// 이름 첫 글자의 초성 묶음 (한글 → ㄱ~ㅎ, 영문 → A-Z, 그 외 → 기타)
+function custNameGroup(name) {
+  var ch = (name || '').trim().charAt(0);
+  if (!ch) return '기타';
+  var code = ch.charCodeAt(0);
+  if (code >= 0xAC00 && code <= 0xD7A3) {
+    var cho = HANGUL_CHO[Math.floor((code - 0xAC00) / 588)];
+    return HANGUL_CHO_MERGE[cho] || cho;
+  }
+  if (HANGUL_CHO_MERGE[ch]) return HANGUL_CHO_MERGE[ch];
+  if (CUST_NAME_GROUPS.indexOf(ch) >= 0) return ch;
+  if (/[a-z]/i.test(ch)) return 'A-Z';
+  return '기타';
+}
+
+// 정렬 기준별 묶음 정보: key(탭 구분), label(표시), rank(기본 정렬에서 작은 값이 먼저)
+function custGroupOf(c, sortBy) {
+  if (sortBy === 'visits') {
+    var n = Math.min(c.total || 0, 10);
+    return { key: 'v' + n, label: n >= 10 ? '10회 이상' : n > 0 ? n + '회' : '방문 없음', rank: -n };
+  }
+  if (sortBy === 'recent') {
+    if (!c.last) return { key: 'none', label: '방문 없음', rank: 1 };
+    var ym = c.last.slice(0, 7);
+    return { key: ym, label: ym.slice(2, 4) + '년 ' + parseInt(ym.slice(5, 7), 10) + '월', rank: -parseInt(ym.replace('-', ''), 10) };
+  }
+  var g = custNameGroup(c.name);
+  return { key: g, label: g, rank: CUST_NAME_GROUPS.indexOf(g) };
+}
+function custCompare(a, b, sortBy) {
+  var d = a._grp.rank - b._grp.rank;
+  if (!d && sortBy === 'visits') d = (b.total || 0) - (a.total || 0);
+  if (!d && sortBy === 'recent') d = (b.last || '') > (a.last || '') ? 1 : (b.last || '') < (a.last || '') ? -1 : 0;
+  if (!d) d = (a.name || a.phone || '').localeCompare(b.name || b.phone || '', 'ko');
+  return d;
+}
+
+function custCardHtml(c) {
+  var av=(c.name||c.phone||'?').charAt(0);
+  return '<div class="cust-card" data-phone="'+esc(c.phone)+'" data-name="'+esc(c.name||'')+'">'
+    +'<div class="cust-av">'+esc(av)+'</div>'
+    +'<div class="cust-main">'
+    +'<div class="cust-name">'+esc(c.name||c.phone)+'</div>'
+    +'<div class="cust-phone">'+esc(c.phone)+'</div>'
+    +'<div class="cust-meta">'
+    +(c.first?'<div class="cust-meta-item">첫 방문 <b>'+fmtDateShort(c.first)+'</b></div>':'')
+    +(c.last&&c.last!==c.first?'<div class="cust-meta-item">최근 <b>'+fmtDateShort(c.last)+'</b></div>':'')
+    +(c.memo?'<div class="cust-meta-item">📝 '+esc(c.memo.slice(0,24))+'</div>':'')
+    +'</div>'
+    +'</div>'
+    +(c.total>0?'<div class="cust-badge">'+c.total+'회</div>':'<div class="cust-no-visit">방문 없음</div>')
+    +'<button class="cust-del-btn" data-phone="'+esc(c.phone)+'">삭제</button>'
+    +'</div>';
+}
+
 function renderCustTab() {
   var q = (document.getElementById('custsrch').value||'').trim().toLowerCase();
   var sortEl = document.getElementById('custsort');
-  // Show sort control only in active-customer mode
-  if (sortEl) sortEl.style.display = custFilterMode === 'active' ? '' : 'none';
+  var dirEl = document.getElementById('custsort-dir');
+  var groupsEl = document.getElementById('cust-groups');
+  var totalEl = document.getElementById('cust-total');
+  var isActive = custFilterMode === 'active';
+  // 정렬·묶음 탭은 손님 목록에서만 표시
+  if (sortEl) sortEl.style.display = isActive ? '' : 'none';
+  if (dirEl) dirEl.style.display = isActive ? '' : 'none';
+  if (groupsEl) groupsEl.style.display = isActive ? '' : 'none';
 
   if (custFilterMode === 'cancel') {
     // ── 취소된 예약 표시 ──
-    var list = S.ress.filter(function(r){ return r.st === 'cancelled'; });
+    var allCancelled = S.ress.filter(function(r){ return r.st === 'cancelled'; });
+    var list = allCancelled;
     if (q) list = list.filter(function(r){ return (r.nm||'').toLowerCase().indexOf(q)>=0||(r.phone||'').indexOf(q)>=0; });
+    if (totalEl) totalEl.textContent = q ? list.length+'건 / 총 '+allCancelled.length+'건' : '총 '+allCancelled.length+'건';
     list.sort(function(a,b){
       var ka=(a.date||'0000')+(a.time||'00:00'), kb=(b.date||'0000')+(b.time||'00:00');
       return ka>kb?-1:1;
@@ -472,32 +290,53 @@ function renderCustTab() {
   } else {
     // ── 활성 손님 목록 표시 ──
     var sortBy = sortEl ? (sortEl.value||'visits') : 'visits';
-    var custs = getAllCustomers();
+    if (!CUST_SORT_DIR_LABELS[sortBy]) sortBy = 'visits';
+    if (dirEl) dirEl.textContent = '⇅ ' + CUST_SORT_DIR_LABELS[sortBy][custSortRev ? 1 : 0];
+    var allCusts = getAllCustomers();
+    var custs = allCusts;
     if (q) custs = custs.filter(function(c){return (c.name||'').toLowerCase().indexOf(q)>=0||(c.phone||'').indexOf(q)>=0;});
+    custs.forEach(function(c){ c._grp = custGroupOf(c, sortBy); });
     custs.sort(function(a,b){
-      if (sortBy==='visits') return b.total - a.total;
-      if (sortBy==='recent') return (b.last||'')>(a.last||'')?1:(b.last||'')<(a.last||'')?-1:0;
-      return (a.name||'').localeCompare(b.name||'','ko');
+      var d = custCompare(a, b, sortBy);
+      return custSortRev ? -d : d;
     });
-    var html='';
+
+    // 정렬된 순서대로 묶음 만들기 (같은 묶음은 항상 연속으로 놓인다)
+    var groups = [], groupMap = {};
     custs.forEach(function(c){
-      var av=(c.name||c.phone||'?').charAt(0);
-      html+='<div class="cust-card" data-phone="'+esc(c.phone)+'" data-name="'+esc(c.name||'')+'">'
-        +'<div class="cust-av">'+esc(av)+'</div>'
-        +'<div class="cust-main">'
-        +'<div class="cust-name">'+esc(c.name||c.phone)+'</div>'
-        +'<div class="cust-phone">'+esc(c.phone)+'</div>'
-        +'<div class="cust-meta">'
-        +(c.first?'<div class="cust-meta-item">첫 방문 <b>'+fmtDateShort(c.first)+'</b></div>':'')
-        +(c.last&&c.last!==c.first?'<div class="cust-meta-item">최근 <b>'+fmtDateShort(c.last)+'</b></div>':'')
-        +(c.memo?'<div class="cust-meta-item">📝 '+esc(c.memo.slice(0,24))+'</div>':'')
-        +'</div>'
-        +'</div>'
-        +(c.total>0?'<div class="cust-badge">'+c.total+'회</div>':'<div class="cust-no-visit">방문 없음</div>')
-        +'<button class="cust-del-btn" data-phone="'+esc(c.phone)+'">삭제</button>'
-        +'</div>';
+      var g = groupMap[c._grp.key];
+      if (!g) { g = groupMap[c._grp.key] = {key:c._grp.key, label:c._grp.label, items:[]}; groups.push(g); }
+      g.items.push(c);
     });
-    if(!html) html='<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">손님 정보 없음</div>';
+    if (custGroupTab !== '전체' && !groupMap[custGroupTab]) custGroupTab = '전체';
+
+    if (groupsEl) {
+      groupsEl.innerHTML = '<button class="scat'+(custGroupTab==='전체'?' on':'')+'" data-g="전체">전체 '+custs.length+'</button>'
+        + groups.map(function(g){
+          return '<button class="scat'+(custGroupTab===g.key?' on':'')+'" data-g="'+esc(g.key)+'">'+esc(g.label)+' '+g.items.length+'</button>';
+        }).join('');
+      groupsEl.querySelectorAll('.scat').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          custGroupTab = this.getAttribute('data-g');
+          renderCustTab();
+          document.getElementById('cust').scrollTop = 0;
+        });
+      });
+    }
+
+    var shown = custGroupTab === '전체' ? custs : groupMap[custGroupTab].items;
+    if (totalEl) totalEl.textContent = shown.length === allCusts.length ? '총 '+allCusts.length+'명' : shown.length+'명 / 총 '+allCusts.length+'명';
+
+    var html='';
+    if (custGroupTab === '전체') {
+      groups.forEach(function(g){
+        html += '<div class="cust-group-hd"><span>'+esc(g.label)+'</span><span class="cust-group-cnt">'+g.items.length+'명</span></div>';
+        html += g.items.map(custCardHtml).join('');
+      });
+    } else {
+      html = shown.map(custCardHtml).join('');
+    }
+    if(!html) html='<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">'+(q?'검색 결과 없음':'손님 정보 없음')+'</div>';
     document.getElementById('custlist').innerHTML=html;
     document.getElementById('custlist').querySelectorAll('.cust-card').forEach(function(el){
       el.addEventListener('click',function(){openCustInfo(this.getAttribute('data-phone'),this.getAttribute('data-name'));});
@@ -1465,6 +1304,7 @@ function buildInlinePanelHTML(date) {
     + '<div class="schcal-daymemo-label">당일 메모</div>'
     + '<textarea class="schcal-daymemo-input" data-date="'+esc(date)+'" placeholder="당일 메모를 입력하세요…">'+esc(dayMemo)+'</textarea>'
     + '</div>'
+    + buildMealSelectHTML(date)
     + '<div class="schcal-inline-list">';
 
   if (!rvs.length) {
@@ -1490,6 +1330,138 @@ function buildInlinePanelHTML(date) {
   }
   html += '</div></div>';
   return html;
+}
+
+// ── 당일 식사 선택 (식사 / 런치 국물 / 런치 반찬) ──
+// 세 항목을 가로 한 줄에 드롭다운으로 두고, 항목마다 하나만 골라 보여준다.
+// 선택지 목록: S.mealOptions = {meal:[…], soup:[…], side:[…]} (드롭다운의 추가/관리에서 추가·삭제)
+// 날짜별 선택: S.dailyMeals = {'YYYY-MM-DD': {meal:[값], soup:[값], side:[값]}}
+// (예전 버전에서 반찬을 여러 개 고른 기록은 첫 번째 것만 보여준다)
+// 선택지를 지워도 이미 고른 날짜의 기록은 남겨둔다.
+var MEAL_CATS = [
+  {key:'meal', label:'식사'},
+  {key:'soup', label:'런치 국물'},
+  {key:'side', label:'런치 반찬'}
+];
+var MEAL_SEL_ADD = '__add__', MEAL_SEL_MGR = '__mgr__';
+function toStrList(v) {
+  var arr = Array.isArray(v) ? v : (v && typeof v === 'object') ? Object.keys(v).map(function(k){ return v[k]; }) : [];
+  return arr.filter(function(x){ return typeof x === 'string' && x; });
+}
+// Firebase는 빈 배열/객체를 저장하지 않고, 배열을 객체로 돌려줄 때도 있어 항상 같은 모양으로 맞춘다
+function normMealOptions(v) {
+  var o = {};
+  MEAL_CATS.forEach(function(c){ o[c.key] = toStrList(v && v[c.key]); });
+  return o;
+}
+function normDailyMeals(v) {
+  var o = {};
+  if (!v || typeof v !== 'object') return o;
+  Object.keys(v).forEach(function(date) {
+    var day = {}, has = false;
+    MEAL_CATS.forEach(function(c){
+      var list = toStrList(v[date] && v[date][c.key]);
+      if (list.length) { day[c.key] = list; has = true; }
+    });
+    if (has) o[date] = day;
+  });
+  return o;
+}
+function getDayMeals(date) {
+  return (S.dailyMeals && S.dailyMeals[date]) || {};
+}
+function buildMealSelectHTML(date) {
+  if (!S.mealOptions) S.mealOptions = normMealOptions(null);
+  var day = getDayMeals(date);
+  var html = '<div class="schcal-meals">';
+  MEAL_CATS.forEach(function(c) {
+    var opts = S.mealOptions[c.key] || [];
+    var cur = (day[c.key] || [])[0] || '';
+    // 선택지에서 지운 항목이라도 이 날짜에 골라둔 것은 계속 보여준다
+    var shown = cur && opts.indexOf(cur) < 0 ? opts.concat([cur]) : opts;
+    html += '<label class="schcal-meal-item">'
+      + '<span class="schcal-meal-label">'+esc(c.label)+'</span>'
+      + '<select class="schcal-meal-sel'+(cur?' has':'')+'" data-date="'+esc(date)+'" data-mcat="'+c.key+'">'
+      + '<option value="">선택</option>'
+      + shown.map(function(v){ return '<option value="'+esc(v)+'"'+(v===cur?' selected':'')+'>'+esc(v)+'</option>'; }).join('')
+      + '<option value="'+MEAL_SEL_ADD+'">＋ 항목 추가</option>'
+      + (opts.length ? '<option value="'+MEAL_SEL_MGR+'">⚙ 항목 관리</option>' : '')
+      + '</select>'
+      + '</label>';
+  });
+  return html + '</div>';
+}
+function setDayMeal(date, catKey, val) {
+  if (!date || !MEAL_CATS.some(function(c){ return c.key === catKey; })) return;
+  if (!S.dailyMeals) S.dailyMeals = {};
+  var day = S.dailyMeals[date] || {};
+  if (val) day[catKey] = [val]; else delete day[catKey];
+  if (Object.keys(day).length) S.dailyMeals[date] = day; else delete S.dailyMeals[date];
+  saveData();
+  renderSchedView();
+}
+// 드롭다운에서 바로 새 항목을 추가하고 그 항목을 선택
+function addMealOptAndSelect(date, catKey) {
+  var cat = MEAL_CATS.filter(function(c){ return c.key === catKey; })[0];
+  if (!cat) return;
+  var v = prompt('새 '+cat.label+' 항목');
+  v = (v || '').trim();
+  if (!v) { renderSchedView(); return; }
+  if (!S.mealOptions) S.mealOptions = normMealOptions(null);
+  var opts = S.mealOptions[catKey] || (S.mealOptions[catKey] = []);
+  if (opts.indexOf(v) < 0) opts.push(v);
+  setDayMeal(date, catKey, v);
+}
+// 선택지 관리 모달 (추가·삭제)
+function openMealOptMgr(catKey) {
+  var cat = MEAL_CATS.filter(function(c){ return c.key === catKey; })[0];
+  if (!cat) return;
+  // 모달이 열린 동안 다른 기기의 변경으로 S.mealOptions가 통째로 바뀔 수 있어 매번 새로 가져온다
+  function curOpts() {
+    if (!S.mealOptions) S.mealOptions = normMealOptions(null);
+    return S.mealOptions[catKey] || (S.mealOptions[catKey] = []);
+  }
+  var rows = curOpts().map(function(v) {
+    return '<div class="list-mgr-row"><span class="list-mgr-name">'+esc(v)+'</span>'
+      + '<button class="list-mgr-del" data-val="'+esc(v)+'" aria-label="삭제">×</button></div>';
+  }).join('') || '<div style="padding:6px;font-size:11px;color:var(--text3)">없음</div>';
+  showModal(
+    '<div class="md-hd"><div class="md-title">'+esc(cat.label)+' 항목 관리</div><button class="md-x" id="mxbtn" aria-label="닫기">×</button></div>'
+    + '<div class="mb">'
+    + '<div style="background:var(--surf2);border:1px solid var(--border);border-radius:10px;padding:6px 10px;max-height:220px;overflow-y:auto;" id="meal-opt-list">' + rows + '</div>'
+    + '<div style="display:flex;gap:6px;margin-top:6px;">'
+      + '<input class="fi" id="meal-opt-inp" placeholder="새 '+esc(cat.label)+' 항목" maxlength="30" style="flex:1;">'
+      + '<button class="bp" id="meal-opt-add">추가</button>'
+    + '</div>'
+    + '<button class="ab" style="background:var(--surf3);color:var(--text2);width:100%;margin-top:10px;" id="meal-opt-close">닫기</button>'
+    + '</div>'
+  );
+  function add() {
+    var inp = document.getElementById('meal-opt-inp');
+    var v = ((inp||{}).value || '').trim();
+    if (!v) return;
+    if (curOpts().indexOf(v) >= 0) { showToast('이미 있는 항목입니다'); return; }
+    curOpts().push(v);
+    saveData();
+    renderSchedView();
+    openMealOptMgr(catKey);
+    var next = document.getElementById('meal-opt-inp');
+    if (next) next.focus();
+  }
+  document.getElementById('meal-opt-add').addEventListener('click', add);
+  document.getElementById('meal-opt-inp').addEventListener('keydown', function(e){ if (e.key === 'Enter') add(); });
+  document.getElementById('meal-opt-close').addEventListener('click', closeModal);
+  document.getElementById('meal-opt-list').querySelectorAll('.list-mgr-del').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var v = this.getAttribute('data-val');
+      if (!confirm('"'+v+'" 항목을 삭제할까요?\n이미 선택해둔 날짜의 기록은 그대로 남습니다.')) return;
+      var i = curOpts().indexOf(v);
+      if (i >= 0) curOpts().splice(i, 1);
+      saveData();
+      renderSchedView();
+      openMealOptMgr(catKey);
+    });
+  });
 }
 
 function renderSchedView() {
@@ -1669,6 +1641,19 @@ function renderSchedView() {
     el.addEventListener('click', function(e) {
       e.stopPropagation();
       openWeekMemoModal(this.getAttribute('data-week'));
+    });
+  });
+
+  // 당일 식사 선택 (드롭다운: 선택 / 항목 추가 / 항목 관리)
+  gEl.querySelectorAll('.schcal-meal-item').forEach(function(el) {
+    el.addEventListener('click', function(e) { e.stopPropagation(); });
+  });
+  gEl.querySelectorAll('.schcal-meal-sel').forEach(function(el) {
+    el.addEventListener('change', function() {
+      var d = this.getAttribute('data-date'), cat = this.getAttribute('data-mcat'), v = this.value;
+      if (v === MEAL_SEL_ADD) addMealOptAndSelect(d, cat);
+      else if (v === MEAL_SEL_MGR) { renderSchedView(); openMealOptMgr(cat); }
+      else setDayMeal(d, cat, v);
     });
   });
 

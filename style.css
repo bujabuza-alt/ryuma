@@ -249,7 +249,14 @@ body{font-family:-apple-system,'Apple SD Gothic Neo',sans-serif;background:var(-
 #cust{flex:1;min-width:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px;display:none;flex-direction:column;gap:8px;}
 #cust.on{display:flex;}
 /* 손님 / 취소 필터 Pills */
-#cust-filter-row{display:flex;gap:5px;flex-shrink:0;}
+#cust-filter-row{display:flex;gap:5px;flex-shrink:0;align-items:center;}
+#cust-total{margin-left:auto;font-size:12px;font-weight:700;color:var(--text2);white-space:nowrap;}
+#cust-groups{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px;flex-shrink:0;}
+#cust-groups::-webkit-scrollbar{display:none;}
+#cust-groups .scat{flex-shrink:0;}
+.cust-group-hd{display:flex;align-items:center;justify-content:space-between;padding:8px 4px 2px;font-size:12px;font-weight:800;color:var(--text2);border-bottom:1px solid var(--border);}
+.cust-group-hd:first-child{padding-top:0;}
+.cust-group-cnt{font-size:11px;font-weight:700;color:var(--text3);}
 .cust-fpill{border:1px solid var(--border2);background:var(--surf2);color:var(--text2);border-radius:99px;padding:4px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
 .cust-fpill.on{border-color:var(--red);background:rgba(196,18,48,.12);color:var(--red2);}
 #custlist{display:flex;flex-direction:column;gap:6px;}
@@ -973,6 +980,54 @@ body.light .schrv-tag-call { color: #c03060; }
   outline: none;
   border-color: var(--indigo);
 }
+/* 당일 식사 선택 (인라인 패널 내부): 식사·국물·반찬을 가로 한 줄에 드롭다운으로 */
+.schcal-meals {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  gap: 8px;
+}
+.schcal-meal-item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.schcal-meal-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text3);
+  white-space: nowrap;
+}
+.schcal-meal-sel {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 8px;
+  background: var(--surf);
+  color: var(--text3);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  outline: none;
+}
+.schcal-meal-sel.has {
+  color: var(--text);
+  border-color: var(--indigo);
+}
+/* 좁은 화면: 한 줄은 유지하고 라벨만 드롭다운 위로 */
+@media (max-width: 600px) {
+  .schcal-meals { gap: 6px; }
+  .schcal-meal-item { flex-direction: column; align-items: stretch; gap: 3px; }
+}
 .schcal-inline-panel {
   overflow: hidden;
   max-height: 0;
@@ -982,7 +1037,7 @@ body.light .schrv-tag-call { color: #c03060; }
   transition: max-height 0.32s ease, opacity 0.24s ease, margin-top 0.32s ease, margin-bottom 0.32s ease;
 }
 .schcal-inline-panel.open {
-  max-height: 480px;
+  max-height: 760px;
   opacity: 1;
   margin-top: 6px;
   margin-bottom: 4px;

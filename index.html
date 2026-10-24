@@ -138,17 +138,18 @@
       <div class="rv-top">
         <input class="rv-srch" id="custsrch" type="search" placeholder="이름, 연락처 검색…">
         <select id="custsort" class="top-sel" aria-label="정렬">
-          <option value="visits">방문 많은 순</option>
-          <option value="recent">최근 방문순</option>
-          <option value="name">이름순</option>
+          <option value="visits">방문 횟수</option>
+          <option value="recent">최근 방문</option>
+          <option value="name">이름</option>
         </select>
-        <button class="bg top-btn" id="btn-cust-import">📥 불러오기</button>
-        <button class="bg top-btn" id="btn-cust-notion">☁ 노션</button>
+        <button class="bg top-btn" id="custsort-dir" aria-label="정렬 방향 바꾸기">↓ 기본</button>
       </div>
       <div id="cust-filter-row">
         <button class="cust-fpill on" data-f="active">손님</button>
         <button class="cust-fpill" data-f="cancel">취소</button>
+        <span id="cust-total"></span>
       </div>
+      <div id="cust-groups"></div>
       <div id="custlist"></div>
     </div>
     <!-- 발주 탭 (order-checklist 이식) -->
@@ -228,7 +229,6 @@
 <div id="mo"><div class="md" id="mdc"></div></div>
 <div id="mo2"><div class="md" id="mdc2"></div></div>
 
-<!-- SheetJS(xlsx 불러오기)는 용량이 커서(약 900KB) 실행 속도를 위해 필요할 때만 불러온다 (js/floor.js) -->
 <script src="js/globals.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/firebase.js"></script>

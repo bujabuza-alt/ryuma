@@ -10,7 +10,9 @@ document.getElementById('t4').addEventListener('click', function(){ switchTab('s
 document.getElementById('t5').addEventListener('click', function(){ switchTab('images'); });
 document.getElementById('t6').addEventListener('click', function(){ switchTab('staff'); });
 document.getElementById('custsrch').addEventListener('input', renderCustTab);
-document.getElementById('custsort').addEventListener('change', renderCustTab);
+loadCustSortPref();
+document.getElementById('custsort').addEventListener('change', setCustSort);
+document.getElementById('custsort-dir').addEventListener('click', toggleCustSortDir);
 // Customer tab filter pills (손님 / 취소)
 document.getElementById('cust-filter-row').addEventListener('click', function(e) {
   var pill = e.target;
@@ -20,7 +22,6 @@ document.getElementById('cust-filter-row').addEventListener('click', function(e)
   pill.classList.add('on');
   renderCustTab();
 });
-document.getElementById('btn-cust-notion').addEventListener('click', function(){ runNotionCustBackup(); });
 document.getElementById('btn-view').addEventListener('click', toggleView);
 document.getElementById('bedit').addEventListener('click', toggleEdit);
 document.getElementById('schcal-p').addEventListener('click', function() {
@@ -334,7 +335,6 @@ document.getElementById('schv-btn-rv-menu').addEventListener('click', function()
 })();
 // 다크 모드 제거로 인해 테마 버튼 이벤트 바인딩 제거
 document.getElementById('btn-cfg').addEventListener('click', openCfg);
-document.getElementById('btn-cust-import').addEventListener('click', openCustImport);
 document.getElementById('mo').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 document.getElementById('mo').addEventListener('touchend', function(e){ if(e.target===this) closeModal(); });
 // 두 번째 모달 레이어(#mo2)도 배경 탭으로 닫기 — 각 모달의 닫기(×) 버튼 동작을 그대로 사용

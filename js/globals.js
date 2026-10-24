@@ -29,7 +29,7 @@ var INIT_PARAGON = [
   {id:9,n:'바2', shape:'bar', sz:'m',c:2,px:68,py:76}
 ];
 
-var S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{},orderProducts:[],orderItems:[],orderHistory:[],orderInit:false};
+var S = {tables:[],waits:[],ress:[],tags:[],daily:[],customers:[],inventory:[],stockCats:[],stockUnits:[],images:[],imageCats:[],staffActive:[],staffResigned:[],staffLogs:[],staffRecords:[],staffFavTimes:[],staffSchedule:[],dailyMemos:{},weeklyMemos:{},mealOptions:{meal:[],soup:[],side:[]},dailyMeals:{},orderProducts:[],orderItems:[],orderHistory:[],orderInit:false};
 var DEFAULT_TAGS = ['생일','기념일','데이트','VIP','단체','비즈니스'];
 var currentTab='floor', editMode=false, saveTimer=null;
 var calY=new Date().getFullYear(), calM=new Date().getMonth(), calSel=null;
@@ -54,4 +54,3 @@ var lastSavedTs = 0;
 var lastDate = '';
 var VIVID_COLORS = ['#e63946','#f4a261','#2ec4b6','#457b9d','#e9c46a','#6a4c93','#f72585','#4cc9f0','#06d6a0','#fb8500'];
 var NOTION_DB_ID = '7562318a7b0b41b5aa3a9ec91cba2d85';
-var NOTION_CUST_DB_ID = '1a94dd12ecb4805a98ddd72093c44909';
